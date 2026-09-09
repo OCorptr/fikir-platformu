@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Geleceğin Fikri Platformu</title>
 <link rel="stylesheet" href="assets/css/fonts.css?v=2">
-<link rel="stylesheet" href="assets/css/stil.css?v=49">
+<link rel="stylesheet" href="assets/css/stil.css?v=52">
   <script>try{if(localStorage.getItem('gf-tema')==='koyu')document.documentElement.classList.add('koyu-mod')}catch(e){}</script>
 </head>
 <body class="sayfa-index">
@@ -44,6 +44,7 @@
           <div class="af-okul" id="af-okul">—</div>
           <div class="af-tema" id="af-tema">—</div>
           <div class="af-soz" id="af-soz">—</div>
+          <button class="af-arsiv-bag" id="arsiv-ac" type="button" title="Ayın Fikri Arşivi">🗄️ Ayın Fikri Arşivi</button>
         </div>
         <div class="af-kart af-kenar-kart" id="af-sag"></div>
         <button class="af-ok af-ok-sol" id="af-ok-sol" type="button" aria-label="Önceki">‹</button>
@@ -67,7 +68,7 @@
       </div>
       <div class="ozellik ozellik-arsiv" id="arsiv-ac" role="button" tabindex="0" title="Ayın Fikri Arşivi">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M17 5h3a1 1 0 0 1 1 1c0 2-1.5 3.5-3.5 3.5"/><path d="M7 5H4a1 1 0 0 0-1 1c0 2 1.5 3.5 3.5 3.5"/></svg>
-        <span class="yazi">Ayın Fikri Arşivi</span>
+        Ayın Fikri Arşivi
       </div>
       <div class="ozellik">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20v-7"/><path d="M12 20V5"/><path d="M19 20v-10"/><path d="M3 20h18"/></svg>
@@ -147,31 +148,22 @@
   document.getElementById('af-ok-sag').addEventListener('click', function () { i = (i + 1) % n; goster(); otomatik(); });
 
   goster(); otomatik();
+
+  window.afCarousel = {
+    durdur: function () { clearInterval(zaman); },
+    baslat: function () { otomatik(); },
+    ileri: function () { i = (i + 1) % kazananlar.length; goster(); }
+  };
 })();
 </script>
 
-  <!-- büyük okunabilir görünüm -->
+  <!-- büyük okunabilir görünüm (lightbox) -->
   <div class="af-lightbox" id="af-lightbox" hidden>
     <button class="af-lb-kapat" id="af-lb-kapat" type="button" aria-label="Kapat">✕</button>
     <div id="af-lb-kart-yer"></div>
   </div>
-  <script>
-  (function () {
-    var lb = document.getElementById('af-lightbox');
-    var yer = document.getElementById('af-lb-kart-yer');
-    function ac() {
-      yer.innerHTML = document.getElementById('af-orta').outerHTML;
-      lb.hidden = false;
-    }
-    function kapat() { lb.hidden = true; }
-    document.getElementById('af-orta').addEventListener('click', ac);
-    document.getElementById('af-lb-kapat').addEventListener('click', kapat);
-    lb.addEventListener('click', function (e) { if (e.target === lb) kapat(); });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') kapat(); });
-  })();
-  </script>
-</body>
-  <!-- erişilebilirlik -->
+
+  <!-- erişilebilirlik araçları -->
   <button class="erisilebilirlik-dugme" id="erisilebilirlik-dugme" type="button" title="Erişilebilirlik Araçları">
     <img src="assets/img/erisilebilirlik_man.png" alt="Erişilebilirlik araçları">
   </button>
@@ -204,8 +196,6 @@
     <div class="ep-satir"><span>⏸️ Animasyonları Durdur</span><button class="ep-anahtar" data-ozellik="animasyon-durdur" type="button" aria-label="Animasyonları durdur"></button></div>
     <button class="ep-sifirla" id="ep-sifirla" type="button">♻️ Tümünü Sıfırla</button>
   </div>
-  <script src="assets/js/erisilebilirlik.js"></script>
-  <!-- geçmiş ayın fikirleri arşivi -->
   <div class="arsiv-modal" id="arsiv-modal" hidden>
     <div class="arsiv-icerik">
       <button class="arsiv-kapat" id="arsiv-kapat" type="button" aria-label="Kapat">✕</button>
@@ -229,17 +219,40 @@
       </div>
     </div>
   </div>
+  <script src="assets/js/erisilebilirlik.js"></script>
   <script>
   (function () {
     var modal = document.getElementById('arsiv-modal');
     function ac() { modal.hidden = false; }
     function kapat() { modal.hidden = true; }
-    document.getElementById('arsiv-ac').addEventListener('click', ac);
-    document.getElementById('arsiv-ac').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ac(); }
+    /* baglanti yeniden render edilse de calisir (delegasyon) */
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('#arsiv-ac')) ac();
+    });
+    document.addEventListener('keydown', function (e) {
+      if ((e.key === 'Enter' || e.key === ' ') && document.activeElement && document.activeElement.id === 'arsiv-ac') {
+        e.preventDefault(); ac();
+      }
     });
     document.getElementById('arsiv-kapat').addEventListener('click', kapat);
     modal.addEventListener('click', function (e) { if (e.target === modal) kapat(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') kapat(); });
+  })();
+  </script>
+
+  <script>
+  (function () {
+    var lb = document.getElementById('af-lightbox');
+    var yer = document.getElementById('af-lb-kart-yer');
+    function ac() {
+      yer.innerHTML = document.getElementById('af-orta').outerHTML;
+      lb.hidden = false;
+      if (window.afCarousel) window.afCarousel.durdur();
+    }
+    function kapat() { lb.hidden = true; if (window.afCarousel) { window.afCarousel.ileri(); window.afCarousel.baslat(); } }
+    document.getElementById('af-orta').addEventListener('click', ac);
+    document.getElementById('af-lb-kapat').addEventListener('click', kapat);
+    lb.addEventListener('click', function (e) { if (e.target === lb) kapat(); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') kapat(); });
   })();
   </script>
