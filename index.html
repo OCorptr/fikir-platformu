@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Geleceğin Fikri Platformu</title>
+<link rel="stylesheet" href="assets/css/fonts.css?v=2">
+<link rel="stylesheet" href="assets/css/stil.css?v=42">
+  <script>try{if(localStorage.getItem('gf-tema')==='koyu')document.documentElement.classList.add('koyu-mod')}catch(e){}</script>
+</head>
+<body class="sayfa-index">
+
+  <!-- üst bar -->
+  <header class="ust">
+    <div class="ust-sol">
+      <a class="logo" href="index.html" title="Ana Sayfa">
+        <img class="logo-mark" src="assets/img/gencarge_logo.webp" alt="Genç AR-GE">
+        <span class="logo-slogan">Fikrin Geleceğimiz Olsun</span>
+      </a>
+    </div>
+    <div class="ust-sag">
+      <div class="meb">
+        <img class="meb-armasi" src="assets/img/meblogo.webp" alt="T.C. Millî Eğitim Bakanlığı arması">
+        <span class="meb-yazi">T.C. MİLLÎ EĞİTİM BAKANLIĞI</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- seçim alanı -->
+  <main class="secim">
+    <h1>GELECEĞİN FİKRİ<br>
+      <span class="kivircik">PLATFORMU</span>
+    </h1>
+    <p class="alt-baslik">Fikirlerini paylaş, keşfet, geleceği birlikte şekillendirelim.</p>
+
+    <div class="kartlar af-alan">
+      <div class="af-baslik"><span class="af-cizgi"></span>🏆 Ayın Fikirleri<span class="af-cizgi"></span></div>
+
+      <div class="af-sahne">
+        <div class="af-kart af-kenar-kart" id="af-sol"></div>
+        <div class="af-kart af-orta" id="af-orta">
+          <div class="af-kurdele">👑 Ayın Fikri · <span id="af-ay">Eylül</span></div>
+          <div class="af-emoji" id="af-emoji">🔬</div>
+          <div class="af-ad" id="af-ad">—</div>
+          <div class="af-okul" id="af-okul">—</div>
+          <div class="af-tema" id="af-tema">—</div>
+          <div class="af-soz" id="af-soz">—</div>
+        </div>
+        <div class="af-kart af-kenar-kart" id="af-sag"></div>
+        <button class="af-ok af-ok-sol" id="af-ok-sol" type="button" aria-label="Önceki">‹</button>
+        <button class="af-ok af-ok-sag" id="af-ok-sag" type="button" aria-label="Sonraki">›</button>
+      </div>
+      <div class="af-noktalar" id="af-noktalar"></div>
+
+      <a class="cta-fikir" href="fikir.html">
+        <span class="cta-ikon">✏️</span>
+        <span class="cta-metin">Fikrini Yaz &amp; Paylaş</span>
+        <svg class="cta-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+
+
+
+    <div class="ozellikler">
+      <div class="ozellik">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 1 6 6c0 2.2-1.2 3.5-2.4 4.7-.6.6-.6 1.3-.6 2.3h-6c0-1 0-1.7-.6-2.3C7.2 12.5 6 11.2 6 9a6 6 0 0 1 6-6z"/></svg>
+        Fikirlerini Paylaş
+      </div>
+      <div class="ozellik">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5"/><circle cx="16.8" cy="9" r="2.6"/><path d="M16.4 14.8c2.2.4 3.7 1.8 4.2 4.2"/></svg>
+        İlham Al
+      </div>
+      <div class="ozellik ozellik-arsiv" id="arsiv-ac" role="button" tabindex="0" title="Ayın Fikri Arşivi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M17 5h3a1 1 0 0 1 1 1c0 2-1.5 3.5-3.5 3.5"/><path d="M7 5H4a1 1 0 0 0-1 1c0 2 1.5 3.5 3.5 3.5"/></svg>
+        Ayın Fikri Arşivi
+      </div>
+      <div class="ozellik">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20v-7"/><path d="M12 20V5"/><path d="M19 20v-10"/><path d="M3 20h18"/></svg>
+        Geliştir
+      </div>
+      <div class="ozellik">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><ellipse cx="12" cy="12" rx="3.6" ry="8.5"/><path d="M3.5 12h17"/></svg>
+        Fark Yarat
+      </div>
+    </div>
+
+  </main>
+
+  <script src="assets/js/tema.js"></script>
+<script>
+(function () {
+  var kazananlar = [
+    { emoji: '🌱', ad: 'Mert Demir', okul: 'Yunus Emre Ortaokulu · 7-B · Buca', tema: '🌱 Çevre ve Sürdürülebilirlik',
+      soz: '"Atık yağları toplayıp sabun üreten atölye kursak; geliri okul kütüphanesine aktaralım."', ay: 'Eylül' },
+    { emoji: '🔬', ad: 'Zeynep Kaya', okul: 'Atatürk Anadolu Lisesi · 8-A · Bornova', tema: '❤️ Sosyal Fayda',
+      soz: '"Okul bahçemize güneş enerjili akıllı sulama sistemi kuralım; bitkiler telefondan sulansın."', ay: 'Ağustos' },
+    { emoji: '💡', ad: 'Arda Yılmaz', okul: 'Atatürk Ortaokulu · 7-C · İzmir', tema: '⚙️ Teknoloji ve Yenilik',
+      soz: '"Görme engelli arkadaşlarımız için okul içinde sesli yönlendirme sistemi geliştirebiliriz."', ay: 'Temmuz' },
+    { emoji: '🤖', ad: 'Elif Şahin', okul: 'Mehmet Akif Ersoy Ortaokulu · 8-C · Karşıyaka', tema: '🤖 Yapay Zekâ',
+      soz: '"Zorlandığımız konuları yapay zekâ bizim seviyemize göre anlatan bir çalışma arkadaşı olsa."', ay: 'Haziran' },
+    { emoji: '📖', ad: 'Emir Koç', okul: 'Mareşal Fevzi Çakmak İlkokulu · 4-B · Bayraklı', tema: '📖 Değerler Eğitimi',
+      soz: '"Sınıflar arası iyilik kartı turnuvası düzenleyelim; kazanan sınıf sinema günü kazansın."', ay: 'Mayıs' }
+  ];
+  var i = 0, zaman;
+  var n = kazananlar.length;
+
+  function dolu(kart, k) {
+    kart.innerHTML =
+      '<div class="af-k-emoji">' + k.emoji + '</div>' +
+      '<div class="af-k-ad">' + k.ad + '</div>' +
+      '<div class="af-k-okul">' + k.okul + '</div>' +
+      '<div class="af-k-tema">' + k.tema + '</div>' +
+      '<div class="af-k-soz">' + k.soz + '</div>';
+  }
+
+  function goster() {
+    var n2 = kazananlar.length;
+    var sol = kazananlar[(i - 1 + n2) % n2];
+    var orta = kazananlar[i];
+    var sag = kazananlar[(i + 1) % n2];
+
+    dolu(document.getElementById('af-sol'), sol);
+    dolu(document.getElementById('af-sag'), sag);
+
+    var ortaKart = document.getElementById('af-orta');
+    ortaKart.innerHTML =
+      '<div class="af-kurdele">👑 Ayın Fikri · ' + orta.ay + '</div>' +
+      '<div class="af-emoji">' + orta.emoji + '</div>' +
+      '<div class="af-ad">' + orta.ad + '</div>' +
+      '<div class="af-okul">' + orta.okul + '</div>' +
+      '<div class="af-tema">' + orta.tema + '</div>' +
+      '<div class="af-soz">' + orta.soz + '</div>';
+
+    var noktalar = document.getElementById('af-noktalar');
+    noktalar.innerHTML = '';
+    kazananlar.forEach(function (_, n_i) {
+      var d = document.createElement('i');
+      if (n_i === i) d.className = 'aktif';
+      d.addEventListener('click', function () { i = n_i; goster(); otomatik(); });
+      noktalar.appendChild(d);
+    });
+
+    var ortaKart = document.getElementById('af-orta');
+    ortaKart.classList.remove('pop'); void ortaKart.offsetWidth; ortaKart.classList.add('pop');
+    var sahne = document.querySelector('.af-sahne');
+    sahne.classList.remove('kaydir'); void sahne.offsetWidth; sahne.classList.add('kaydir');
+  }
+
+  function otomatik() { clearInterval(zaman); zaman = setInterval(function () { i = (i + 1) % kazananlar.length; goster(); }, 6000); }
+
+  document.getElementById('af-ok-sol').addEventListener('click', function () { i = (i - 1 + n) % n; goster(); otomatik(); });
+  document.getElementById('af-ok-sag').addEventListener('click', function () { i = (i + 1) % n; goster(); otomatik(); });
+
+  goster(); otomatik();
+})();
+</script>
+</body>
+  <!-- erişilebilirlik -->
+  <button class="erisilebilirlik-dugme" id="erisilebilirlik-dugme" type="button" title="Erişilebilirlik Araçları">
+    <img src="assets/img/erisilebilirlik_man.png" alt="Erişilebilirlik araçları">
+  </button>
+  <div class="erisilebilirlik-panel" id="erisilebilirlik-panel">
+    <div class="ep-baslik">♿ Erişilebilirlik</div>
+    <div class="ep-satir"><span>🌗 Koyu Mod</span><button class="ep-anahtar" data-ozellik="koyu-mod" type="button" aria-label="Koyu mod"></button></div>
+    <div class="ep-satir"><span>🔊 Ekran Okuyucu</span><button class="ep-anahtar" data-ozellik="ekran-okuyucu" type="button" aria-label="Ekran okuyucu"></button></div>
+    <div class="ep-okuma-araclari" id="ep-okuma-araclari" hidden>
+      <button class="ep-dugme" id="oa-sayfa" type="button">▶ Sayfayı Oku</button>
+      <button class="ep-dugme" id="oa-durdur" type="button">⏹ Durdur</button>
+    </div>
+    <div class="ep-satir"><span>🔠 Yazı Boyutu</span>
+      <span class="ep-grup">
+        <button class="ep-dugme" data-grup="yazi" data-deger="kucuk" type="button">A−</button>
+        <button class="ep-dugme" data-grup="yazi" data-deger="normal" type="button">A</button>
+        <button class="ep-dugme" data-grup="yazi" data-deger="buyuk" type="button">A+</button>
+      </span>
+    </div>
+    <div class="ep-satir"><span>📖 Disleksi Dostu Yazı Tipi</span><button class="ep-anahtar" data-ozellik="disleksi" type="button" aria-label="Disleksi dostu yazı tipi"></button></div>
+    <div class="ep-satir"><span>🌗 Yüksek Kontrast</span><button class="ep-anahtar" data-ozellik="yuksek-kontrast" type="button" aria-label="Yüksek kontrast"></button></div>
+    <div class="ep-satir"><span>🔗 Bağlantıları Vurgula</span><button class="ep-anahtar" data-ozellik="baglanti-vurgu" type="button" aria-label="Bağlantıları vurgula"></button></div>
+    <div class="ep-satir"><span>🖱️ İmleç Rengi</span>
+      <span class="ep-grup">
+        <button class="ep-dugme" data-grup="imlec" data-deger="varsayilan" type="button" title="Varsayılan imleç">➤</button>
+        <button class="ep-dugme" data-grup="imlec" data-deger="beyaz" type="button" title="Beyaz imleç">⚪</button>
+        <button class="ep-dugme" data-grup="imlec" data-deger="siyah" type="button" title="Siyah imleç">⚫</button>
+        <button class="ep-dugme" data-grup="imlec" data-deger="sari" type="button" title="Sarı imleç">🟡</button>
+      </span>
+    </div>
+    <div class="ep-satir"><span>⏸️ Animasyonları Durdur</span><button class="ep-anahtar" data-ozellik="animasyon-durdur" type="button" aria-label="Animasyonları durdur"></button></div>
+    <button class="ep-sifirla" id="ep-sifirla" type="button">♻️ Tümünü Sıfırla</button>
+  </div>
+  <script src="assets/js/erisilebilirlik.js"></script>
+  <!-- geçmiş ayın fikirleri arşivi -->
+  <div class="arsiv-modal" id="arsiv-modal" hidden>
+    <div class="arsiv-icerik">
+      <button class="arsiv-kapat" id="arsiv-kapat" type="button" aria-label="Kapat">✕</button>
+      <h2>🏆 Ayın Fikri Arşivi</h2>
+      <p class="arsiv-alt">Platformda seçilen önceki kazananlar</p>
+      <div class="arsiv-zaman">
+        <div class="ay-kart">
+          <div class="ay-etiket">Ağustos 2026</div>
+          <div class="ay-kazanan">📖 Emir Koç</div>
+          <div class="ay-okul">Mareşal Fevzi Çakmak İlkokulu · 4-B · Bayraklı</div>
+          <div class="ay-tema">Değerler Eğitimi</div>
+          <div class="ay-fikir-giris">"Sınıflar arası iyilik kartı turnuvası düzenleyelim; kazanan sınıf sinema günü kazansın."</div>
+        </div>
+        <div class="ay-kart">
+          <div class="ay-etiket">Temmuz 2026</div>
+          <div class="ay-kazanan">🤝 Defne Arslan</div>
+          <div class="ay-okul">Fatih Sultan Mehmet Ortaokulu · 6-A · Gaziemir</div>
+          <div class="ay-tema">Sosyal Sorumluluk</div>
+          <div class="ay-fikir-giris">"Yaşlılar bakımeviyle mektup arkadaşlığı kurup her ay onları ziyaret edelim."</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var modal = document.getElementById('arsiv-modal');
+    function ac() { modal.hidden = false; }
+    function kapat() { modal.hidden = true; }
+    document.getElementById('arsiv-ac').addEventListener('click', ac);
+    document.getElementById('arsiv-ac').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ac(); }
+    });
+    document.getElementById('arsiv-kapat').addEventListener('click', kapat);
+    modal.addEventListener('click', function (e) { if (e.target === modal) kapat(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') kapat(); });
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Geleceğin Fikri — Fikrini Anlat</title>
+<link rel="stylesheet" href="assets/css/fonts.css?v=2">
+<link rel="stylesheet" href="assets/css/stil.css?v=42">
+  <script>try{if(localStorage.getItem('gf-tema')==='koyu')document.documentElement.classList.add('koyu-mod')}catch(e){}</script>
+</head>
+<body class="sayfa-fikir">
+
+  <!-- üst bar -->
+  <header class="ust">
+    <div class="ust-sol">
+      <a class="logo" href="index.html" title="Ana Sayfa">
+        <img class="logo-mark" src="assets/img/gencarge_logo.webp" alt="Genç AR-GE">
+        <span class="logo-slogan">Fikrin Geleceğimiz Olsun</span>
+      </a>
+    </div>
+    <div class="ust-sag">
+      <div class="meb">
+        <img class="meb-armasi" src="assets/img/meblogo.webp" alt="T.C. Millî Eğitim Bakanlığı arması">
+        <span class="meb-yazi">T.C. MİLLÎ EĞİTİM BAKANLIĞI</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- fikir giriş alanı -->
+  <main class="fikir-hero">
+    <div class="fikir-sol">
+      <div class="balon-kapsa">
+        <div class="balon" id="balon">Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra <b>Fikrim</b> kutusuna hayalini yaz. Sıra sende!</div>
+      </div>
+      <img class="maskot-fikir" src="assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu">
+    </div>
+
+    <section class="fikir-karti" id="fikir-karti">
+      <!-- form görünümü -->
+      <div id="form-gorunum">
+        <h1>Fikrini Anlat! <svg width="30" height="30" viewBox="0 0 24 24" fill="#F6B40E" style="vertical-align:super"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4z"/></svg></h1>
+
+        <div class="bolum-basligi turkuaz">1 · Temanı Seç</div>
+        <div class="temalar" id="temalar">
+          <button type="button" class="tema">🎨 Kültür ve Sanat</button>
+          <button type="button" class="tema">⚽ Spor ve Sağlıklı Yaşam</button>
+          <button type="button" class="tema">🔬 Bilim ve Teknoloji</button>
+          <button type="button" class="tema">🤖 Yapay Zekâ</button>
+          <button type="button" class="tema">🌱 Çevre ve Sürdürülebilirlik</button>
+          <button type="button" class="tema">🤝 Sosyal Sorumluluk</button>
+          <button type="button" class="tema">💡 Girişimcilik</button>
+          <button type="button" class="tema">🚨 Afet Farkındalığı ve Güvenli Yaşam</button>
+          <button type="button" class="tema">📖 Değerler Eğitimi</button>
+          <button type="button" class="tema">🏭 Yerli ve Millî Üretim – Millî Savunma</button>
+        </div>
+
+        <div class="bolum-basligi turuncu">2 · Fikrim</div>
+        <div class="fikir-alani" id="fikir-alani">
+          <textarea id="fikrim" maxlength="600" placeholder="Fikrini buraya yaz... Ne olsun da dünyamız daha güzel bir yer olsun?"></textarea>
+        </div>
+        <div class="sayac-satiri">
+          <span><span id="sayac-sayi">0</span> / 600 karakter</span>
+          <button type="button" class="taslak" id="btn-taslak">Taslak Kaydet</button>
+        </div>
+
+        <div class="ekip-alani" id="ekip-alani">
+          <div class="ekip-satiri">
+            <input class="ekip-input" id="ekip-input" type="text" placeholder="EBA adı veya e-posta ile arkadaş ara...">
+            <button type="button" class="btn-ikincil btn-kucuk" id="btn-davet">Davet Et</button>
+          </div>
+          <div class="ekip-cips" id="ekip-cips"></div>
+        </div>
+
+        <div class="hata-notu" id="hata-notu"></div>
+
+        <div class="fikir-butonlar">
+          <button type="button" class="btn-ikincil" id="btn-ekip">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.5 5.5-4.5s4.9 1.5 5.5 4.5"/><circle cx="16.8" cy="9" r="2.6"/><path d="M16.4 14.8c2.2.4 3.7 1.8 4.2 4.2"/></svg>
+            Ekip Olarak Katıl
+          </button>
+          <button type="button" class="btn-hayalet" id="btn-sil">Fikrimi Sil</button>
+          <button type="button" class="btn-ana" id="btn-gonder">
+            Fikrimi Gönder
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 21 3l-5 18-4.5-7.5z"/><path d="M11.5 13.5 21 3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- başarı görünümü -->
+      <div class="basari" id="basari-gorunum" hidden>
+        <svg class="basari-tik" viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="24"/>
+          <path d="M15 27 l7.5 7 L38 19"/>
+        </svg>
+        <h2>Fikrin bize ulaştı, teşekkür ederiz!</h2>
+        <p>Fikrinin değerlendirme sürecini buradan takip edebilirsin.<br>Yeni fikirlerini bekliyoruz.</p>
+        <div class="adimlar">
+          <span class="adim aktif">Gönderildi</span>
+          <span class="adim">Ön Değerlendirme</span>
+          <span class="adim">Komisyon İncelemesi</span>
+          <span class="adim">Planlama</span>
+          <span class="adim">Hayata Geçirildi</span>
+        </div>
+        <button type="button" class="btn-ikincil" id="btn-yeni">Yeni Fikir Yaz</button>
+      </div>
+    </section>
+  </main>
+
+
+<script>
+(function () {
+  var MAX = 600;
+  var balon = document.getElementById('balon');
+  var ta = document.getElementById('fikrim');
+  var sayi = document.getElementById('sayac-sayi');
+  var hata = document.getElementById('hata-notu');
+  var kart = document.getElementById('fikir-karti');
+
+  function balonDegistir(html) {
+    balon.innerHTML = html;
+    balon.classList.remove('pop');
+    void balon.offsetWidth;
+    balon.classList.add('pop');
+  }
+  function hataGoster(mesaj) {
+    hata.textContent = mesaj;
+    hata.classList.add('gorun');
+    kart.classList.remove('sarsildi');
+    void kart.offsetWidth;
+    kart.classList.add('sarsildi');
+  }
+
+  // karakter sayacı
+  ta.addEventListener('input', function () {
+    if (ta.value.length > MAX) ta.value = ta.value.slice(0, MAX);
+    sayi.textContent = ta.value.length;
+  });
+
+  // tema seçimi
+  var temalar = document.querySelectorAll('.tema');
+  temalar.forEach(function (t) {
+    t.addEventListener('click', function () {
+      temalar.forEach(function (x) { x.classList.remove('aktif'); });
+      t.classList.add('aktif');
+      hata.classList.remove('gorun');
+    });
+  });
+
+  // ekip olarak katıl
+  var ekipAlani = document.getElementById('ekip-alani');
+  var ekipInput = document.getElementById('ekip-input');
+  var ekipCips = document.getElementById('ekip-cips');
+  document.getElementById('btn-ekip').addEventListener('click', function () {
+    ekipAlani.classList.toggle('acik');
+    if (ekipAlani.classList.contains('acik')) {
+      balonDegistir('Arkadaşlarını davet et, birlikte fikirler daha güçlü olur! 💪');
+      ekipInput.focus();
+    }
+  });
+  document.getElementById('btn-davet').addEventListener('click', function () {
+    var v = ekipInput.value.trim();
+    if (!v) { ekipInput.focus(); return; }
+    var cip = document.createElement('span');
+    cip.className = 'ekip-cip';
+    cip.textContent = '👋 ' + v;
+    ekipCips.appendChild(cip);
+    ekipInput.value = '';
+    balonDegistir('Ekip büyüyor! 🎉 Fikrinizi birlikte geliştirebilirsiniz.');
+  });
+
+  // taslak kaydet
+  document.getElementById('btn-taslak').addEventListener('click', function () {
+    balonDegistir('Taslak kaydedildi ✅ Kaldığın yerden devam edebilirsin.');
+  });
+
+  // fikrimi sil
+  document.getElementById('btn-sil').addEventListener('click', function () {
+    ta.value = ''; sayi.textContent = '0';
+    temalar.forEach(function (x) { x.classList.remove('aktif'); });
+    hata.classList.remove('gorun');
+    balonDegistir('Tamam, temiz sayfa! 🧽 Yeni fikirlerini bekliyorum.');
+    ta.focus();
+  });
+
+  // gönder
+  document.getElementById('btn-gonder').addEventListener('click', function () {
+    var temaSecili = document.querySelector('.tema.aktif');
+    if (!temaSecili) {
+      hataGoster('Göndermeden önce bir tema seçmelisin.');
+      balonDegistir('Dur! Önce bir <b>tema</b> seçmalısın 😊');
+      return;
+    }
+    if (ta.value.trim().length < 10) {
+      hataGoster('Fikrini biraz daha anlat; en az bir cümle yaz.');
+      balonDegistir('Biraz daha anlat; fikrin ne kadar net, o kadar hızlı değerlendirilir! ✏️');
+      ta.focus();
+      return;
+    }
+    hata.classList.remove('gorun');
+    document.getElementById('form-gorunum').hidden = true;
+    document.getElementById('basari-gorunum').hidden = false;
+    balonDegistir('Fikrin bize ulaştı, teşekkür ederiz! 🎉');
+  });
+
+  // yeni fikir
+  document.getElementById('btn-yeni').addEventListener('click', function () {
+    document.getElementById('basari-gorunum').hidden = true;
+    document.getElementById('form-gorunum').hidden = false;
+    ta.value = ''; sayi.textContent = '0';
+    temalar.forEach(function (x) { x.classList.remove('aktif'); });
+    ekipCips.innerHTML = '';
+    balonDegistir('Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra <b>Fikrim</b> kutusuna hayalini yaz. Sıra sende!');
+  });
+})();
+</script>
+  <script src="assets/js/tema.js"></script>
+  <!-- erişilebilirlik -->
+  <button class="erisilebilirlik-dugme" id="erisilebilirlik-dugme" type="button" title="Erişilebilirlik Araçları">
+    <img src="assets/img/erisilebilirlik_man.png" alt="Erişilebilirlik araçları">
+  </button>
+  <div class="erisilebilirlik-panel" id="erisilebilirlik-panel">
+    <div class="ep-baslik">♿ Erişilebilirlik</div>
+    <div class="ep-satir"><span>🌗 Koyu Mod</span><button class="ep-anahtar" data-ozellik="koyu-mod" type="button" aria-label="Koyu mod"></button></div>
+    <div class="ep-satir"><span>🔊 Ekran Okuyucu</span><button class="ep-anahtar" data-ozellik="ekran-okuyucu" type="button" aria-label="Ekran okuyucu"></button></div>
+    <div class="ep-okuma-araclari" id="ep-okuma-araclari" hidden>
+      <button class="ep-dugme" id="oa-sayfa" type="button">▶ Sayfayı Oku</button>
+      <button class="ep-dugme" id="oa-durdur" type="button">⏹ Durdur</button>
+    </div>
+    <div class="ep-satir"><span>🔠 Yazı Boyutu</span>
+      <span class="ep-grup">
+        <button class="ep-dugme" data-grup="yazi" data-deger="kucuk" type="button">A−</button>
+        <button class="ep-dugme" data-grup="yazi" data-deger="normal" type="button">A</button>
+        <button class="ep-dugme" data-grup="yazi" data-deger="buyuk" type="button">A+</button>
+      </span>
+    </div>
+    <div class="ep-satir"><span>📖 Disleksi Dostu Yazı Tipi</span><button class="ep-anahtar" data-ozellik="disleksi" type="button" aria-label="Disleksi dostu yazı tipi"></button></div>
+    <div class="ep-satir"><span>🌗 Yüksek Kontrast</span><button class="ep-anahtar" data-ozellik="yuksek-kontrast" type="button" aria-label="Yüksek kontrast"></button></div>
+    <div class="ep-satir"><span>🔗 Bağlantıları Vurgula</span><button class="ep-anahtar" data-ozellik="baglanti-vurgu" type="button" aria-label="Bağlantıları vurgula"></button></div>
+    <div class="ep-satir"><span>🖱️ İmleç Rengi</span>
+      <span class="ep-grup">
+        <button class="ep-dugme" data-grup="imlec" data-deger="varsayilan" type="button" title="Varsayılan imleç">➤</button>
+        <button class="ep-dugme" data-grup="imlec" data-deger="beyaz" type="button" title="Beyaz imleç">⚪</button>
+        <button class="ep-dugme" data-grup="imlec" data-deger="siyah" type="button" title="Siyah imleç">⚫</button>
+        <button class="ep-dugme" data-grup="imlec" data-deger="sari" type="button" title="Sarı imleç">🟡</button>
+      </span>
+    </div>
+    <div class="ep-satir"><span>⏸️ Animasyonları Durdur</span><button class="ep-anahtar" data-ozellik="animasyon-durdur" type="button" aria-label="Animasyonları durdur"></button></div>
+    <button class="ep-sifirla" id="ep-sifirla" type="button">♻️ Tümünü Sıfırla</button>
+  </div>
+  <script src="assets/js/erisilebilirlik.js"></script>
+</body>
+</html>

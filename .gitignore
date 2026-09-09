@@ -1,0 +1,9 @@
+# sistem/gecici dosyalar
+Thumbs.db
+Desktop.ini
+.DS_Store
+__pycache__/
+*.pyc
+
+# uretilen onizleme gorselleri
+onizleme/
