@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Geleceğin Fikri Platformu</title>
 <link rel="stylesheet" href="assets/css/fonts.css?v=2">
-<link rel="stylesheet" href="assets/css/stil.css?v=48">
+<link rel="stylesheet" href="assets/css/stil.css?v=49">
   <script>try{if(localStorage.getItem('gf-tema')==='koyu')document.documentElement.classList.add('koyu-mod')}catch(e){}</script>
 </head>
 <body class="sayfa-index">
@@ -149,6 +149,27 @@
   goster(); otomatik();
 })();
 </script>
+
+  <!-- büyük okunabilir görünüm -->
+  <div class="af-lightbox" id="af-lightbox" hidden>
+    <button class="af-lb-kapat" id="af-lb-kapat" type="button" aria-label="Kapat">✕</button>
+    <div id="af-lb-kart-yer"></div>
+  </div>
+  <script>
+  (function () {
+    var lb = document.getElementById('af-lightbox');
+    var yer = document.getElementById('af-lb-kart-yer');
+    function ac() {
+      yer.innerHTML = document.getElementById('af-orta').outerHTML;
+      lb.hidden = false;
+    }
+    function kapat() { lb.hidden = true; }
+    document.getElementById('af-orta').addEventListener('click', ac);
+    document.getElementById('af-lb-kapat').addEventListener('click', kapat);
+    lb.addEventListener('click', function (e) { if (e.target === lb) kapat(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') kapat(); });
+  })();
+  </script>
 </body>
   <!-- erişilebilirlik -->
   <button class="erisilebilirlik-dugme" id="erisilebilirlik-dugme" type="button" title="Erişilebilirlik Araçları">
