@@ -1044,15 +1044,11 @@ html.koyu-mod .af-orta .af-soz { color: #E8EFF8; }
 
 /* arsiv ogesi: ozellik seridinde dikkat cekici ama sadelikte */
 .ozellik-arsiv { cursor: pointer; }
-.ozellik-arsiv svg { color: #B8860B; width: 2rem; height: 2rem; }
-.ozellik-arsiv {
-  background: linear-gradient(135deg, #FFF3C4 0%, #FFE28A 100%);
-  border-radius: 1rem; padding: 0.5rem 0.9rem;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+.ozellik-arsiv svg { color: #FFD34D; width: 2rem; height: 2rem; }
+.ozellik-arsiv .yazi {
+  color: #FFD34D;
+  -webkit-text-stroke: 0.7px #1a1a1a;
+  text-shadow: 0 0.12rem 0 rgba(0, 0, 0, 0.25);
 }
-.ozellik-arsiv:hover {
-  transform: translateY(-0.25rem);
-  box-shadow: 0 0.5rem 1.4rem rgba(196, 148, 10, 0.35);
-}
-html.koyu-mod .ozellik-arsiv { background: #223757; }
 html.koyu-mod .ozellik-arsiv svg { color: #F6C453; }
+html.koyu-mod .ozellik-arsiv .yazi { color: #F6C453; }
