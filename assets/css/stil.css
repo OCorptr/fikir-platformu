@@ -132,7 +132,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
     radial-gradient(58rem 30rem at 108% -12%, #FCF1D4 0%, rgba(252, 241, 212, 0) 60%),
     radial-gradient(50rem 28rem at -12% 112%, #D7ECF9 0%, rgba(215, 236, 249, 0) 60%),
     linear-gradient(180deg, #F3FAFE 0%, #E2F1FB 100%);
-  display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow-x: hidden;
 }
 
 .not-script .alti { position: relative; display: inline-block; }
@@ -175,7 +175,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   background:
     url('../img/arkaplan1.webp') center bottom / cover no-repeat,
     linear-gradient(180deg, #E3F2FB 0%, #D2E9F7 55%, #C2E1EF 100%);
-  min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden;
+  min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow-x: hidden;
 }
 
 /* logonun altına inen slogan (referanstaki dizilim) */
@@ -397,7 +397,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
     radial-gradient(58rem 30rem at 108% -12%, #FCF1D4 0%, rgba(252, 241, 212, 0) 60%),
     radial-gradient(50rem 28rem at -12% 112%, #D7ECF9 0%, rgba(215, 236, 249, 0) 60%),
     linear-gradient(180deg, #F3FAFE 0%, #E2F1FB 100%);
-  min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow: hidden;
+  min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow-x: hidden;
 }
 .fikir-hero {
   flex: 1; display: grid; grid-template-columns: 0.85fr 1.3fr; gap: 2.5rem;
