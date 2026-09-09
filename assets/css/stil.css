@@ -654,7 +654,6 @@ html.koyu-mod .bar-arka { background: #223757; }
 html.koyu-mod .bar-deger { color: #DCE7F5; }
 html.koyu-mod .belge-notu { background: rgba(246, 180, 14, 0.14); color: #E8C766; }
 /* index özel */
-html.koyu-mod html.koyu-mod 
 html.koyu-mod .istat .sayi,
 html.koyu-mod .aday-kart h3,
 html.koyu-mod .fikir-karti h1,
@@ -823,7 +822,6 @@ html.imlec-siyah body a, html.imlec-siyah body button { cursor: url("data:image/
 /* okuma kilavuzu cizgisi */
 /* panel grup basliklari + ipucu */
 /* ileri/geri okları */
-html.koyu-mod html.koyu-mod 
 /* yuksek kontrast: panel okunur kalsin */
 html.yuksek-kontrast .erisilebilirlik-panel { background: #000 !important; border: 0.2rem solid #FFFF00; }
 html.yuksek-kontrast .erisilebilirlik-panel * {
@@ -837,10 +835,7 @@ html.yuksek-kontrast .ep-anahtar.acik::after { background: #000 !important; }
 html.yuksek-kontrast .ep-dugme.acik { background: #FFFF00 !important; color: #000 !important; }
 html.yuksek-kontrast .erisilebilirlik-dugme { background: #000 !important; border: 0.2rem solid #FFFF00; }
 
-html.koyu-mod html.koyu-mod html.koyu-mod html.koyu-mod 
 /* arsiv: ozellik rozeti + modal */
-.ozellik-arsiv { position: relative; cursor: pointer; color: #8A5B00; }
-.ozellik-arsiv svg { color: #B8860B; }
 .arsiv-modal {
   position: fixed; inset: 0; z-index: 95;
   background: rgba(15, 35, 70, 0.55);
@@ -875,8 +870,8 @@ html.koyu-mod html.koyu-mod html.koyu-mod html.koyu-mod
 .ay-okul { font-size: 0.92rem; font-weight: 700; color: #8AA0B5; }
 .ay-tema { font-size: 0.88rem; font-weight: 800; color: #1E5C9E; margin-top: 0.25rem; }
 .ay-fikir-giris { font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic; font-size: 1rem; line-height: 1.5; color: #33475F; margin-top: 0.35rem; }
-html.koyu-mod .ozellik-arsiv { color: #8A5B00; }
-html.koyu-mod .ozellik-arsiv svg { color: #B8860B; }
+html.koyu-mod .ozellik-arsiv { color: #fff; }
+html.koyu-mod .ozellik-arsiv svg { color: #fff; }
 html.koyu-mod .arsiv-icerik { background: #1B2C49; }
 html.koyu-mod .arsiv-icerik h2 { color: #DCE7F5; }
 html.koyu-mod .arsiv-alt { color: #93A9C4; }
@@ -924,13 +919,13 @@ html.koyu-mod .cta-fikir {
 .af-baslik {
   display: flex; align-items: center; justify-content: center; gap: 1.1rem;
   
-  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 2rem; color: var(--lacivert);
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.8rem; color: var(--lacivert);
 }
 .af-baslik .af-cizgi { width: 3.4rem; height: 0.22rem; border-radius: 1rem; background: var(--sari); }
-.af-sahne { position: relative; padding: 0.9rem 1.6rem 1.2rem; display: flex; align-items: stretch; justify-content: center; gap: 1.4rem; }
+.af-sahne { position: relative; padding: 0.7rem 1.6rem 0.35rem; display: flex; align-items: stretch; justify-content: center; gap: 1.4rem; }
 .af-kart {
   background: #fff; border-radius: 1.5rem; text-align: center;
-  padding: 1.4rem 1.1rem 1.2rem; width: 19rem;
+  padding: 1.2rem 1rem 1.1rem; width: 19rem;
   box-shadow: 0 0.8rem 2rem rgba(30, 60, 120, 0.14);
   display: flex; flex-direction: column; justify-content: center;
   transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
@@ -946,10 +941,10 @@ html.koyu-mod .cta-fikir {
   opacity: 0.96;
 }
 .af-orta {
-  width: 25rem; z-index: 2;
+  width: 22rem; z-index: 2;
   background: linear-gradient(165deg, #FFF3C4 0%, #FFD34D 45%, #F6A81C 100%);
   border: 0.28rem solid #fff; border-radius: 1.8rem;
-  padding: 2.6rem 1.4rem 1.2rem;
+  padding: 2.2rem 1.3rem 1.1rem;
   box-shadow: 0 1.4rem 3.2rem rgba(196, 148, 10, 0.5), 0 0 0 0.7rem rgba(246, 168, 28, 0.18);
 }
 .af-kurdele {
@@ -976,7 +971,7 @@ html.koyu-mod .cta-fikir {
   font-size: 0.98rem; line-height: 1.5; color: #3D2E00; margin-bottom: 0.4rem;
 }
 .af-kenar-kart .af-k-soz { color: #4A5B70; }
-.af-noktalar { display: flex; justify-content: center; margin-top: 1rem; }
+.af-noktalar { display: flex; justify-content: center; margin-top: 0.45rem; }
 .af-noktalar i {
   display: inline-block; width: 0.62rem; height: 0.62rem; border-radius: 50%;
   background: #C9D8E6; margin: 0 0.28rem; cursor: pointer;
@@ -1025,20 +1020,20 @@ html.animasyon-durdur .af-sahne.kaydir .af-kart { animation: none; }
 
 
 /* merkez kart: dolu() ile gelen öneksiz sınıfların stilleri */
-.af-orta .af-emoji { font-size: 3rem; line-height: 1.15; }
+.af-orta .af-emoji { font-size: 2.5rem; line-height: 1.15; }
 .af-orta .af-ad {
-  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.75rem;
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.6rem;
   color: #16355C; line-height: 1.15; text-shadow: 0 0.1rem 0 rgba(255, 255, 255, 0.55);
 }
-.af-orta .af-okul { font-weight: 800; font-size: 0.95rem; color: #6B4E00; margin-top: 0.15rem; }
+.af-orta .af-okul { font-weight: 800; font-size: 0.88rem; color: #6B4E00; margin-top: 0.12rem; }
 .af-orta .af-tema {
-  display: inline-block; margin: 0.55rem auto 0.45rem; background: #fff; color: #8A5B00;
+  display: inline-block; margin: 0.45rem auto 0.4rem; background: #fff; color: #8A5B00;
   border-radius: 1.2rem; padding: 0.35rem 0.95rem; font-weight: 800; font-size: 0.92rem;
   box-shadow: 0 0.2rem 0.6rem rgba(138, 91, 0, 0.25);
 }
 .af-orta .af-soz {
   font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic;
-  font-size: 1.08rem; line-height: 1.55; color: #3D2E00; margin-bottom: 0.4rem;
+  font-size: 1rem; line-height: 1.45; color: #3D2E00; margin-bottom: 0.3rem;
 }
 html.koyu-mod .af-orta .af-ad { color: #DCE7F5; text-shadow: none; }
 html.koyu-mod .af-orta .af-okul { color: #9FB4CC; }
@@ -1046,3 +1041,18 @@ html.koyu-mod .af-orta .af-tema { background: #223757; color: #F6C453; box-shado
 html.koyu-mod .af-orta .af-soz { color: #E8EFF8; }
 
 /* MEB yazisini buyut */
+
+/* arsiv ogesi: ozellik seridinde dikkat cekici ama sadelikte */
+.ozellik-arsiv { cursor: pointer; }
+.ozellik-arsiv svg { color: #B8860B; width: 2rem; height: 2rem; }
+.ozellik-arsiv {
+  background: linear-gradient(135deg, #FFF3C4 0%, #FFE28A 100%);
+  border-radius: 1rem; padding: 0.5rem 0.9rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.ozellik-arsiv:hover {
+  transform: translateY(-0.25rem);
+  box-shadow: 0 0.5rem 1.4rem rgba(196, 148, 10, 0.35);
+}
+html.koyu-mod .ozellik-arsiv { background: #223757; }
+html.koyu-mod .ozellik-arsiv svg { color: #F6C453; }
