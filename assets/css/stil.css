@@ -1053,7 +1053,7 @@ html.koyu-mod .tema-secim {
 }
 
 /* fikir.html: ogrenci bilgileri (1. satir: ad genis + il + sinif dar; 2. satir: okul genis + no dar) */
-.ogrenci-alani { display: grid; grid-template-columns: minmax(0, 1fr) 10.4rem 10.4rem; gap: 0.55rem 0.9rem; }
+.ogrenci-alani { display: grid; grid-template-columns: minmax(0, 1fr) 10.66rem 10.66rem; gap: 0.55rem 0.9rem; }
 .ogrenci-alan { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
 .ogrenci-alan.genis { grid-column: span 2; }
 .ogrenci-alan label { font-weight: 800; font-size: 0.88rem; color: #647A92; }

@@ -70,7 +70,7 @@
     });
     document.querySelectorAll('.ep-dugme').forEach(function (b) {
       if (b.dataset.grup === 'imlec') {
-        b.classList.toggle('acik', (d.imlec || 'varsayilan') === b.dataset.deger);
+        b.classList.toggle('acik', d.imlec === b.dataset.deger);
       } else {
         b.classList.toggle('acik', (d.yazi || 'normal') === b.dataset.deger);
       }
@@ -149,7 +149,7 @@
     });
     document.querySelectorAll('.ep-dugme[data-grup="imlec"]').forEach(function (b) {
       b.addEventListener('click', function () {
-        d.imlec = b.dataset.deger === 'varsayilan' ? null : b.dataset.deger;
+        d.imlec = b.dataset.deger; /* kapatmak icin "Tumunu Sifirla" kullanilir */
         kaydet(d); uygula(d);
       });
     });
