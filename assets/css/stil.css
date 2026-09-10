@@ -1176,8 +1176,9 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .maskot-fikir { width: 9rem; margin-top: 0; }
   .fikir-karti { padding: 1.4rem 1.6rem 1.2rem; }
   .fikir-karti h1 { font-size: 1.6rem; }
-  .ogrenci-alani { grid-template-columns: 1fr; gap: 0.7rem; }
-  .ogrenci-alan.genis { grid-column: auto; }
+  .ogrenci-alani { grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+  .ogrenci-alan { grid-column: 1 / -1; }
+  .ogrenci-alan.ikili { grid-column: auto; }
   .fikir-butonlar { flex-wrap: wrap; gap: 0.7rem; }
   .btn-ana { margin-left: 0; width: 100%; order: -1; }
   .btn-hayalet { margin-left: auto; }

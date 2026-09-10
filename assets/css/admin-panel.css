@@ -181,6 +181,8 @@ html.koyu-mod .donem-rozeti { background: #1B2C49; color: #DCE7F5; }
 @media (max-width: 860px) {
   .kenar { width: 4.2rem; }
   .kenar-marka div, .km-oge .rozet, .kullanici-kutu div { display: none; }
+  .km-yazi { display: none; }
+  .km-oge, .kenar-alt a { justify-content: center; padding-left: 0.5rem; padding-right: 0.5rem; }
   .govde { margin-left: 4.2rem; }
   .istatistikler { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .adaylar { grid-template-columns: 1fr; }
