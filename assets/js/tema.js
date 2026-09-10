@@ -20,6 +20,21 @@
       b.title = koyu ? 'Açık moda geç' : 'Koyu moda geç';
     }
     panelAnahtarlari().forEach(function (a) { a.classList.toggle('acik', koyu); });
+    /* koyu modda acik renkli logo turevleri: GENÇ AR-GE (beyaz yazi) + Turkiye Yuzyili (beyaz) */
+    var KOYU_GORSELLER = {
+      'assets/img/gencarge_logo.webp': 'assets/img/gencarge_logo_koyu.webp',
+      'assets/img/1.webp': 'assets/img/1_koyu.webp'
+    };
+    document.querySelectorAll('img').forEach(function (img) {
+      var yol = img.getAttribute('src');
+      if (KOYU_GORSELLER[yol] !== undefined && img.dataset.orijinalGorsel === undefined) {
+        img.dataset.orijinalGorsel = yol;
+      }
+      var temel = img.dataset.orijinalGorsel || yol;
+      if (KOYU_GORSELLER[temel]) {
+        img.src = koyu ? KOYU_GORSELLER[temel] : temel;
+      }
+    });
   }
 
   window.gfTemaDegistir = function () {
