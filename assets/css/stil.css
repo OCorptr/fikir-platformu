@@ -132,7 +132,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
     radial-gradient(58rem 30rem at 108% -12%, #FCF1D4 0%, rgba(252, 241, 212, 0) 60%),
     radial-gradient(50rem 28rem at -12% 112%, #D7ECF9 0%, rgba(215, 236, 249, 0) 60%),
     linear-gradient(180deg, #F3FAFE 0%, #E2F1FB 100%);
-  display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow-x: hidden;
+  display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; position: relative; overflow-x: hidden;
 }
 
 .not-script .alti { position: relative; display: inline-block; }
@@ -397,7 +397,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
     radial-gradient(58rem 30rem at 108% -12%, #FCF1D4 0%, rgba(252, 241, 212, 0) 60%),
     radial-gradient(50rem 28rem at -12% 112%, #D7ECF9 0%, rgba(215, 236, 249, 0) 60%),
     linear-gradient(180deg, #F3FAFE 0%, #E2F1FB 100%);
-  min-height: 100vh; display: flex; flex-direction: column; position: relative; overflow-x: hidden;
+  min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; position: relative; overflow-x: hidden;
 }
 .fikir-hero {
   flex: 1; display: grid; grid-template-columns: 0.85fr 1.3fr; gap: 2.5rem;
@@ -1126,9 +1126,12 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
    TELEFON (≤560px) — tasinma yok, tek kolon, buyuk dokunma alanlari
    ============================================================ */
 @media (max-width: 560px) {
-  /* UNIVERSAL olcekleme: kok font hem genislige hem yukseklige bagli —
+  /* UNIVERSAL olcekleme: kok font hem genislige hem gorunur yukseklige (svh) bagli —
      her telefonda ayni oranlar, ustten alta tam sigma, elle ayar gerekmez */
   html { font-size: clamp(7px, min(2.5vw, 1.15vh), 10px); }
+  @supports (height: 1svh) {
+    html { font-size: clamp(7px, min(2.5vw, 1.15svh), 10px); }
+  }
 
   /* ust bar: tek satir — MEB logosu en ustte (sagda), uclu yan yana sigar */
   .ust { padding: 0.5rem 1rem 0.3rem; }
@@ -1156,7 +1159,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .cta-metin { font-size: 1.35rem; }
 
   /* ozellik seridi 2x2; butonla arasinda kucuk sabit bosluk (sayfa telefona sigsin) */
-  .ozellikler { flex-wrap: wrap; gap: 0.9rem 0.6rem; padding: 0 1rem; justify-content: center; }
+  .ozellikler { flex-wrap: wrap; gap: 0.9rem 0.6rem; padding: 0 1rem calc(1.4rem + env(safe-area-inset-bottom, 0px)); justify-content: center; }
   .ozellik { flex: 0 0 auto; }
   .sayfa-index .ozellikler { margin-top: auto; }
 
