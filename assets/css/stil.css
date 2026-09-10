@@ -572,8 +572,8 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 
 /* ---------------- Koyu/Açık mod düğmesi ---------------- */
 .ust-sag { display: flex; align-items: center; gap: 1.1rem; }
-/* Turkiye Yuzyili - MEB 100. Yil logosu (ust sag) */
-.yuz-yil-logo { height: 4.6rem; width: auto; }
+/* Turkiye Yuzyili - MEB 100. Yil logosu (ust sag) — sol logoyla ayni gorunum yuksekligi */
+.yuz-yil-logo { height: 6.2rem; width: auto; }
 .tema-dugme {
   width: 2.9rem; height: 2.9rem; border-radius: 50%;
   border: 0.16rem solid #D8E4EF; background: #fff;
@@ -1132,13 +1132,14 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .ust { padding: 0.5rem 1.2rem 0.3rem; }
   .ust .logo { gap: 0.6rem; }
   .ust .logo .logo-mark { width: 4.6rem; }
-  .ust .logo-slogan { font-size: 1.8rem; margin-left: 0.4rem; }
+  .ust .logo-slogan { font-size: 1.4rem; margin-left: 0.4rem; }
   .yuz-yil-logo { height: 3.4rem; }
 
-  /* ana sayfa baslik */
-  .secim { padding: 0.5rem 1.4rem 0; }
+  /* ana sayfa baslik: ustte nefes alani, altta esnek bosluk olmasin */
+  .secim { padding: 0.9rem 1.4rem 0; }
   .secim h1 { font-size: 3.4rem; }
-  .alt-baslik { font-size: 1.5rem; }
+  .alt-baslik { font-size: 1.5rem; margin-top: 0.4rem; }
+  .kartlar { flex: 0 0 auto; margin-top: 1.3rem; justify-content: flex-start; }
 
   /* vitrin: yalnizca orta kart + oklar (kenar kartlari tasmasin) */
   .af-kenar-kart { display: none; }
