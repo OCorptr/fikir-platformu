@@ -431,9 +431,10 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   filter: drop-shadow(0 1rem 1.4rem rgba(30, 60, 120, 0.2));
 }
 
-/* form kartı — lightbox arkaplan rengiyle birebir: rgba(15, 35, 70, 0.68) */
+/* form kartı — ana sayfadaki orta kartın (af-orta) altın gradyanıyla aynı */
 .fikir-karti {
-  background: rgba(15, 35, 70, 0.68); border-radius: 1.8rem; box-shadow: 0 1.2rem 3rem rgba(15, 35, 70, 0.45);
+  background: linear-gradient(165deg, #FFF3C4 0%, #FFD34D 45%, #F6A81C 100%);
+  border-radius: 1.8rem; box-shadow: 0 1.2rem 3rem rgba(30, 60, 120, 0.16);
   padding: 1.3rem 2rem 1.2rem; width: 100%; max-width: 60rem; justify-self: center;
 }
 .fikir-karti.sarsildi { animation: sars 0.4s ease; }
@@ -442,41 +443,8 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   font-family: 'Rammetto One', 'Baloo 2', sans-serif; font-weight: 400;
   font-size: 1.85rem; line-height: 1.2; letter-spacing: 0.01em;
 }
-.fikir-karti h1 .baslik-turkuaz { color: #3CC3C9; }
-.fikir-karti h1 .baslik-turuncu { color: #F58A2A; }
-/* lacivert kart icinde acik metin ve alan renkleri */
-.fikir-karti .ogrenci-alan label { color: #A9BFD9; }
-.fikir-karti .ogrenci-alan input,
-.fikir-karti .ogrenci-alan select,
-.fikir-karti .tema-secim,
-.fikir-karti #fikrim {
-  background-color: #1F3355; border-color: #31486B; color: #E6EEF8;
-}
-.fikir-karti .ogrenci-alan input::placeholder { color: #7E93AC; }
-.fikir-karti .ogrenci-alan select {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' fill='none' stroke='%23DCE7F5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-}
-.fikir-karti .tema-secim {
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='9' viewBox='0 0 14 9'><path d='M1 1l6 6 6-6' fill='none' stroke='%23DCE7F5' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
-}
-.fikir-karti .ogrenci-alan input:focus,
-.fikir-karti .ogrenci-alan select:focus,
-.fikir-karti .tema-secim:focus,
-.fikir-karti #fikrim:focus { background-color: #1F3355; }
-.fikir-karti .sayac-satiri { color: #93A9C4; }
-.fikir-karti .sayac-satiri .taslak { color: #5FB0EA; }
-.fikir-karti .sayac-satiri .taslak:hover { color: #8CC6F2; }
-.fikir-karti .hata-notu { color: #FF9285; }
-.fikir-karti .btn-hayalet { color: #93A9C4; }
-.fikir-karti .btn-hayalet:hover { color: #FF8A7A; }
-.fikir-karti .btn-ikincil { background: #223757; border-color: #7FA8D9; color: #9CC3EA; }
-.fikir-karti .btn-ikincil:hover { background: #2C5F9E; border-color: #2C5F9E; color: #fff; }
-.fikir-karti .ekip-alani { background: #1B2C49; }
-.fikir-karti .ekip-input { background: #16283F; border-color: #31486B; color: #DCE7F5; }
-.fikir-karti .ekip-cip { background: #223757; color: #C9D6E8; }
-.fikir-karti .basari h2 { color: #DCE7F5; }
-.fikir-karti .basari p { color: #A9BFD9; }
-.fikir-karti .adim.aktif { color: #F6C453; }
+.fikir-karti h1 .baslik-turkuaz { color: var(--turkuaz-baslik); }
+.fikir-karti h1 .baslik-turuncu { color: var(--turuncu-baslik); }
 /* form ekrana sigsin: bolum araliklari kart icinde sikilir (admin etkilenmesin) */
 .fikir-karti .bolum-basligi { margin: 0.85rem 0 0.45rem; }
 .bolum-basligi {
