@@ -431,10 +431,10 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   filter: drop-shadow(0 1rem 1.4rem rgba(30, 60, 120, 0.2));
 }
 
-/* form kartı — ana sayfadaki orta kartın (af-orta) altın gradyanıyla aynı */
+/* form kartı — ana sayfadaki orta kartın (af-orta) altın gradyanı + beyaz çerçevesi */
 .fikir-karti {
   background: linear-gradient(165deg, #FFF3C4 0%, #FFD34D 45%, #F6A81C 100%);
-  border-radius: 1.8rem; box-shadow: 0 1.2rem 3rem rgba(30, 60, 120, 0.16);
+  border: 0.28rem solid #fff; border-radius: 1.8rem; box-shadow: 0 1.2rem 3rem rgba(30, 60, 120, 0.16);
   padding: 1.3rem 2rem 1.2rem; width: 100%; max-width: 60rem; justify-self: center;
 }
 .fikir-karti.sarsildi { animation: sars 0.4s ease; }
