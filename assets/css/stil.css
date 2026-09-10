@@ -566,7 +566,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   .balon { font-size: 1.6rem; }
   .ozellikler { padding: 0 2rem; flex-wrap: wrap; gap: 1rem; }
   .panel-bar, .istatistikler, .sekmeler, .panel-icerik { padding-left: 1.6rem; padding-right: 1.6rem; }
-  .istatistikler { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .istatistikler { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
   .adaylar { grid-template-columns: 1fr; }
   .panel-sag .balon-mini { display: none; }
 }
