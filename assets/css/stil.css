@@ -785,8 +785,10 @@ html.animasyon-durdur *, html.animasyon-durdur *::before, html.animasyon-durdur 
   animation: none !important; transition: none !important;
 }
 html.yuksek-kontrast body { background: #000 !important; }
-html.yuksek-kontrast body *:not(img):not(svg):not(path):not(circle) {
-  background-color: transparent !important; color: #FFFF00 !important;
+/* gradyanlar background-image oldugu icin 'background' kisaltmasi zorunlu:
+   tum ogeler siyah zemin + sari yazi + beyaz cerceve (img'ler hariç) */
+html.yuksek-kontrast body *:not(img) {
+  background: #000 !important; color: #FFFF00 !important;
   border-color: #fff !important; text-shadow: none !important; box-shadow: none !important;
 }
 html.ekran-okuyucu body :is(h1, h2, h3, h4, p, li, td, th, span, blockquote):hover {
