@@ -431,9 +431,9 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   filter: drop-shadow(0 1rem 1.4rem rgba(30, 60, 120, 0.2));
 }
 
-/* form kartı — lightbox zemin tonunda lacivert kart */
+/* form kartı — lightbox arkaplan rengiyle birebir: rgba(15, 35, 70, 0.68) */
 .fikir-karti {
-  background: #152A4C; border-radius: 1.8rem; box-shadow: 0 1.2rem 3rem rgba(15, 35, 70, 0.45);
+  background: rgba(15, 35, 70, 0.68); border-radius: 1.8rem; box-shadow: 0 1.2rem 3rem rgba(15, 35, 70, 0.45);
   padding: 1.3rem 2rem 1.2rem; width: 100%; max-width: 60rem; justify-self: center;
 }
 .fikir-karti.sarsildi { animation: sars 0.4s ease; }
