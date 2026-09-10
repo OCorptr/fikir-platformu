@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Geleceğin Fikri — Fikrini Anlat</title>
 <link rel="stylesheet" href="assets/css/fonts.css?v=2">
-<link rel="stylesheet" href="assets/css/stil.css?v=58">
+<link rel="stylesheet" href="assets/css/stil.css?v=59">
   <script>try{if(localStorage.getItem('gf-tema')==='koyu')document.documentElement.classList.add('koyu-mod')}catch(e){}</script>
 </head>
 <body class="sayfa-fikir">
@@ -62,9 +62,36 @@
           </div>
           <div class="ogrenci-alan">
             <label for="ogr-il">İl</label>
-            <input id="ogr-il" type="text" autocomplete="address-level1" maxlength="30" placeholder="Örnek: İzmir">
+            <select id="ogr-il">
+              <option value="">İl seç...</option>
+              <option>Adana</option><option>Adıyaman</option><option>Afyonkarahisar</option><option>Ağrı</option><option>Aksaray</option><option>Amasya</option><option>Ankara</option><option>Antalya</option><option>Ardahan</option><option>Artvin</option><option>Aydın</option><option>Balıkesir</option><option>Bartın</option><option>Batman</option><option>Bayburt</option><option>Bilecik</option><option>Bingöl</option><option>Bitlis</option><option>Bolu</option><option>Burdur</option><option>Bursa</option><option>Çanakkale</option><option>Çankırı</option><option>Çorum</option><option>Denizli</option><option>Diyarbakır</option><option>Düzce</option><option>Edirne</option><option>Elazığ</option><option>Erzincan</option><option>Erzurum</option><option>Eskişehir</option><option>Gaziantep</option><option>Giresun</option><option>Gümüşhane</option><option>Hakkâri</option><option>Hatay</option><option>Iğdır</option><option>Isparta</option><option>İstanbul</option><option>İzmir</option><option>Kahramanmaraş</option><option>Karabük</option><option>Karaman</option><option>Kars</option><option>Kastamonu</option><option>Kayseri</option><option>Kırıkkale</option><option>Kırklareli</option><option>Kırşehir</option><option>Kilis</option><option>Kocaeli</option><option>Konya</option><option>Kütahya</option><option>Malatya</option><option>Manisa</option><option>Mardin</option><option>Mersin</option><option>Muğla</option><option>Muş</option><option>Nevşehir</option><option>Niğde</option><option>Ordu</option><option>Osmaniye</option><option>Rize</option><option>Sakarya</option><option>Samsun</option><option>Siirt</option><option>Sinop</option><option>Sivas</option><option>Şanlıurfa</option><option>Şırnak</option><option>Tekirdağ</option><option>Tokat</option><option>Trabzon</option><option>Tunceli</option><option>Uşak</option><option>Van</option><option>Yalova</option><option>Yozgat</option><option>Zonguldak</option>
+            </select>
           </div>
           <div class="ogrenci-alan">
+            <label for="ogr-sinif">Sınıf</label>
+            <select id="ogr-sinif">
+              <option value="">Sınıf seç...</option>
+              <optgroup label="İlkokul">
+                <option value="1">1. sınıf</option>
+                <option value="2">2. sınıf</option>
+                <option value="3">3. sınıf</option>
+                <option value="4">4. sınıf</option>
+              </optgroup>
+              <optgroup label="Ortaokul">
+                <option value="5">5. sınıf</option>
+                <option value="6">6. sınıf</option>
+                <option value="7">7. sınıf</option>
+                <option value="8">8. sınıf</option>
+              </optgroup>
+              <optgroup label="Lise">
+                <option value="9">9. sınıf</option>
+                <option value="10">10. sınıf</option>
+                <option value="11">11. sınıf</option>
+                <option value="12">12. sınıf</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="ogrenci-alan genis">
             <label for="ogr-okul">Okul</label>
             <input id="ogr-okul" type="text" autocomplete="organization" maxlength="80" placeholder="Örnek: Atatürk Ortaokulu">
           </div>
@@ -73,7 +100,6 @@
             <input id="ogr-no" type="text" inputmode="numeric" maxlength="12" placeholder="Örnek: 1045">
           </div>
         </div>
-        <p class="gizlilik-notu">🔒 Bilgilerin yalnızca fikrinin değerlendirilmesi amacıyla kullanılır; üçüncü kişilerle paylaşılmaz.</p>
 
         <div class="bolum-basligi turuncu">3 · Fikrim</div>
         <div class="fikir-alani" id="fikir-alani">
@@ -139,6 +165,7 @@
   var sel = document.getElementById('tema-secim');
   var ogrAd = document.getElementById('ogr-ad');
   var ogrIl = document.getElementById('ogr-il');
+  var ogrSinif = document.getElementById('ogr-sinif');
   var ogrOkul = document.getElementById('ogr-okul');
   var ogrNo = document.getElementById('ogr-no');
   var ekipCips = document.getElementById('ekip-cips');
@@ -160,6 +187,7 @@
     sel.classList.remove('dikkat');
     ogrAd.classList.remove('dikkat');
     ogrIl.classList.remove('dikkat');
+    ogrSinif.classList.remove('dikkat');
     ogrOkul.classList.remove('dikkat');
     ogrNo.classList.remove('dikkat');
     document.getElementById('fikir-alani').classList.remove('dikkat');
@@ -171,7 +199,7 @@
     if (v !== ogrNo.value) ogrNo.value = v;
     ogrNo.classList.remove('dikkat');
   });
-  [sel, ogrAd, ogrIl, ogrOkul].forEach(function (e) {
+  [sel, ogrIl, ogrSinif, ogrAd, ogrOkul].forEach(function (e) {
     ['change', 'input'].forEach(function (olay) {
       e.addEventListener(olay, function () { e.classList.remove('dikkat'); });
     });
@@ -207,7 +235,7 @@
 
   // taslak kaydet + geri yükle
   function taslakTopla() {
-    return { tema: sel.value, ad: ogrAd.value, il: ogrIl.value, okul: ogrOkul.value, no: ogrNo.value, fikir: ta.value };
+    return { tema: sel.value, ad: ogrAd.value, il: ogrIl.value, sinif: ogrSinif.value, okul: ogrOkul.value, no: ogrNo.value, fikir: ta.value };
   }
   document.getElementById('btn-taslak').addEventListener('click', function () {
     try { localStorage.setItem('gf-taslak', JSON.stringify(taslakTopla())); } catch (e) {}
@@ -220,6 +248,7 @@
       sel.value = t.tema || '';
       ogrAd.value = t.ad || '';
       ogrIl.value = t.il || '';
+      ogrSinif.value = t.sinif || '';
       ogrOkul.value = t.okul || '';
       ogrNo.value = t.no || '';
       ta.value = (t.fikir || '').slice(0, MAX);
@@ -230,7 +259,7 @@
   // tümünü temizle
   function hepsiniTemizle() {
     sel.value = '';
-    ogrAd.value = ''; ogrIl.value = ''; ogrOkul.value = ''; ogrNo.value = '';
+    ogrAd.value = ''; ogrIl.value = ''; ogrSinif.value = ''; ogrOkul.value = ''; ogrNo.value = '';
     ta.value = ''; sayi.textContent = '0';
     dikkatKaldir();
     hata.classList.remove('gorun');
@@ -253,7 +282,7 @@
       sel.focus();
       return;
     }
-    var bosAlanlar = [ogrAd, ogrIl, ogrOkul, ogrNo].filter(function (g) { return !g.value.trim(); });
+    var bosAlanlar = [ogrAd, ogrIl, ogrSinif, ogrOkul, ogrNo].filter(function (g) { return !g.value.trim(); });
     if (bosAlanlar.length) {
       hataGoster('Lütfen öğrenci bilgilerinin tamamını doldur.');
       bosAlanlar.forEach(function (g) { g.classList.add('dikkat'); });

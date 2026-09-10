@@ -58,7 +58,11 @@
       b.classList.toggle('acik', !!d[b.dataset.ozellik]);
     });
     document.querySelectorAll('.ep-dugme').forEach(function (b) {
-      b.classList.toggle('acik', (d.yazi || 'normal') === b.dataset.deger);
+      if (b.dataset.grup === 'imlec') {
+        b.classList.toggle('acik', (d.imlec || 'varsayilan') === b.dataset.deger);
+      } else {
+        b.classList.toggle('acik', (d.yazi || 'normal') === b.dataset.deger);
+      }
     });
 
     var araclar = document.getElementById('ep-okuma-araclari');
@@ -129,6 +133,12 @@
     document.querySelectorAll('.ep-dugme[data-grup="yazi"]').forEach(function (b) {
       b.addEventListener('click', function () {
         d.yazi = b.dataset.deger === 'normal' ? null : b.dataset.deger;
+        kaydet(d); uygula(d);
+      });
+    });
+    document.querySelectorAll('.ep-dugme[data-grup="imlec"]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        d.imlec = b.dataset.deger === 'varsayilan' ? null : b.dataset.deger;
         kaydet(d); uygula(d);
       });
     });
