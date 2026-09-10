@@ -565,8 +565,8 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   .maskot-fikir { width: 14rem; }
   .balon { font-size: 1.6rem; }
   .ozellikler { padding: 0 2rem; flex-wrap: wrap; gap: 1rem; }
-  .panel-bar, .istatistikler, .sekmeler, .panel-icerik { padding-left: 3rem; padding-right: 3rem; }
-  .istatistikler { grid-template-columns: repeat(3, 1fr); }
+  .panel-bar, .istatistikler, .sekmeler, .panel-icerik { padding-left: 1.6rem; padding-right: 1.6rem; }
+  .istatistikler { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .adaylar { grid-template-columns: 1fr; }
   .panel-sag .balon-mini { display: none; }
 }
@@ -1129,17 +1129,17 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
 @media (max-width: 560px) {
   /* UNIVERSAL olcekleme: kok font hem genislige hem gorunur yukseklige (svh) bagli —
      her telefonda ayni oranlar, ustten alta tam sigma, elle ayar gerekmez */
-  html { font-size: max(7px, min(2.5vw, 1.15vh)); }
+  html { font-size: max(7px, min(3.2vw, 1.35vh)); }
   @supports (height: 1svh) {
-    html { font-size: max(7px, min(2.5vw, 1.15svh)); }
+    html { font-size: max(7px, min(3.2vw, 1.35svh)); }
   }
 
   /* ust bar: tek satir — MEB logosu en ustte (sagda), uclu yan yana sigar */
   .ust { padding: 0.5rem 1rem 0.3rem; }
   .ust .logo { gap: 0.5rem; }
-  .ust .logo .logo-mark { width: 4.3rem; }
-  .ust .logo-slogan { font-size: 1.3rem; margin-left: 0.2rem; }
-  .yuz-yil-logo { height: 4.4rem; }
+  .ust .logo .logo-mark { width: 3.6rem; }
+  .ust .logo-slogan { font-size: 1.15rem; margin-left: 0.2rem; }
+  .yuz-yil-logo { height: 3.7rem; }
 
   /* ana sayfa baslik: ustte nefes alani; artan bosluk vitrin onu/arkasi esit paylasilir */
   .secim { padding: 2.4rem 1.4rem 0.9rem; }
@@ -1150,7 +1150,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   /* vitrin: yalnizca orta kart + oklar (kenar kartlari tasmasin) */
   .af-kenar-kart { display: none; }
   .af-sahne { gap: 0; padding: 0.6rem 0.4rem 0.2rem; }
-  .af-orta { width: 100%; max-width: 30rem; }
+  .af-orta { width: 100%; max-width: min(30rem, calc(100vw - 4.5rem)); }
   .af-kurdele { font-size: 0.95rem; padding: 0.4rem 1.1rem; }
   .af-ok { width: 2.7rem; height: 2.7rem; }
   .af-ok-sol { left: 0.2rem; }
@@ -1163,6 +1163,9 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .ozellikler { flex-wrap: wrap; gap: 0.9rem 0.6rem; padding: 0 1rem calc(1.4rem + env(safe-area-inset-bottom, 0px)); justify-content: center; }
   .ozellik { flex: 0 0 auto; }
   .sayfa-index .ozellikler { margin-top: auto; }
+
+  /* erisilebilirlik paneli: telefona sigacak genislik (tum sayfalar) */
+  .erisilebilirlik-panel { width: min(25rem, calc(100vw - 5.5rem)); }
 
   /* fikir sayfasi: balon + maskot yan yana, form tek kolon */
   .fikir-hero { padding: 0.8rem 1.6rem 1.2rem; gap: 0.8rem; }
