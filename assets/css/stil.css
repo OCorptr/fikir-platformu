@@ -19,7 +19,8 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 /* 1rem = 16px @1920x1080; genişlik VE yüksekliğe bağlanır ki her ekranda sayfa tamamı görünür */
-html { font-size: clamp(9px, min(1.02vw, 1.78vh), 28px); }
+/* UNIVERSAL: kok font cozunurluge orantili (1920x1080 referansi: 19.224px — birebir korunur) */
+html { font-size: min(1.00125vw, 1.78vh); }
 
 body {
   font-family: 'Nunito', 'Segoe UI', system-ui, sans-serif;
@@ -552,7 +553,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
    Küçük ekran güvencesi (sunumda tam ekran kullanılacak)
    ------------------------------------------------------------ */
 @media (max-width: 860px) {
-  html { font-size: 8px; }
+  html { font-size: max(7px, min(1.00125vw, 1.78vh)); }
   .kartlar { gap: 1.4rem; }
   .hero-ilk { grid-template-columns: 1fr; padding: 1rem 3rem; }
   .hero-ilk .eba-panel { justify-self: center; }
@@ -1128,9 +1129,9 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
 @media (max-width: 560px) {
   /* UNIVERSAL olcekleme: kok font hem genislige hem gorunur yukseklige (svh) bagli —
      her telefonda ayni oranlar, ustten alta tam sigma, elle ayar gerekmez */
-  html { font-size: clamp(7px, min(2.5vw, 1.15vh), 10px); }
+  html { font-size: max(7px, min(2.5vw, 1.15vh)); }
   @supports (height: 1svh) {
-    html { font-size: clamp(7px, min(2.5vw, 1.15svh), 10px); }
+    html { font-size: max(7px, min(2.5vw, 1.15svh)); }
   }
 
   /* ust bar: tek satir — MEB logosu en ustte (sagda), uclu yan yana sigar */
