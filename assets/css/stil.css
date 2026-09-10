@@ -570,10 +570,10 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
   .panel-sag .balon-mini { display: none; }
 }
 
-}
-
 /* ---------------- Koyu/Açık mod düğmesi ---------------- */
 .ust-sag { display: flex; align-items: center; gap: 1.1rem; }
+/* Turkiye Yuzyili - MEB 100. Yil logosu (ust sag) */
+.yuz-yil-logo { height: 4.6rem; width: auto; }
 .tema-dugme {
   width: 2.9rem; height: 2.9rem; border-radius: 50%;
   border: 0.16rem solid #D8E4EF; background: #fff;
@@ -1133,8 +1133,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .ust .logo { gap: 0.6rem; }
   .ust .logo .logo-mark { width: 4.6rem; }
   .ust .logo-slogan { font-size: 1.8rem; margin-left: 0.4rem; }
-  .meb .meb-armasi { width: 3.4rem; }
-  .meb-yazi { font-size: 1.05rem; }
+  .yuz-yil-logo { height: 3.4rem; }
 
   /* ana sayfa baslik */
   .secim { padding: 0.5rem 1.4rem 0; }
@@ -1172,3 +1171,4 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .fikir-butonlar { flex-wrap: wrap; gap: 0.7rem; }
   .btn-ana { margin-left: 0; width: 100%; order: -1; }
   .btn-hayalet { margin-left: auto; }
+}
