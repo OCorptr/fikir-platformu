@@ -785,6 +785,14 @@ html.animasyon-durdur *, html.animasyon-durdur *::before, html.animasyon-durdur 
   animation: none !important; transition: none !important;
 }
 html.yuksek-kontrast body { background: #000 !important; }
+/* cercevesiz kartlara beyaz cerceve (vitrin yan kartlari, istatistik, aday, tablo) */
+html.yuksek-kontrast .af-kart,
+html.yuksek-kontrast .istat,
+html.yuksek-kontrast .aday-kart,
+html.yuksek-kontrast .tablo-kart,
+html.yuksek-kontrast .balon {
+  border: 0.22rem solid #fff !important;
+}
 /* gradyanlar background-image oldugu icin 'background' kisaltmasi zorunlu:
    tum ogeler siyah zemin + sari yazi + beyaz cerceve (img'ler hariç) */
 html.yuksek-kontrast body *:not(img) {
