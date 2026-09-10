@@ -1128,12 +1128,12 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
 @media (max-width: 560px) {
   html { font-size: 10px; }
 
-  /* ust bar */
-  .ust { padding: 0.5rem 1.2rem 0.3rem; }
+  /* ust bar: mobilde iki satir — logolar ayni yukseklikte ortali */
+  .ust { flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.5rem 1.2rem 0.3rem; }
   .ust .logo { gap: 0.6rem; }
   .ust .logo .logo-mark { width: 4.6rem; }
   .ust .logo-slogan { font-size: 1.4rem; margin-left: 0.4rem; }
-  .yuz-yil-logo { height: 3.4rem; }
+  .yuz-yil-logo { height: 4.7rem; }
 
   /* ana sayfa baslik: ustte nefes alani, altta esnek bosluk olmasin */
   .secim { padding: 2.4rem 1.4rem 0.9rem; }
