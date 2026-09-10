@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>Geleceğin Fikri — Fikrini Anlat</title>
 <link rel="stylesheet" href="assets/css/fonts.css?v=2">
-<link rel="stylesheet" href="assets/css/stil.css?v=52">
+<link rel="stylesheet" href="assets/css/stil.css?v=58">
   <script>try{if(localStorage.getItem('gf-tema')==='koyu')document.documentElement.classList.add('koyu-mod')}catch(e){}</script>
 </head>
 <body class="sayfa-fikir">
@@ -29,7 +29,7 @@
   <main class="fikir-hero">
     <div class="fikir-sol">
       <div class="balon-kapsa">
-        <div class="balon" id="balon">Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra <b>Fikrim</b> kutusuna hayalini yaz. Sıra sende!</div>
+        <div class="balon" id="balon">Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra bilgilerini doldur ve fikrini anlat. Sıra sende!</div>
       </div>
       <img class="maskot-fikir" src="assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu">
     </div>
@@ -40,22 +40,44 @@
         <h1>Fikrini Anlat! <svg width="30" height="30" viewBox="0 0 24 24" fill="#F6B40E" style="vertical-align:super"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4z"/></svg></h1>
 
         <div class="bolum-basligi turkuaz">1 · Temanı Seç</div>
-        <div class="temalar" id="temalar">
-          <button type="button" class="tema">🎨 Kültür ve Sanat</button>
-          <button type="button" class="tema">⚽ Spor ve Sağlıklı Yaşam</button>
-          <button type="button" class="tema">🔬 Bilim ve Teknoloji</button>
-          <button type="button" class="tema">🤖 Yapay Zekâ</button>
-          <button type="button" class="tema">🌱 Çevre ve Sürdürülebilirlik</button>
-          <button type="button" class="tema">🤝 Sosyal Sorumluluk</button>
-          <button type="button" class="tema">💡 Girişimcilik</button>
-          <button type="button" class="tema">🚨 Afet Farkındalığı ve Güvenli Yaşam</button>
-          <button type="button" class="tema">📖 Değerler Eğitimi</button>
-          <button type="button" class="tema">🏭 Yerli ve Millî Üretim – Millî Savunma</button>
-        </div>
+        <select class="tema-secim" id="tema-secim" aria-label="Tema seç">
+          <option value="">🎨 Bir tema seç...</option>
+          <option value="🎨 Kültür ve Sanat">🎨 Kültür ve Sanat</option>
+          <option value="⚽ Spor ve Sağlıklı Yaşam">⚽ Spor ve Sağlıklı Yaşam</option>
+          <option value="🔬 Bilim ve Teknoloji">🔬 Bilim ve Teknoloji</option>
+          <option value="🤖 Yapay Zekâ">🤖 Yapay Zekâ</option>
+          <option value="🌱 Çevre ve Sürdürülebilirlik">🌱 Çevre ve Sürdürülebilirlik</option>
+          <option value="🤝 Sosyal Sorumluluk">🤝 Sosyal Sorumluluk</option>
+          <option value="💡 Girişimcilik">💡 Girişimcilik</option>
+          <option value="🚨 Afet Farkındalığı ve Güvenli Yaşam">🚨 Afet Farkındalığı ve Güvenli Yaşam</option>
+          <option value="📖 Değerler Eğitimi">📖 Değerler Eğitimi</option>
+          <option value="🏭 Yerli ve Millî Üretim – Millî Savunma">🏭 Yerli ve Millî Üretim – Millî Savunma</option>
+        </select>
 
-        <div class="bolum-basligi turuncu">2 · Fikrim</div>
+        <div class="bolum-basligi mavi">2 · Öğrenci Bilgileri</div>
+        <div class="ogrenci-alani">
+          <div class="ogrenci-alan">
+            <label for="ogr-ad">Ad Soyad</label>
+            <input id="ogr-ad" type="text" autocomplete="name" maxlength="60" placeholder="Örnek: Zeynep Kaya">
+          </div>
+          <div class="ogrenci-alan">
+            <label for="ogr-il">İl</label>
+            <input id="ogr-il" type="text" autocomplete="address-level1" maxlength="30" placeholder="Örnek: İzmir">
+          </div>
+          <div class="ogrenci-alan">
+            <label for="ogr-okul">Okul</label>
+            <input id="ogr-okul" type="text" autocomplete="organization" maxlength="80" placeholder="Örnek: Atatürk Ortaokulu">
+          </div>
+          <div class="ogrenci-alan">
+            <label for="ogr-no">Okul No</label>
+            <input id="ogr-no" type="text" inputmode="numeric" maxlength="12" placeholder="Örnek: 1045">
+          </div>
+        </div>
+        <p class="gizlilik-notu">🔒 Bilgilerin yalnızca fikrinin değerlendirilmesi amacıyla kullanılır; üçüncü kişilerle paylaşılmaz.</p>
+
+        <div class="bolum-basligi turuncu">3 · Fikrim</div>
         <div class="fikir-alani" id="fikir-alani">
-          <textarea id="fikrim" maxlength="600" placeholder="Fikrini buraya yaz... Ne olsun da dünyamız daha güzel bir yer olsun?"></textarea>
+          <textarea id="fikrim" maxlength="600" placeholder="Fikrini buraya yaz... Dünyamızı daha güzel bir yer yapan ne olabilir?"></textarea>
         </div>
         <div class="sayac-satiri">
           <span><span id="sayac-sayi">0</span> / 600 karakter</span>
@@ -114,6 +136,12 @@
   var sayi = document.getElementById('sayac-sayi');
   var hata = document.getElementById('hata-notu');
   var kart = document.getElementById('fikir-karti');
+  var sel = document.getElementById('tema-secim');
+  var ogrAd = document.getElementById('ogr-ad');
+  var ogrIl = document.getElementById('ogr-il');
+  var ogrOkul = document.getElementById('ogr-okul');
+  var ogrNo = document.getElementById('ogr-no');
+  var ekipCips = document.getElementById('ekip-cips');
 
   function balonDegistir(html) {
     balon.innerHTML = html;
@@ -128,31 +156,41 @@
     void kart.offsetWidth;
     kart.classList.add('sarsildi');
   }
+  function dikkatKaldir() {
+    sel.classList.remove('dikkat');
+    ogrAd.classList.remove('dikkat');
+    ogrIl.classList.remove('dikkat');
+    ogrOkul.classList.remove('dikkat');
+    ogrNo.classList.remove('dikkat');
+    document.getElementById('fikir-alani').classList.remove('dikkat');
+  }
+
+  // okul no: yalnızca rakam
+  ogrNo.addEventListener('input', function () {
+    var v = ogrNo.value.replace(/[^0-9]/g, '');
+    if (v !== ogrNo.value) ogrNo.value = v;
+    ogrNo.classList.remove('dikkat');
+  });
+  [sel, ogrAd, ogrIl, ogrOkul].forEach(function (e) {
+    ['change', 'input'].forEach(function (olay) {
+      e.addEventListener(olay, function () { e.classList.remove('dikkat'); });
+    });
+  });
 
   // karakter sayacı
   ta.addEventListener('input', function () {
     if (ta.value.length > MAX) ta.value = ta.value.slice(0, MAX);
     sayi.textContent = ta.value.length;
-  });
-
-  // tema seçimi
-  var temalar = document.querySelectorAll('.tema');
-  temalar.forEach(function (t) {
-    t.addEventListener('click', function () {
-      temalar.forEach(function (x) { x.classList.remove('aktif'); });
-      t.classList.add('aktif');
-      hata.classList.remove('gorun');
-    });
+    document.getElementById('fikir-alani').classList.remove('dikkat');
   });
 
   // ekip olarak katıl
   var ekipAlani = document.getElementById('ekip-alani');
   var ekipInput = document.getElementById('ekip-input');
-  var ekipCips = document.getElementById('ekip-cips');
   document.getElementById('btn-ekip').addEventListener('click', function () {
     ekipAlani.classList.toggle('acik');
     if (ekipAlani.classList.contains('acik')) {
-      balonDegistir('Arkadaşlarını davet et, birlikte fikirler daha güçlü olur! 💪');
+      balonDegistir('Arkadaşlarını davet et; fikirler paylaşıldıkça büyür! 💪');
       ekipInput.focus();
     }
   });
@@ -164,34 +202,76 @@
     cip.textContent = '👋 ' + v;
     ekipCips.appendChild(cip);
     ekipInput.value = '';
-    balonDegistir('Ekip büyüyor! 🎉 Fikrinizi birlikte geliştirebilirsiniz.');
+    balonDegistir('Ekibin büyüyor! 🎉 Artık fikrini arkadaşınla birlikte geliştirebilirsin.');
   });
 
-  // taslak kaydet
+  // taslak kaydet + geri yükle
+  function taslakTopla() {
+    return { tema: sel.value, ad: ogrAd.value, il: ogrIl.value, okul: ogrOkul.value, no: ogrNo.value, fikir: ta.value };
+  }
   document.getElementById('btn-taslak').addEventListener('click', function () {
+    try { localStorage.setItem('gf-taslak', JSON.stringify(taslakTopla())); } catch (e) {}
     balonDegistir('Taslak kaydedildi ✅ Kaldığın yerden devam edebilirsin.');
   });
+  (function () {
+    try {
+      var t = JSON.parse(localStorage.getItem('gf-taslak') || 'null');
+      if (!t) return;
+      sel.value = t.tema || '';
+      ogrAd.value = t.ad || '';
+      ogrIl.value = t.il || '';
+      ogrOkul.value = t.okul || '';
+      ogrNo.value = t.no || '';
+      ta.value = (t.fikir || '').slice(0, MAX);
+      sayi.textContent = ta.value.length;
+    } catch (e) {}
+  })();
+
+  // tümünü temizle
+  function hepsiniTemizle() {
+    sel.value = '';
+    ogrAd.value = ''; ogrIl.value = ''; ogrOkul.value = ''; ogrNo.value = '';
+    ta.value = ''; sayi.textContent = '0';
+    dikkatKaldir();
+    hata.classList.remove('gorun');
+  }
 
   // fikrimi sil
   document.getElementById('btn-sil').addEventListener('click', function () {
-    ta.value = ''; sayi.textContent = '0';
-    temalar.forEach(function (x) { x.classList.remove('aktif'); });
-    hata.classList.remove('gorun');
-    balonDegistir('Tamam, temiz sayfa! 🧽 Yeni fikirlerini bekliyorum.');
+    hepsiniTemizle();
+    balonDegistir('Tamamdır, sayfa tertemiz! 🧽 Şimdi yeni fikrini yazabilirsin.');
     ta.focus();
   });
 
   // gönder
   document.getElementById('btn-gonder').addEventListener('click', function () {
-    var temaSecili = document.querySelector('.tema.aktif');
-    if (!temaSecili) {
+    dikkatKaldir();
+    if (!sel.value) {
       hataGoster('Göndermeden önce bir tema seçmelisin.');
-      balonDegistir('Dur! Önce bir <b>tema</b> seçmalısın 😊');
+      sel.classList.add('dikkat');
+      balonDegistir('Hmm, önce bir <b>tema</b> seçmelisin 😊');
+      sel.focus();
+      return;
+    }
+    var bosAlanlar = [ogrAd, ogrIl, ogrOkul, ogrNo].filter(function (g) { return !g.value.trim(); });
+    if (bosAlanlar.length) {
+      hataGoster('Lütfen öğrenci bilgilerinin tamamını doldur.');
+      bosAlanlar.forEach(function (g) { g.classList.add('dikkat'); });
+      balonDegistir('Bilgilerini eksiksiz yazarsan fikrin komisyona ulaşır 😊');
+      bosAlanlar[0].focus();
+      return;
+    }
+    if (!/^[0-9]+$/.test(ogrNo.value.trim())) {
+      hataGoster('Okul numaran yalnızca rakamlardan oluşmalı.');
+      ogrNo.classList.add('dikkat');
+      balonDegistir('Okul numaranı rakamlarla yazabilir misin? 🔢');
+      ogrNo.focus();
       return;
     }
     if (ta.value.trim().length < 10) {
-      hataGoster('Fikrini biraz daha anlat; en az bir cümle yaz.');
-      balonDegistir('Biraz daha anlat; fikrin ne kadar net, o kadar hızlı değerlendirilir! ✏️');
+      hataGoster('Lütfen fikrini en az bir cümleyle anlat.');
+      document.getElementById('fikir-alani').classList.add('dikkat');
+      balonDegistir('Fikrin ne kadar net olursa, o kadar hızlı değerlendirilir! ✏️');
       ta.focus();
       return;
     }
@@ -205,10 +285,9 @@
   document.getElementById('btn-yeni').addEventListener('click', function () {
     document.getElementById('basari-gorunum').hidden = true;
     document.getElementById('form-gorunum').hidden = false;
-    ta.value = ''; sayi.textContent = '0';
-    temalar.forEach(function (x) { x.classList.remove('aktif'); });
+    hepsiniTemizle();
     ekipCips.innerHTML = '';
-    balonDegistir('Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra <b>Fikrim</b> kutusuna hayalini yaz. Sıra sende!');
+    balonDegistir('Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra bilgilerini doldur ve fikrini anlat. Sıra sende!');
   });
 })();
 </script>

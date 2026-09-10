@@ -53,6 +53,8 @@
     }
 
     document.querySelectorAll('.ep-anahtar').forEach(function (b) {
+      /* koyu mod tema.js'e aittir (html.koyu-mod sinifi + localStorage gf-tema) */
+      if (b.dataset.ozellik === 'koyu-mod') return;
       b.classList.toggle('acik', !!d[b.dataset.ozellik]);
     });
     document.querySelectorAll('.ep-dugme').forEach(function (b) {
@@ -118,6 +120,8 @@
 
     document.querySelectorAll('.ep-anahtar').forEach(function (b) {
       b.addEventListener('click', function () {
+        /* koyu mod anahtari tema.js tarafindan yonetilir */
+        if (b.dataset.ozellik === 'koyu-mod') return;
         d[b.dataset.ozellik] = !d[b.dataset.ozellik];
         kaydet(d); uygula(d);
       });

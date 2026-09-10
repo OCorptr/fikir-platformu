@@ -1,17 +1,25 @@
-/* Geleceğin Fikri — koyu/açık mod anahtarı (tüm sayfalarda ortak) */
+/* Geleceğin Fikri — koyu/açık mod anahtarı (tüm sayfalarda ortak)
+   Paneldeki "Koyu Mod" anahtarı (.ep-anahtar[data-ozellik="koyu-mod"]) da
+   bu dosyaya bağlıdır; erisilebilirlik.js bu anahtara dokunmaz. */
 (function () {
   var ANAHTAR = 'gf-tema';
 
   function kaydet(tema) { try { localStorage.setItem(ANAHTAR, tema); } catch (e) {} }
   function oku() { try { return localStorage.getItem(ANAHTAR) || 'acik'; } catch (e) { return 'acik'; } }
 
+  function panelAnahtarlari() {
+    return document.querySelectorAll('.ep-anahtar[data-ozellik="koyu-mod"]');
+  }
+
   function uygula(tema) {
-    document.documentElement.classList.toggle('koyu-mod', tema === 'koyu');
+    var koyu = tema === 'koyu';
+    document.documentElement.classList.toggle('koyu-mod', koyu);
     var b = document.getElementById('tema-dugme');
     if (b) {
-      b.textContent = tema === 'koyu' ? '☀️' : '🌙';
-      b.title = tema === 'koyu' ? 'Açık moda geç' : 'Koyu moda geç';
+      b.textContent = koyu ? '☀️' : '🌙';
+      b.title = koyu ? 'Açık moda geç' : 'Koyu moda geç';
     }
+    panelAnahtarlari().forEach(function (a) { a.classList.toggle('acik', koyu); });
   }
 
   window.gfTemaDegistir = function () {
@@ -25,5 +33,6 @@
     uygula(oku());
     var b = document.getElementById('tema-dugme');
     if (b) b.addEventListener('click', window.gfTemaDegistir);
+    panelAnahtarlari().forEach(function (a) { a.addEventListener('click', window.gfTemaDegistir); });
   });
 })();
