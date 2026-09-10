@@ -1126,7 +1126,8 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
    TELEFON (≤560px) — tasinma yok, tek kolon, buyuk dokunma alanlari
    ============================================================ */
 @media (max-width: 560px) {
-  html { font-size: 10px; }
+  /* kok font yuksekligi takip eder: tum oranlar korunur, sayfa her telefona sigar */
+  html { font-size: min(10px, 1.15vh); }
 
   /* ust bar: mobilde iki satir — logolar ayni yukseklikte ortali */
   .ust { flex-direction: column; align-items: center; gap: 0.5rem; padding: 0.5rem 1.2rem 0.3rem; }
@@ -1153,10 +1154,10 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .cta-fikir { margin-top: 1rem; padding: 0.9rem 1.8rem; }
   .cta-metin { font-size: 1.35rem; }
 
-  /* ozellik seridi 2x2; serit sayfanin en altina yapisin (alt bosluk kalmasin) */
+  /* ozellik seridi 2x2; butonla arasinda kucuk sabit bosluk (sayfa telefona sigsin) */
   .ozellikler { flex-wrap: wrap; gap: 0.9rem 0.6rem; padding: 0 1rem; justify-content: center; }
   .ozellik { flex: 1 1 42%; }
-  .sayfa-index .ozellikler { margin-top: auto; }
+  .sayfa-index .ozellikler { margin-top: 1.8rem; }
 
   /* fikir sayfasi: balon + maskot yan yana, form tek kolon */
   .fikir-hero { padding: 0.8rem 1.6rem 1.2rem; gap: 0.8rem; }
