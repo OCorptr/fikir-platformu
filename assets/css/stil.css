@@ -116,7 +116,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
    arma ~72px, MEB yazısı ~17px */
 .ust {
   display: flex; justify-content: space-between; align-items: flex-start;
-  padding: 0.4rem 6.2rem 0.2rem; position: relative; z-index: 5;
+  padding: 0.4rem 2.8rem 0.2rem; position: relative; z-index: 5;
 }
 .ust-sol { display: flex; align-items: center; }
 .ust .logo .logo-mark { width: 6rem; }
@@ -1145,7 +1145,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   }
 
   /* ust bar: tek satir — MEB logosu en ustte (sagda), uclu yan yana sigar */
-  .ust { padding: 0.5rem 1rem 0.3rem; }
+  .ust { padding: 0.5rem 0.7rem 0.3rem; }
   .ust .logo { gap: 0.5rem; }
   .ust .logo .logo-mark { width: 3.6rem; }
   .ust .logo-slogan { font-size: 1.15rem; margin-left: 0.2rem; }
