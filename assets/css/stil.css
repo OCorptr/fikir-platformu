@@ -779,24 +779,6 @@ html.yuksek-kontrast body *:not(img):not(svg):not(path):not(circle) {
   background-color: transparent !important; color: #FFFF00 !important;
   border-color: #fff !important; text-shadow: none !important; box-shadow: none !important;
 }
-html.imlec-beyaz body {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='white' stroke='%2316355C' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='%2316355C'/></svg>") 28 28, auto;
-}
-html.imlec-beyaz body a, html.imlec-beyaz body button {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='white' stroke='%2316355C' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='%2316355C'/></svg>") 28 28, pointer;
-}
-html.imlec-siyah body {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%2316355C' stroke='white' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='white'/></svg>") 28 28, auto;
-}
-html.imlec-siyah body a, html.imlec-siyah body button {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%2316355C' stroke='white' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='white'/></svg>") 28 28, pointer;
-}
-html.imlec-sari body {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%23FFE066' stroke='black' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='black'/></svg>") 28 28, auto;
-}
-html.imlec-sari body a, html.imlec-sari body button {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%23FFE066' stroke='black' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='black'/></svg>") 28 28, pointer;
-}
 html.ekran-okuyucu body :is(h1, h2, h3, h4, p, li, td, th, span, blockquote):hover {
   outline: 0.18rem solid rgba(30, 136, 201, 0.85); outline-offset: 2px;
 }
@@ -808,20 +790,7 @@ html.kt-yuksek body *:not(img):not(svg):not(path):not(circle) {
   background-color: transparent !important; color: #FFFF00 !important;
   border-color: #fff !important; text-shadow: none !important; box-shadow: none !important;
 }
-html.imlec-beyaz body {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='white' stroke='%2316355C' stroke-width='5'/></svg>") 26 26, auto;
-}
-html.imlec-siyah body {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='%2316355C' stroke='white' stroke-width='5'/></svg>") 26 26, auto;
-}
-html.imlec-beyaz body a, html.imlec-beyaz body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='white' stroke='%2316355C' stroke-width='5'/></svg>") 26 26, pointer; }
-html.imlec-siyah body a, html.imlec-siyah body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='%2316355C' stroke='white' stroke-width='5'/></svg>") 26 26, pointer; }
-html.koyu-mod html.imlec-siyah body {
-  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='%2316355C' stroke='white' stroke-width='5'/></svg>") 26 26, auto;
-}
-html.imlec-beyaz body a, html.imlec-beyaz body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='white' stroke='%2316355C' stroke-width='5'/></svg>") 26 26, pointer; }
-html.imlec-siyah body a, html.imlec-siyah body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='52' height='52'><circle cx='26' cy='26' r='20' fill='%2316355C' stroke='white' stroke-width='5'/></svg>") 26 26, pointer; }
-/* okuma kilavuzu cizgisi */
+html.koyu-mod /* okuma kilavuzu cizgisi */
 /* panel grup basliklari + ipucu */
 /* ileri/geri okları */
 /* yuksek kontrast: panel okunur kalsin */
@@ -1084,7 +1053,7 @@ html.koyu-mod .tema-secim {
 }
 
 /* fikir.html: ogrenci bilgileri (1. satir: ad genis + il + sinif dar; 2. satir: okul genis + no dar) */
-.ogrenci-alani { display: grid; grid-template-columns: 1.6fr 1fr 0.9fr; gap: 0.55rem 0.9rem; }
+.ogrenci-alani { display: grid; grid-template-columns: minmax(0, 1fr) 10.4rem 10.4rem; gap: 0.55rem 0.9rem; }
 .ogrenci-alan { display: flex; flex-direction: column; gap: 0.25rem; min-width: 0; }
 .ogrenci-alan.genis { grid-column: span 2; }
 .ogrenci-alan label { font-weight: 800; font-size: 0.88rem; color: #647A92; }
@@ -1135,3 +1104,11 @@ html.koyu-mod .ogrenci-alan select {
 .af-lb-kapat:hover { background: var(--kirmizi); color: #fff; }
 html.koyu-mod .af-lb-kapat { background: #223757; color: #DCE7F5; }
 html.koyu-mod .af-lb-kapat:hover { background: var(--kirmizi); color: #fff; }
+
+/* imlec rengi: klasik imlec OKU (renkli), merkez okun ucunda (4,2) */
+html.imlec-beyaz body { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='white' stroke='%2316355C' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>") 4 2, auto; }
+html.imlec-siyah body { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='%2316355C' stroke='white' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>") 4 2, auto; }
+html.imlec-sari body { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='%23FFE066' stroke='black' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>") 4 2, auto; }
+html.imlec-beyaz body a, html.imlec-beyaz body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='white' stroke='%2316355C' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>") 4 2, pointer; }
+html.imlec-siyah body a, html.imlec-siyah body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='%2316355C' stroke='white' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>") 4 2, pointer; }
+html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='%23FFE066' stroke='black' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>") 4 2, pointer; }

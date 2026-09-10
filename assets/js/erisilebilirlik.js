@@ -8,15 +8,26 @@
                   'baglanti-vurgu', 'animasyon-durdur',
                   'imlec-beyaz', 'imlec-siyah', 'imlec-sari'];
 
+  /* İmleç Rengi: klasik imleç OKU, yalnızca renkleri farklı
+     (beyaz: beyaz gövde + lacivert kenar, siyah: lacivert gövde + beyaz kenar,
+      sarı: sarı gövde + siyah kenar). Merkez (4,2) = okun ucu. */
+  var IMLEC_OK = {
+    beyaz: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='white' stroke='%2316355C' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>",
+    siyah: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='%2316355C' stroke='white' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>",
+    sari: "<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 2 L4 24 L9.5 19 L13 27 L16.8 25.2 L13.4 17.5 L21 17.5 Z' fill='%23FFE066' stroke='black' stroke-width='2' stroke-linejoin='round' paint-order='stroke'/></svg>"
+  };
+  function imlecCursor(deger, son) {
+    return 'url("data:image/svg+xml;utf8,' + IMLEC_OK[deger] + '") 4 2, ' + son;
+  }
   var IMLECLER = {
-    beyaz: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='white' stroke='%2316355C' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='%2316355C'/></svg>\") 28 28, auto",
-    siyah: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%2316355C' stroke='white' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='white'/></svg>\") 28 28, auto",
-    sari: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%23FFE066' stroke='black' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='black'/></svg>\") 28 28, auto"
+    beyaz: imlecCursor('beyaz', 'auto'),
+    siyah: imlecCursor('siyah', 'auto'),
+    sari: imlecCursor('sari', 'auto')
   };
   var IMLEC_PTR = {
-    beyaz: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='white' stroke='%2316355C' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='%2316355C'/></svg>\") 28 28, pointer",
-    siyah: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%2316355C' stroke='white' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='white'/></svg>\") 28 28, pointer",
-    sari: "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='56' height='56'><circle cx='28' cy='28' r='22' fill='%23FFE066' stroke='black' stroke-width='7'/><circle cx='28' cy='28' r='8' fill='black'/></svg>\") 28 28, pointer"
+    beyaz: imlecCursor('beyaz', 'pointer'),
+    siyah: imlecCursor('siyah', 'pointer'),
+    sari: imlecCursor('sari', 'pointer')
   };
 
   function oku() {
