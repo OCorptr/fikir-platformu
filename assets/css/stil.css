@@ -1136,9 +1136,9 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .yuz-yil-logo { height: 3.4rem; }
 
   /* ana sayfa baslik: ustte nefes alani, altta esnek bosluk olmasin */
-  .secim { padding: 0.9rem 1.4rem 0; }
+  .secim { padding: 2.4rem 1.4rem 0.9rem; }
   .secim h1 { font-size: 3.4rem; }
-  .alt-baslik { font-size: 1.5rem; margin-top: 0.4rem; }
+  .alt-baslik { font-size: 1.5rem; margin-top: 0.4rem; text-align: center; width: 100%; padding: 0 1rem; }
   .kartlar { flex: 0 0 auto; margin-top: 1.3rem; justify-content: flex-start; }
 
   /* vitrin: yalnizca orta kart + oklar (kenar kartlari tasmasin) */
@@ -1153,10 +1153,10 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .cta-fikir { margin-top: 1rem; padding: 0.9rem 1.8rem; }
   .cta-metin { font-size: 1.35rem; }
 
-  /* ozellik seridi 2x2 */
+  /* ozellik seridi 2x2; serit sayfanin en altina yapisin (alt bosluk kalmasin) */
   .ozellikler { flex-wrap: wrap; gap: 0.9rem 0.6rem; padding: 0 1rem; justify-content: center; }
   .ozellik { flex: 1 1 42%; }
-  .sayfa-index .ozellikler { margin-top: 1.6rem; }
+  .sayfa-index .ozellikler { margin-top: auto; }
 
   /* fikir sayfasi: balon + maskot yan yana, form tek kolon */
   .fikir-hero { padding: 0.8rem 1.6rem 1.2rem; gap: 0.8rem; }
