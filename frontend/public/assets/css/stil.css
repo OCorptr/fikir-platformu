@@ -164,7 +164,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .orta-alan { align-self: center; display: flex; flex-direction: column; align-items: center; }
 .orta-maskot { width: 18rem; animation: yuz 4.2s ease-in-out infinite; filter: drop-shadow(0 1rem 1.4rem rgba(30, 60, 120, 0.18)); }
 
-.sayfa-index .ozellikler { margin-top: auto; padding-bottom: 0.9rem; }
+.sayfa-index .ozellikler { padding-bottom: 0.9rem; }
 
 /* ============================================================
    ILK — İlköğretim ana sayfa
@@ -1155,7 +1155,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .secim { padding: 2.4rem 1.4rem 0.9rem; }
   .secim h1 { font-size: 3.4rem; }
   .alt-baslik { font-size: 1.5rem; margin-top: 0.4rem; text-align: center; width: 100%; padding: 0 1rem; }
-  .kartlar { flex: 0 0 auto; margin-top: auto; justify-content: flex-start; }
+  .kartlar { flex: 0 0 auto; justify-content: flex-start; }
 
   /* vitrin: yalnizca orta kart + oklar (kenar kartlari tasmasin) */
   .af-kenar-kart { display: none; }
@@ -1172,7 +1172,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   /* ozellik seridi 2x2; butonla arasinda kucuk sabit bosluk (sayfa telefona sigsin) */
   .ozellikler { flex-wrap: wrap; gap: 0.9rem 0.6rem; padding: 0 1rem calc(1.4rem + env(safe-area-inset-bottom, 0px)); justify-content: center; }
   .ozellik { flex: 0 0 auto; }
-  .sayfa-index .ozellikler { margin-top: auto; }
+  .sayfa-index .ozellikler { margin-top: 0; }
 
   /* erisilebilirlik paneli: telefona sigacak genislik (tum sayfalar) */
   .erisilebilirlik-panel { width: min(23rem, calc(100vw - 5.5rem)); }
