@@ -201,3 +201,12 @@
 @keyframes donus {
   to { transform: rotate(360deg); }
 }
+
+
+/* React root div'i flex yigin olacak — body'nin min-height:100vh'i ile birlikte
+   .secim'in flex:1'i calisir ve icerik dogru sekilde dagilir */
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}

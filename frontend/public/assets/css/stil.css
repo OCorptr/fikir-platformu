@@ -141,7 +141,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 
 
 
-.secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0.4rem 3rem 0; position: relative; z-index: 2; }
+.secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 3rem; position: relative; z-index: 2; }
 /* Başlık stili: PDF kapağındaki "GELECEĞİN FİKRİ PLATFORMU" yazısından
    (Rammetto One, turkuaz + turuncu, beyaz kontur + yumuşak gölge) */
 .secim h1 {
@@ -157,7 +157,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .alt-baslik { margin-top: 0.6rem; color: var(--gri); font-weight: 700; font-size: 1.45rem; }
 
 .kartlar {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   margin-top: 0.4rem; width: 100%;
 }
 

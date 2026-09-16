@@ -164,7 +164,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .orta-alan { align-self: center; display: flex; flex-direction: column; align-items: center; }
 .orta-maskot { width: 18rem; animation: yuz 4.2s ease-in-out infinite; filter: drop-shadow(0 1rem 1.4rem rgba(30, 60, 120, 0.18)); }
 
-.sayfa-index .ozellikler { padding-bottom: 1.4rem; }
+.sayfa-index .ozellikler { margin-top: auto; padding-bottom: 0.9rem; }
 
 /* ============================================================
    ILK — İlköğretim ana sayfa
