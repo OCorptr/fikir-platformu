@@ -25,26 +25,23 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="auth-form-wrap">
-      <div className="auth-title">
-        <span className="auth-title__icon" aria-hidden="true">?</span>
-        <div><p className="eyebrow">Hesap yardımı</p><h2>Şifreni sıfırla</h2></div>
-      </div>
-      <p className="form-intro">E-posta adresini yaz; hesabın varsa sıfırlama bağlantısını gönderelim.</p>
+    <>
+      <h1>Şifreni sıfırla</h1>
+      <p className="kart-not">E-posta adresini yaz; hesabın varsa sıfırlama bağlantısını gönderelim.</p>
       {message && <StatusBanner tone="success">{message}</StatusBanner>}
       {error && <StatusBanner tone="error">{error}</StatusBanner>}
       {!message && (
-        <form className="form-stack" onSubmit={handleSubmit}>
-          <label className="form-field">
+        <form onSubmit={handleSubmit}>
+          <div className="alan">
             <span>E-posta adresi</span>
-            <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          </label>
-          <button className="primary-button" type="submit" disabled={isSubmitting}>
+            <input className="ekip-input" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          </div>
+          <button className="btn-ana btn-tam" type="submit" disabled={isSubmitting} style={{ marginTop: "1.1rem" }}>
             {isSubmitting ? "Gönderiliyor…" : "Sıfırlama bağlantısı gönder"}
           </button>
         </form>
       )}
-      <p className="auth-switch"><Link to="/giris">← Giriş ekranına dön</Link></p>
-    </div>
+      <p className="kart-alt"><Link to="/giris">← Giriş ekranına dön</Link></p>
+    </>
   );
 }

@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { Brand } from "./Brand";
+import { UstBar } from "./UstBar";
 
 export function AppLayout() {
   const { user, logout } = useAuth();
@@ -19,27 +19,28 @@ export function AppLayout() {
   }
 
   return (
-    <div className="portal-shell">
-      <header className="portal-header">
-        <Brand compact />
-        <nav aria-label="Öğrenci menüsü">
-          <NavLink end to="/">Ana sayfa</NavLink>
-          <NavLink to="/profil">Profilim</NavLink>
-        </nav>
-        <div className="user-menu">
-          <span className="user-avatar" aria-hidden="true">
+    <>
+      <UstBar />
+      <nav className="panel-nav" aria-label="Öğrenci menüsü">
+        <NavLink end to="/" className={({ isActive }) => (isActive ? "aktif" : "")}>
+          Ana sayfa
+        </NavLink>
+        <NavLink to="/profil" className={({ isActive }) => (isActive ? "aktif" : "")}>
+          Profilim
+        </NavLink>
+        <div className="kullanici">
+          <span className="harf" aria-hidden="true">
             {user?.firstName?.[0]}{user?.lastName?.[0]}
           </span>
-          <span className="user-menu__name">{user?.firstName} {user?.lastName}</span>
+          <span>{user?.firstName} {user?.lastName}</span>
           <button type="button" onClick={handleLogout} disabled={isLoggingOut}>
             {isLoggingOut ? "Çıkılıyor…" : "Çıkış"}
           </button>
         </div>
-      </header>
-      <div className="portal-content">
+      </nav>
+      <main className="secim">
         <Outlet />
-      </div>
-      <footer className="portal-footer">Geleceğin Fikri Platformu · Genç AR-GE</footer>
-    </div>
+      </main>
+    </>
   );
 }

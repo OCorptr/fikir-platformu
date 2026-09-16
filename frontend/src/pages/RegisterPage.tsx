@@ -53,57 +53,55 @@ export function RegisterPage() {
   }
 
   return (
-    <div className="auth-form-wrap auth-form-wrap--wide">
-      <div className="auth-title">
-        <span className="auth-title__icon auth-title__icon--orange" aria-hidden="true">＋</span>
-        <div>
-          <p className="eyebrow">Aramıza katıl</p>
-          <h2>Öğrenci hesabı oluştur</h2>
-        </div>
-      </div>
-      <p className="form-intro">Fikrini paylaşabilmek için bilgilerini eksiksiz doldur.</p>
+    <>
+      <h1>Öğrenci hesabı oluştur</h1>
+      <p className="kart-not">Fikrini paylaşabilmek için bilgilerini eksiksiz doldur.</p>
       {error && <StatusBanner tone="error">{error}</StatusBanner>}
 
-      <form className="form-stack" onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <label className="form-field">
+      <div className="bolum-basligi turkuaz">Kimlik bilgileri</div>
+      <form onSubmit={handleSubmit}>
+        <div className="iki-sutun">
+          <label className="alan">
             <span>Ad</span>
-            <input autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} required maxLength={80} />
+            <input className="ekip-input" autoComplete="given-name" value={firstName} onChange={(event) => setFirstName(event.target.value)} required maxLength={80} />
           </label>
-          <label className="form-field">
+          <label className="alan">
             <span>Soyad</span>
-            <input autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} required maxLength={80} />
+            <input className="ekip-input" autoComplete="family-name" value={lastName} onChange={(event) => setLastName(event.target.value)} required maxLength={80} />
           </label>
         </div>
-        <label className="form-field">
+        <label className="alan" style={{ marginTop: "0.7rem" }}>
           <span>E-posta adresi</span>
-          <input type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <input className="ekip-input" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
         </label>
-        <label className="form-field">
+
+        <div className="bolum-basligi mavi">Okul bilgileri</div>
+        <label className="alan">
           <span>İl</span>
-          <select value={provinceId} onChange={(event) => setProvinceId(event.target.value)} required>
+          <select className="ekip-input" value={provinceId} onChange={(event) => setProvinceId(event.target.value)} required>
             <option value="">İlini seç</option>
             {provinces.map((province) => <option key={province.id} value={province.id}>{province.name}</option>)}
           </select>
-          <small>Göndereceğin fikirler seçtiğin ilin İl AR-GE birimine yönlendirilir.</small>
+          <span className="not">Göndereceğin fikirler seçtiğin ilin İl AR-GE birimine yönlenir.</span>
         </label>
-        <div className="form-grid">
-          <label className="form-field">
-            <span>Şifre</span>
-            <input type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} required />
-          </label>
-          <label className="form-field">
-            <span>Şifre tekrar</span>
-            <input type="password" autoComplete="new-password" value={passwordAgain} onChange={(event) => setPasswordAgain(event.target.value)} minLength={8} required />
-          </label>
-        </div>
-        <p className="password-hint">En az 8 karakter; büyük harf, küçük harf, rakam ve özel karakter kullan.</p>
-        <button className="primary-button" type="submit" disabled={isSubmitting || provinces.length === 0}>
-          {isSubmitting ? "Hesap oluşturuluyor…" : "Hesabımı oluştur"}
-          {!isSubmitting && <span aria-hidden="true">→</span>}
+
+        <div className="bolum-basligi turuncu">Güvenlik</div>
+        <label className="alan">
+          <span>Şifre</span>
+          <input className="ekip-input" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />
+          <span className="not">En az 8 karakter; büyük harf, küçük harf, rakam ve özel karakter kullan.</span>
+        </label>
+        <label className="alan" style={{ marginTop: "0.7rem" }}>
+          <span>Şifre tekrar</span>
+          <input className="ekip-input" type="password" autoComplete="new-password" value={passwordAgain} onChange={(event) => setPasswordAgain(event.target.value)} required minLength={8} />
+        </label>
+
+        <button className="btn-ana btn-tam" type="submit" disabled={isSubmitting} style={{ marginTop: "1.1rem" }}>
+          {isSubmitting ? "Hesabın oluşturuluyor…" : "Hesabımı oluştur"}
         </button>
       </form>
-      <p className="auth-switch">Zaten hesabın var mı? <Link to="/giris">Giriş yap</Link></p>
-    </div>
+
+      <p className="kart-alt">Hesabın var mı? <Link to="/giris">Giriş yap</Link></p>
+    </>
   );
 }

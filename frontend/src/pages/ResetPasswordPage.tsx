@@ -35,22 +35,28 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="auth-form-wrap">
-      <div className="auth-title">
-        <span className="auth-title__icon" aria-hidden="true">↻</span>
-        <div><p className="eyebrow">Yeni başlangıç</p><h2>Yeni şifreni belirle</h2></div>
-      </div>
+    <>
+      <h1>Yeni şifreni belirle</h1>
+      <p className="kart-not">Yeni şifreni iki kez yazarak onayla.</p>
       {!hasValidParameters && <StatusBanner tone="error">Sıfırlama bağlantısı eksik veya geçersiz.</StatusBanner>}
       {message && <StatusBanner tone="success">{message}</StatusBanner>}
       {error && <StatusBanner tone="error">{error}</StatusBanner>}
       {hasValidParameters && !message && (
-        <form className="form-stack" onSubmit={handleSubmit}>
-          <label className="form-field"><span>Yeni şifre</span><input type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required /></label>
-          <label className="form-field"><span>Yeni şifre tekrar</span><input type="password" autoComplete="new-password" minLength={8} value={passwordAgain} onChange={(event) => setPasswordAgain(event.target.value)} required /></label>
-          <button className="primary-button" type="submit" disabled={isSubmitting}>{isSubmitting ? "Güncelleniyor…" : "Şifremi güncelle"}</button>
+        <form onSubmit={handleSubmit}>
+          <div className="alan">
+            <span>Yeni şifre</span>
+            <input className="ekip-input" type="password" autoComplete="new-password" minLength={8} value={password} onChange={(event) => setPassword(event.target.value)} required />
+          </div>
+          <div className="alan" style={{ marginTop: "0.7rem" }}>
+            <span>Yeni şifre tekrar</span>
+            <input className="ekip-input" type="password" autoComplete="new-password" minLength={8} value={passwordAgain} onChange={(event) => setPasswordAgain(event.target.value)} required />
+          </div>
+          <button className="btn-ana btn-tam" type="submit" disabled={isSubmitting} style={{ marginTop: "1.1rem" }}>
+            {isSubmitting ? "Güncelleniyor…" : "Şifremi güncelle"}
+          </button>
         </form>
       )}
-      <p className="auth-switch"><Link to="/giris">Giriş ekranına dön</Link></p>
-    </div>
+      <p className="kart-alt"><Link to="/giris">Giriş ekranına dön</Link></p>
+    </>
   );
 }

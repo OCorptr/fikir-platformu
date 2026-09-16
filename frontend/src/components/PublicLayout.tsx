@@ -1,31 +1,35 @@
-import { Outlet } from "react-router-dom";
-import { Brand } from "./Brand";
+import { Outlet, useLocation } from "react-router-dom";
+import { UstBar } from "./UstBar";
+
+const balonMetinleri: Record<string, string> = {
+  "/giris": "Tekrar hoş geldin! 🎉 E-posta ve şifrenle hesabına giriş yapabilirsin.",
+  "/kayit": "Merhaba, ben Fikri! 🖐 Önce bilgilerini doldur, sonra fikrini anlat. Sıra sende!",
+  "/sifremi-unuttum": "Şifreni mi unuttun? 😊 Endişelenme, hemen sıfırlama bağlantısı gönderelim.",
+  "/sifre-sifirla": "Yeni şifreni belirleyebilirsin. 🔐 Güvenli bir şifre seçmayı unutma!",
+};
 
 export function PublicLayout() {
+  const yol = useLocation().pathname;
+  const balon = balonMetinleri[yol] ?? "Merhaba, ben Fikri! 🖐 Sıra sende, hadi başlayalım!";
+
   return (
-    <main className="auth-shell">
-      <section className="auth-story" aria-label="Geleceğin Fikri hakkında">
-        <Brand />
-        <div className="auth-story__content">
-          <p className="eyebrow">Gençlerin fikri, geleceğin gücü</p>
-          <h1>Bir fikrin varsa, değişim tam burada başlar.</h1>
-          <p>
-            Fikrini güvenle paylaş, kendi ilindeki değerlendirme sürecini takip et ve
-            Türkiye’nin geleceğine katkı sağla.
-          </p>
+    <>
+      <UstBar />
+      <main className="fikir-hero">
+        <div className="fikir-sol">
+          <div className="balon-kapsa">
+            <div className="balon" id="balon">{balon}</div>
+          </div>
+          <img
+            className="maskot-fikir"
+            src="/assets/img/gencarge_logo.webp"
+            alt="Genç AR-GE maskotu"
+          />
         </div>
-        <ol className="auth-steps" aria-label="Başvuru adımları">
-          <li><span>1</span>Kayıt ol</li>
-          <li><span>2</span>Fikrini yaz</li>
-          <li><span>3</span>Süreci takip et</li>
-        </ol>
-      </section>
-      <section className="auth-panel">
-        <div className="auth-panel__inner">
+        <section className="fikir-karti">
           <Outlet />
-        </div>
-        <p className="auth-footer">T.C. Millî Eğitim Bakanlığı · Genç AR-GE</p>
-      </section>
-    </main>
+        </section>
+      </main>
+    </>
   );
 }

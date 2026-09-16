@@ -1,4 +1,5 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { useEffect } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { AppLayout } from "./components/AppLayout";
@@ -12,10 +13,21 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 
+/* her rotada govde sinifi degisir: kimlik sayfalari = sayfa-fikir, digerleri = sayfa-index */
+function GovdeSinifi() {
+  const yol = useLocation().pathname;
+  useEffect(() => {
+    const kimlikSayfalari = ["/giris", "/kayit", "/sifremi-unuttum", "/sifre-sifirla"];
+    document.body.className = kimlikSayfalari.includes(yol) ? "sayfa-fikir" : "sayfa-index";
+  }, [yol]);
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <GovdeSinifi />
         <AccessibilityPanel />
         <Routes>
           <Route element={<PublicLayout />}>

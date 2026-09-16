@@ -35,14 +35,9 @@ export function LoginPage() {
   const verification = searchParams.get("verified");
 
   return (
-    <div className="auth-form-wrap">
-      <div className="auth-title">
-        <span className="auth-title__icon" aria-hidden="true">→</span>
-        <div>
-          <p className="eyebrow">Tekrar hoş geldin</p>
-          <h2>Hesabına giriş yap</h2>
-        </div>
-      </div>
+    <>
+      <h1>Hesabına giriş yap</h1>
+      <p className="kart-not">E-posta adresin ve şifrenle hesabına giriş yapabilirsin.</p>
 
       {state?.registered && (
         <StatusBanner tone="success">
@@ -57,10 +52,12 @@ export function LoginPage() {
       )}
       {error && <StatusBanner tone="error">{error}</StatusBanner>}
 
-      <form className="form-stack" onSubmit={handleSubmit}>
-        <label className="form-field">
+      <div className="bolum-basligi mavi">Giriş bilgileri</div>
+      <form onSubmit={handleSubmit}>
+        <div className="alan">
           <span>E-posta adresi</span>
           <input
+            className="ekip-input"
             type="email"
             autoComplete="email"
             value={email}
@@ -68,20 +65,21 @@ export function LoginPage() {
             placeholder="ornek@meb.gov.tr"
             required
           />
-        </label>
-        <label className="form-field">
+        </div>
+        <div className="alan" style={{ marginTop: "0.7rem" }}>
           <span>Şifre</span>
           <input
+            className="ekip-input"
             type="password"
             autoComplete="current-password"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-        </label>
+        </div>
 
-        <div className="form-options">
-          <label className="checkbox-field">
+        <div className="satir" style={{ marginTop: "0.9rem" }}>
+          <label className="satir">
             <input
               type="checkbox"
               checked={rememberMe}
@@ -89,16 +87,15 @@ export function LoginPage() {
             />
             <span>Beni hatırla</span>
           </label>
-          <Link to="/sifremi-unuttum">Şifremi unuttum</Link>
+          <Link className="saga-yasla" to="/sifremi-unuttum">Şifremi unuttum</Link>
         </div>
 
-        <button className="primary-button" type="submit" disabled={isSubmitting}>
+        <button className="btn-ana btn-tam" type="submit" disabled={isSubmitting} style={{ marginTop: "1.1rem" }}>
           {isSubmitting ? "Giriş yapılıyor…" : "Giriş yap"}
-          {!isSubmitting && <span aria-hidden="true">→</span>}
         </button>
       </form>
 
-      <p className="auth-switch">Hesabın yok mu? <Link to="/kayit">Kayıt ol</Link></p>
-    </div>
+      <p className="kart-alt">Hesabın yok mu? <Link to="/kayit">Kayıt ol</Link></p>
+    </>
   );
 }
