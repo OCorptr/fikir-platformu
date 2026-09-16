@@ -3,4 +3,7 @@
     <ProjectReference Include="..\FikirPlatformu.Application\FikirPlatformu.Application.csproj" />
     <ProjectReference Include="..\FikirPlatformu.Domain\FikirPlatformu.Domain.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+  </ItemGroup>
 </Project>
