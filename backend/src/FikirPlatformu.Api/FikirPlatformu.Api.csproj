@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\FikirPlatformu.Application\FikirPlatformu.Application.csproj" />
+    <ProjectReference Include="..\FikirPlatformu.Infrastructure\FikirPlatformu.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FikirPlatformu.Api/FikirPlatformu.Api.csproj" />
+    <Project Path="src/FikirPlatformu.Application/FikirPlatformu.Application.csproj" />
+    <Project Path="src/FikirPlatformu.Domain/FikirPlatformu.Domain.csproj" />
+    <Project Path="src/FikirPlatformu.Infrastructure/FikirPlatformu.Infrastructure.csproj" />
+  </Folder>
+</Solution>

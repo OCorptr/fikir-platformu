@@ -10,3 +10,22 @@ onizleme/
 yukleme_paketi/
 Fikir_Platformu_yukle.zip
 Fikir_Platformu_yukle_yeni.zip
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+*.tsbuildinfo
+
+# .NET
+**/bin/
+**/obj/
+*.user
+*.suo
+
+# yerel gelistirme ayarlari
+.env
+.env.*
+!.env.example
