@@ -5,7 +5,7 @@ import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { AppLayout } from "./components/AppLayout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicLayout } from "./components/PublicLayout";
-import { DashboardPage } from "./pages/DashboardPage";
+import { HomePage } from "./pages/HomePage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
@@ -36,9 +36,9 @@ export default function App() {
             <Route path="/sifremi-unuttum" element={<ForgotPasswordPage />} />
             <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
           </Route>
+          <Route index element={<HomePage />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
               <Route path="/profil" element={<ProfilePage />} />
             </Route>
           </Route>
