@@ -133,7 +133,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
     radial-gradient(58rem 30rem at 108% -12%, #FCF1D4 0%, rgba(252, 241, 212, 0) 60%),
     radial-gradient(50rem 28rem at -12% 112%, #D7ECF9 0%, rgba(215, 236, 249, 0) 60%),
     linear-gradient(180deg, #F3FAFE 0%, #E2F1FB 100%);
-  display: flex; flex-direction: column; height: 100vh; height: 100svh; overflow: hidden; position: relative;
+  display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; position: relative; overflow-x: hidden;
 }
 
 .not-script .alti { position: relative; display: inline-block; }
@@ -141,7 +141,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 
 
 
-.secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 3rem; position: relative; z-index: 2; }
+.secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 3rem 0.2rem; position: relative; z-index: 2; }
 /* Başlık stili: PDF kapağındaki "GELECEĞİN FİKRİ PLATFORMU" yazısından
    (Rammetto One, turkuaz + turuncu, beyaz kontur + yumuşak gölge) */
 .secim h1 {
@@ -398,7 +398,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
     radial-gradient(58rem 30rem at 108% -12%, #FCF1D4 0%, rgba(252, 241, 212, 0) 60%),
     radial-gradient(50rem 28rem at -12% 112%, #D7ECF9 0%, rgba(215, 236, 249, 0) 60%),
     linear-gradient(180deg, #F3FAFE 0%, #E2F1FB 100%);
-  height: 100vh; height: 100svh; overflow: hidden; display: flex; flex-direction: column; position: relative;
+  min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; position: relative; overflow-x: hidden;
 }
 .fikir-hero {
   flex: 1; display: grid; grid-template-columns: 0.85fr 1.3fr; gap: 2.5rem;
