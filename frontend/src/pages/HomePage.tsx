@@ -47,6 +47,7 @@ const kazananlar = [
 export function HomePage() {
   const [aktif, setAktif] = useState(0);
   const [arsivAcik, setArsivAcik] = useState(false);
+  const [lightboxAcik, setLightboxAcik] = useState(false);
   const n = kazananlar.length;
 
   useEffect(() => {
@@ -83,7 +84,13 @@ export function HomePage() {
             <div className="af-soz">{sol.soz}</div>
           </div>
 
-          <div className="af-kart af-orta" id="af-orta">
+          <div
+            className="af-kart af-orta"
+            id="af-orta"
+            style={{ cursor: "pointer" }}
+            onClick={() => setLightboxAcik(true)}
+            title="Büyütmek için tıkla"
+          >
             <div className="af-kurdele">👑 Ayın Fikri · {orta.ay}</div>
             <div className="af-emoji">{orta.emoji}</div>
             <div className="af-ad">{orta.ad}</div>
@@ -128,12 +135,44 @@ export function HomePage() {
           ))}
         </div>
 
-        <a className="cta-fikir" href="/kayit">
+        <a className="cta-fikir" href="/fikir">
           <span className="cta-ikon">✏️</span>
           <span className="cta-metin">Fikrini Yaz &amp; Paylaş</span>
           <svg className="cta-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h14" /><path d="M13 6l6 6-6 6" /></svg>
         </a>
       </div>
+
+      {lightboxAcik && (
+        <div
+          className="af-lightbox"
+          onClick={(olay) => {
+            if (olay.target === olay.currentTarget) {
+              setLightboxAcik(false);
+              setAktif((deger) => (deger + 1) % n);
+            }
+          }}
+        >
+          <button
+            type="button"
+            className="af-lb-kapat"
+            aria-label="Kapat"
+            onClick={() => {
+              setLightboxAcik(false);
+              setAktif((deger) => (deger + 1) % n);
+            }}
+          >
+            ✕
+          </button>
+          <div className="af-kart af-orta">
+            <div className="af-kurdele">👑 Ayın Fikri · {orta.ay}</div>
+            <div className="af-emoji">{orta.emoji}</div>
+            <div className="af-ad">{orta.ad}</div>
+            <div className="af-okul">{orta.okul}</div>
+            <div className="af-tema">{orta.tema}</div>
+            <div className="af-soz">{orta.soz}</div>
+          </div>
+        </div>
+      )}
 
       <div className="ozellikler" style={{ marginTop: "2.4rem", paddingBottom: "1.6rem" }}>
         <button className="ozellik ozellik-arsiv" type="button" onClick={() => setArsivAcik(true)}>
@@ -145,6 +184,37 @@ export function HomePage() {
           Fark Yarat
         </div>
       </div>
+
+      {arsivAcik && (
+        <div
+          className="arsiv-modal"
+          onClick={(olay) => {
+            if (olay.target === olay.currentTarget) setArsivAcik(false);
+          }}
+        >
+          <div className="arsiv-icerik">
+            <button className="arsiv-kapat" type="button" aria-label="Kapat" onClick={() => setArsivAcik(false)}>✕</button>
+            <h2>🏆 Ayın Fikri Arşivi</h2>
+            <p className="arsiv-alt">Önceki aylarda seçilen kazanan fikirler</p>
+            <div className="arsiv-zaman">
+              <div className="ay-kart">
+                <div className="ay-etiket">Ağustos 2026</div>
+                <div className="ay-kazanan">🔬 Zeynep Kaya</div>
+                <div className="ay-okul">Atatürk Anadolu Lisesi · Bornova</div>
+                <div className="ay-tema">Sosyal Fayda</div>
+                <div className="ay-fikir-giris">"Okul bahçemize güneş enerjili akıllı sulama sistemi kuralım; bitkiler telefondan sulansın."</div>
+              </div>
+              <div className="ay-kart">
+                <div className="ay-etiket">Temmuz 2026</div>
+                <div className="ay-kazanan">🤝 Defne Arslan</div>
+                <div className="ay-okul">Fatih Sultan Mehmet Ortaokulu · Gaziemir</div>
+                <div className="ay-tema">Sosyal Sorumluluk</div>
+                <div className="ay-fikir-giris">"Huzurevindeki dedelerimize ve ninelerimize mektup yazalım, her ay onları ziyaret edelim."</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {arsivAcik && (
         <div
