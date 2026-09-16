@@ -44,6 +44,8 @@
   };
 
   uygula(oku());
+  /* tarayici geri tusu bfcache ile eski gorunumu geri yukler — temayi tazele */
+  window.addEventListener('pageshow', function () { uygula(oku()); });
   document.addEventListener('DOMContentLoaded', function () {
     uygula(oku());
     var b = document.getElementById('tema-dugme');

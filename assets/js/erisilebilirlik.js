@@ -114,6 +114,11 @@
     });
   }
 
+  /* tarayici geri tusu bfcache ile donerse ozellikleri yeniden uygula */
+  window.addEventListener('pageshow', function () {
+    d = oku(); uygula(d);
+  });
+
   document.addEventListener('DOMContentLoaded', function () {
     var d = oku();
     uygula(d);
