@@ -1,6 +1,6 @@
 # Proje Durumu — YENİ OTURUM AÇILDIGINDA ÖNCE BU DOSYAYI OKU
 
-> Son güncelleme: 2026-09-16
+> Son güncelleme: 2026-09-17
 > Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41 karar günlüğü)
 > Kaynak belge: `Fikir Platformu 11.08.2026.pdf`
 
@@ -17,6 +17,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 1 — Teknik temel ve depo düzeni | ✅ Tamam |
 | 2 — Kimlik ve öğrenci profili | ✅ Tamam (uçtan uca test edildi) |
 | 2+ — Öğrenci arayüzü (React): kayıt/giriş/doğrulama/profil | ✅ Tamam (tarayıcıda uçtan uca doğrulandı) |
+| 2++ — Ana sayfa React'e taşındı (index.html birebir kopya) | ✅ Tamam |
 | 3 — Fikir girişi | 🟡 Backend + doğrulama tamam; fikir yazma arayüzü (Aşama 3 React) bekliyor |
 | 4-10 | ⬜ Başlanmadı (plan §34) |
 
@@ -97,6 +98,8 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
    - **Yazı tipleri:** `assets/fonts` klasörü `frontend/public/assets/fonts` altına kopyalandı (Rammetto One, Caveat, Nunito vb. React'te de yüklenecek şekilde).
    - **Ana sayfa herkese açık:** `/` rotası korumasız — birebir index.html kopyası (başlık + vitrin + CTA + şerit); yalnızca `/profil` girişte korumalı.
 2. **Aşama 3 arayüzü (SIRADAKİ):** kategori seçimi, canlı 1.500 karakter sayacı, taslaklar ve süreç takibi.
+3. **Ana sayfa React'e birebir taşındı ✅:** üst bar (logolar köşelerde), GELECEĞİN FİKRİ PLATFORMU başlığı (Rammetto One), Ayın Fikirleri vitrini (yan kartlar af-k-* sınıflarıyla, orta kart tıklanınca lightbox açılır), Fikrini Yaz & Paylaş CTA, alt şerit (Arşiv + Fark Yarat), arşiv modalı. Content dikeyde ortalanır (justify-content: center + overflow: hidden yok — min-height kullanılır).
+4. **Son görsel doğrulama (1366×768 + 560×1080):** üst boşluk ~140px, alt boşluk ~118px, içerik dikeyde dengeli ve ortalanmış.
 3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
    çıkarılması ve onaylanan sürümün `blocked_terms` tablosuna yüklenmesi.
 4. Açık kararlar: minimum fikir uzunluğu, ekip özelliğinin ilk sürüme girip girmeyeceği ve
