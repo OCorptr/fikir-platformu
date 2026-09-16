@@ -5,7 +5,7 @@ Bu depo iki uygulamayı geçici olarak birlikte barındırır:
 - Kök dizindeki mevcut HTML/CSS/JavaScript dosyaları: Netlify'da çalışan prototip
 - `frontend` ve `backend`: üretim uygulamasının yeni, taşınabilir temeli
 
-**Güncel aşama durumu: [](docs/DURUM.md)** — yeni oturum açmadan önce mutlaka okuyun.
+**Güncel aşama durumu: `docs/DURUM.md`** — yeni oturum açmadan önce mutlaka okuyun.
 
 Mevcut prototip kaldırılmamış veya değiştirilmemiştir. Yeni uygulama tamamlanıp kabul
 edilene kadar iki yapı birbirinden bağımsız geliştirilebilir.
