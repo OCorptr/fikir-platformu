@@ -1864,3 +1864,17 @@ Bu plan; mevcut görsel prototipi, kaynak PDF'yi ve görüşmelerde alınan gün
 6. Güvenlik, erişilebilirlik ve YEĞİTEK dağıtımını doğrulamak
 
 Projenin bütün yeni kararları bu belgeye sürüm notuyla işlenmeli ve kod geliştirme bu planla izlenebilir biçimde yürütülmelidir.
+
+---
+
+## 41. Karar günlüğü — Aşama 2 (Kimlik ve öğrenci profili)
+
+Aşama 2 geliştirmesi sırasında aşağıdaki açık kararlar için geçici varsayılanlar benimsendi (ilgili paydaşlar onaylayana kadar geçerlidir):
+
+1. **Açık karar 1 (zorunlu profil alanları):** Kayıtta yalnızca Ad, Soyad, E-posta, Şifre ve İl zorunludur. İlçe, Okul, Sınıf ve Okul Numarası profil güncellemesinden girilir; fikir gönderiminde zorunluluk Aşama 3'te kesinleşir.
+2. **Açık karar 2 (il değişikliği):** Profil il değişikliği serbesttir; mevcut fikirler gönderim anındaki ilinde kalır (plan §8.2).
+3. **Açık karar 3 (okul/ilçe girişi):** Serbest metin olarak alınır; il listesi (81 il veritabanı kaydı) olarak sunulur.
+4. **Kimlik doğrulama biçimi:** HttpOnly çerez (plan §8.4 ve §31 uyarınca localStorage token kullanılmaz). Geliştirmede Vite proxy'si ile aynı kaynak sağlanır.
+5. **E-posta doğrulama:** `RequireConfirmedAccount = true` — doğrulanmamış hesap girişe engellenir. Geliştirmede e-postalar `dev-email/` klasörüne dosya olarak yazılır; üretimde SMTP adaptörü takılır.
+6. **Şifre politikası:** Identity varsayılanları (en az 8 karakter, rakam/büyük harf/özel karakter), 5 hatalı girişte 15 dakika kilit.
+7. **Roller:** `Student`, `ProvinceEvaluator`, `ProvinceManager`, `MinistryOfficial`, `SystemAdmin` başlangıçta otomatik oluşturulur; kayıt olan her öğrenciye `Student` atanır.

@@ -29,3 +29,6 @@ frontend/.env.*
 .env
 .env.*
 !.env.example
+
+# gelistirme ortami e-posta dosyalari (token icerir)
+backend/src/FikirPlatformu.Api/dev-email/
