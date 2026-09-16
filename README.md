@@ -17,11 +17,13 @@ Gereksinimler:
 - pnpm 11
 - İsteğe bağlı olarak Docker/Podman (yerel PostgreSQL için)
 
-PostgreSQL'i başlatmak için:
+PostgreSQL geliştirme ortamı: doğrudan kurulum tercih edildi.
 
-```powershell
-docker compose up -d postgres
-```
+- Windows kurulumu: https://www.postgresql.org/download/windows/ (EnterpriseDB kurulum sihirbazı)
+- Kurulumda belirlenen şifre `backend/src/FikirPlatformu.Api/appsettings.json` içindeki
+  `ConnectionStrings:PostgreSQL` ayarına yazılır.
+- `compose.yaml` alternatif olarak korunur; Docker tercih edilirse `docker compose up -d postgres` ile
+  aynı veritabanı ayağa kalkar.
 
 Backend'i başlatmak için:
 
