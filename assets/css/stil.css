@@ -157,7 +157,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .alt-baslik { margin-top: 0.6rem; color: var(--gri); font-weight: 700; font-size: 1.45rem; }
 
 .kartlar {
-  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
   margin-top: 0.4rem; width: 100%;
 }
 
