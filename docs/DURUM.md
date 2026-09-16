@@ -93,6 +93,9 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 ## Sıradaki adımlar (plan sırasıyla)
 
 1. ~~Aşama 2 arayüzü (React)~~ ✅ TAMAMLANDI: kayıt/giriş/şifre akışları/profil/panel + erişilebilirlik paneli React'e taşındı; tarayıcıda uçtan uca doğrulandı (kayıt → doğrulama → giriş → panel → profil).
+   - **Erişilebilirlik paneli tam sürüm:** statik sitedeki tüm özellikler (koyu mod, ekran okuyucu + sayfayı oku/durdur, yazı boyutu A−/A/A+, disleksi, yüksek kontrast, bağlantıları vurgula, animasyonları durdur, sıfırla) aynı `gf-erisilebilirlik` anahtarıyla çalışıyor. Buton sağ ortada sabit.
+   - **Yazı tipleri:** `assets/fonts` klasörü `frontend/public/assets/fonts` altına kopyalandı (Rammetto One, Caveat, Nunito vb. React'te de yüklenecek şekilde).
+   - **Ana sayfa herkese açık:** `/` rotası korumasız — birebir index.html kopyası (başlık + vitrin + CTA + şerit); yalnızca `/profil` girişte korumalı.
 2. **Aşama 3 arayüzü (SIRADAKİ):** kategori seçimi, canlı 1.500 karakter sayacı, taslaklar ve süreç takibi.
 3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
    çıkarılması ve onaylanan sürümün `blocked_terms` tablosuna yüklenmesi.
