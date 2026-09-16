@@ -88,18 +88,20 @@ public static class AuthEndpoints
         grup.MapGet("/verify-email", async (
             [FromQuery] string userId,
             [FromQuery] string token,
-            UserManager<ApplicationUser> kullaniciYoneticisi) =>
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            IConfiguration yapilandirma) =>
         {
+            var frontendAdresi = FrontendAdresi(yapilandirma);
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null)
             {
-                return Results.Content("<p>Doğrulama bağlantısı geçersiz.</p>", "text/html; charset=utf-8");
+                return Results.Redirect($"{frontendAdresi}/giris?verified=invalid");
             }
 
             var sonuc = await kullaniciYoneticisi.ConfirmEmailAsync(kullanici, token);
             return sonuc.Succeeded
-                ? Results.Content("<h1>E-posta adresiniz doğrulandı</h1><p>Artık giriş yapabilirsiniz.</p>", "text/html; charset=utf-8")
-                : Results.Content("<p>Doğrulama bağlantısı geçersiz veya süresi dolmuş.</p>", "text/html; charset=utf-8");
+                ? Results.Redirect($"{frontendAdresi}/giris?verified=success")
+                : Results.Redirect($"{frontendAdresi}/giris?verified=invalid");
         });
 
         grup.MapPost("/login", async (
@@ -153,13 +155,14 @@ public static class AuthEndpoints
             SifremiUnuttumIstegi istek,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             IEmailSender epostaGonderici,
+            IConfiguration yapilandirma,
             HttpContext http) =>
         {
             var kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
             if (kullanici is not null)
             {
                 var belirtec = await kullaniciYoneticisi.GeneratePasswordResetTokenAsync(kullanici);
-                var sifirlamaBaglantisi = $"{http.Request.Scheme}://{http.Request.Host}/api/auth/reset-password"
+                var sifirlamaBaglantisi = $"{FrontendAdresi(yapilandirma)}/sifre-sifirla"
                     + $"?email={Uri.EscapeDataString(istek.Email)}"
                     + $"&token={Uri.EscapeDataString(belirtec)}";
 
@@ -196,6 +199,9 @@ public static class AuthEndpoints
 
     private static IResult KimlikHatasi(string mesaj) =>
         Results.ValidationProblem(new Dictionary<string, string[]> { ["kimlik"] = [mesaj] });
+
+    private static string FrontendAdresi(IConfiguration yapilandirma) =>
+        (yapilandirma["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
 
     public sealed record KayitIstegi(
         string FirstName,

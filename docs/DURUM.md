@@ -16,7 +16,8 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 0 — Gereksinim mutabakatı | ✅ Tamam (plan §3 kesinleşen kararlar) |
 | 1 — Teknik temel ve depo düzeni | ✅ Tamam |
 | 2 — Kimlik ve öğrenci profili | ✅ Tamam (uçtan uca test edildi) |
-| 3 — Fikir girişi | 🟡 Backend tamam ve uçtan uca test edildi; React arayüzü bekliyor |
+| 2+ — Öğrenci arayüzü (React): kayıt/giriş/doğrulama/profil | ✅ Tamam (tarayıcıda uçtan uca doğrulandı) |
+| 3 — Fikir girişi | 🟡 Backend + doğrulama tamam; fikir yazma arayüzü (Aşama 3 React) bekliyor |
 | 4-10 | ⬜ Başlanmadı (plan §34) |
 
 **Paralel iş:** Netlify'daki statik prototip (`index.html`, `fikir.html`, `admin.html` +
@@ -91,8 +92,8 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 
 ## Sıradaki adımlar (plan sırasıyla)
 
-1. **Aşama 2 arayüzü (React):** kayıt, giriş, doğrulama ve profil sayfaları.
-2. **Aşama 3 arayüzü:** kategori seçimi, canlı 1.500 karakter sayacı, taslaklar ve süreç takibi.
+1. ~~Aşama 2 arayüzü (React)~~ ✅ TAMAMLANDI: kayıt/giriş/şifre akışları/profil/panel + erişilebilirlik paneli React'e taşındı; tarayıcıda uçtan uca doğrulandı (kayıt → doğrulama → giriş → panel → profil).
+2. **Aşama 3 arayüzü (SIRADAKİ):** kategori seçimi, canlı 1.500 karakter sayacı, taslaklar ve süreç takibi.
 3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
    çıkarılması ve onaylanan sürümün `blocked_terms` tablosuna yüklenmesi.
 4. Açık kararlar: minimum fikir uzunluğu, ekip özelliğinin ilk sürüme girip girmeyeceği ve
