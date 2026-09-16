@@ -17,6 +17,11 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
+dotnet test $solutionPath --no-build --configuration Release
+if ($LASTEXITCODE -ne 0) {
+    exit $LASTEXITCODE
+}
+
 Push-Location $frontendPath
 try {
     pnpm install --frozen-lockfile

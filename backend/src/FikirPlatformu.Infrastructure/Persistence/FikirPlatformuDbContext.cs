@@ -1,5 +1,6 @@
 using FikirPlatformu.Domain.Common;
 using FikirPlatformu.Domain.Ideas;
+using FikirPlatformu.Domain.Moderation;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -14,6 +15,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<Province> Provinces => Set<Province>();
+    public DbSet<BlockedTerm> BlockedTerms => Set<BlockedTerm>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -22,6 +24,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
         modelBuilder.ApplyConfiguration(new StudentProfileConfiguration());
         modelBuilder.ApplyConfiguration(new ProvinceConfiguration());
         modelBuilder.ApplyConfiguration(new IdeaCategoryConfiguration());
+        modelBuilder.ApplyConfiguration(new BlockedTermConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }

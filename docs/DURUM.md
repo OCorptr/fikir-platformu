@@ -16,7 +16,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 0 — Gereksinim mutabakatı | ✅ Tamam (plan §3 kesinleşen kararlar) |
 | 1 — Teknik temel ve depo düzeni | ✅ Tamam |
 | 2 — Kimlik ve öğrenci profili | ✅ Tamam (uçtan uca test edildi) |
-| 3 — Fikir girişi | ⬜ **SIRADAKİ** (kategori + 1.500 karakter backend kontrolü + küfür filtresi + gönderim) |
+| 3 — Fikir girişi | 🟡 Backend tamam ve uçtan uca test edildi; React arayüzü bekliyor |
 | 4-10 | ⬜ Başlanmadı (plan §34) |
 
 **Paralel iş:** Netlify'daki statik prototip (`index.html`, `fikir.html`, `admin.html` +
@@ -70,16 +70,33 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 - Geliştirme e-postaları `dev-email/` klasörüne yazılır (üretimde SMTP adaptörü takılacak)
 - **Uçtan uca test edildi:** kayıt → doğrulama → giriş → profil oku → profil güncelle → çıkış → 401 ✓
 
+### Aşama 3 — Fikir girişi (backend tamam)
+- Öğrenciye özel uçlar: taslak oluşturma/güncelleme, gönderme, listeleme, detay ve taslak silme.
+- Fikir ili istemciden alınmıyor; gönderim anındaki öğrenci profilinden fikre kopyalanıyor.
+- Aktif kategori kontrolü taslak oluşturma, güncelleme ve gönderimde backend tarafından yapılıyor.
+- 1.500 karakter sınırı boşluk ve noktalama dâhil backend üzerinde uygulanıyor.
+- Boş taslak kaydedilebiliyor ancak gönderilemiyor; minimum karakter kararı henüz verilmedi.
+- Yapay zekâsız küfür filtresi: Türkçe normalleştirme, basit rakam/harf dönüşümleri,
+  nokta-tire-boşlukla ayırma ve aşırı harf tekrarlarına karşı eşleştirme.
+- `blocked_terms` tablosu `Block` ve ileride kullanılabilecek `Flag` seviyelerini destekliyor.
+- İnternet listesi doğrudan aktarılmadı; lisans ve yanlış pozitif incelemesinden sonra kurumca
+  onaylanan liste veritabanına yüklenecek.
+- `IdeaSubmissionAndModeration` migration'ı yerel PostgreSQL'e uygulandı.
+- xUnit test projesi eklendi; `scripts/verify.ps1` artık testleri de çalıştırıyor.
+- **Otomatik test:** 17/17 birim testi ✓
+- **Uçtan uca test:** kayıt/doğrulama/giriş → 1.500 sınırı → taslak → il değişikliği →
+  gönderim → filtre engeli → boş gönderim engeli → listeleme → taslak silme ✓
+
 ---
 
 ## Sıradaki adımlar (plan sırasıyla)
 
-1. **Aşama 3 — Fikir girişi (backend):** kategori seçimi, 1.500 karakter backend tekrar kontrolü,
-   `IProfanityFilter` implementasyonu (kelime listesi + engelleme; AI yok — plan §10), gönderim ucu,
-   öğrencinin fikir listesi/durumu.
-2. **Aşama 2 arayüzü (React):** kayıt, giriş, doğrulama, profil sayfaları — HENÜZ YAZILMADI.
-3. **Aşama 3 arayüzü:** fikir yazma sayfasının React'e taşınması.
-4. Açık kararlar (plan §37) — Aşama 3 öncesi: küfür filtresi yalnız engelleme mi, minimum uzunluk, ekip özelliği.
+1. **Aşama 2 arayüzü (React):** kayıt, giriş, doğrulama ve profil sayfaları.
+2. **Aşama 3 arayüzü:** kategori seçimi, canlı 1.500 karakter sayacı, taslaklar ve süreç takibi.
+3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
+   çıkarılması ve onaylanan sürümün `blocked_terms` tablosuna yüklenmesi.
+4. Açık kararlar: minimum fikir uzunluğu, ekip özelliğinin ilk sürüme girip girmeyeceği ve
+   filtrenin `Flag` seviyesinin ilk sürümde etkin olup olmayacağı.
 
 ---
 

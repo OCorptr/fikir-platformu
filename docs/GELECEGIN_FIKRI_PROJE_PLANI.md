@@ -1878,3 +1878,23 @@ Aşama 2 geliştirmesi sırasında aşağıdaki açık kararlar için geçici va
 5. **E-posta doğrulama:** `RequireConfirmedAccount = true` — doğrulanmamış hesap girişe engellenir. Geliştirmede e-postalar `dev-email/` klasörüne dosya olarak yazılır; üretimde SMTP adaptörü takılır.
 6. **Şifre politikası:** Identity varsayılanları (en az 8 karakter, rakam/büyük harf/özel karakter), 5 hatalı girişte 15 dakika kilit.
 7. **Roller:** `Student`, `ProvinceEvaluator`, `ProvinceManager`, `MinistryOfficial`, `SystemAdmin` başlangıçta otomatik oluşturulur; kayıt olan her öğrenciye `Student` atanır.
+
+---
+
+## 42. Karar günlüğü — Aşama 3 (Fikir girişi)
+
+Aşama 3 backend geliştirmesinde aşağıdaki geçici varsayılanlar uygulanmıştır:
+
+1. **İl anlık görüntüsü:** Taslak oluşturulurken profil ili kaydedilir; asıl yönlendirme ili
+   gönderim anında öğrencinin profilinden yeniden okunarak fikre kopyalanır. İstemciden il kabul edilmez.
+2. **Minimum uzunluk:** Kesin sayı belirlenene kadar boş taslak kaydedilebilir fakat yalnızca
+   boşluklardan oluşan fikir gönderilemez.
+3. **Karakter hesabı:** Baştaki ve sondaki boşluklar dâhil kullanıcının gönderdiği ham metin
+   1.500 karakter sınırına tabidir; saklamadan önce gereksiz baş/son boşlukları temizlenir.
+4. **Filtre seviyesi:** Veri modeli `Block` ve `Flag` seviyelerini destekler. İlk öğrenci akışında
+   `Block` terimleri gönderimi durdurur; kullanıcıya eşleşen saldırgan kelime gösterilmez.
+5. **Kelime listesi:** İnternetteki listeler doğrudan üretime aktarılmaz. Lisans, yanlış pozitif,
+   yaş grubu ve kurumsal uygunluk incelemesinden geçen liste veritabanında sürümlenecektir.
+6. **Ekip özelliği:** Ürün kararı verilmediği için ilk backend akışına eklenmemiştir.
+7. **Silme:** Süre sınırı kararı verilene kadar öğrenci yalnızca taslağını silebilir; gönderilmiş
+   fikir öğrenci tarafından değiştirilemez veya silinemez.

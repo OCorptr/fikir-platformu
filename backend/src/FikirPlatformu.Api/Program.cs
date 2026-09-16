@@ -1,8 +1,10 @@
 using FikirPlatformu.Api.Endpoints;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Ideas;
+using FikirPlatformu.Application.Moderation;
 using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
+using FikirPlatformu.Infrastructure.Moderation;
 using FikirPlatformu.Infrastructure.Persistence;
 using FikirPlatformu.Infrastructure.Time;
 using Microsoft.AspNetCore.Identity;
@@ -16,6 +18,8 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
 builder.Services.AddScoped<IIdeaRepository, IdeaRepository>();
+builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
+builder.Services.AddScoped<SubmitIdeaService>();
 builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
 
 builder.Services
@@ -95,6 +99,7 @@ app.MapGet("/api/health/db", async (FikirPlatformuDbContext db, CancellationToke
 app.MapAuthEndpoints();
 app.MapProfileEndpoints();
 app.MapReferenceEndpoints();
+app.MapStudentIdeaEndpoints();
 
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())

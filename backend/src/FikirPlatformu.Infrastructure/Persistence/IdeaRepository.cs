@@ -6,9 +6,20 @@ namespace FikirPlatformu.Infrastructure.Persistence;
 
 public sealed class IdeaRepository(FikirPlatformuDbContext context) : IIdeaRepository
 {
+    public Task<Idea?> GetOwnedAsync(
+        Guid ideaId,
+        Guid studentId,
+        CancellationToken cancellationToken = default) =>
+        context.Ideas.FirstOrDefaultAsync(
+            idea => idea.Id == ideaId && idea.StudentId == studentId,
+            cancellationToken);
+
     public async Task AddAsync(Idea idea, CancellationToken cancellationToken = default)
     {
         await context.Ideas.AddAsync(idea, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
     }
+
+    public Task SaveChangesAsync(CancellationToken cancellationToken = default) =>
+        context.SaveChangesAsync(cancellationToken);
 }

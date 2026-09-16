@@ -5,4 +5,7 @@
     <Project Path="src/FikirPlatformu.Domain/FikirPlatformu.Domain.csproj" />
     <Project Path="src/FikirPlatformu.Infrastructure/FikirPlatformu.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FikirPlatformu.Tests/FikirPlatformu.Tests.csproj" />
+  </Folder>
 </Solution>
