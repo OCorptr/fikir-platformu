@@ -141,7 +141,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 
 
 
-.secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding: 0.4rem 3rem 0; position: relative; z-index: 2; }
+.secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 3rem; position: relative; z-index: 2; }
 /* Başlık stili: PDF kapağındaki "GELECEĞİN FİKRİ PLATFORMU" yazısından
    (Rammetto One, turkuaz + turuncu, beyaz kontur + yumuşak gölge) */
 .secim h1 {
@@ -164,7 +164,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .orta-alan { align-self: center; display: flex; flex-direction: column; align-items: center; }
 .orta-maskot { width: 18rem; animation: yuz 4.2s ease-in-out infinite; filter: drop-shadow(0 1rem 1.4rem rgba(30, 60, 120, 0.18)); }
 
-.sayfa-index .ozellikler { margin-top: auto; padding-bottom: 0.9rem; }
+.sayfa-index .ozellikler { padding-bottom: 1.4rem; }
 
 /* ============================================================
    ILK — İlköğretim ana sayfa
