@@ -77,11 +77,11 @@ export function HomePage() {
 
         <div className="af-sahne">
           <div className="af-kart af-kenar-kart" id="af-sol">
-            <div className="af-emoji">{sol.emoji}</div>
-            <div className="af-ad">{sol.ad}</div>
-            <div className="af-okul">{sol.okul}</div>
-            <div className="af-tema">{sol.tema}</div>
-            <div className="af-soz">{sol.soz}</div>
+            <div className="af-k-emoji">{sol.emoji}</div>
+            <div className="af-k-ad">{sol.ad}</div>
+            <div className="af-k-okul">{sol.okul}</div>
+            <div className="af-k-tema">{sol.tema}</div>
+            <div className="af-k-soz">{sol.soz}</div>
           </div>
 
           <div
@@ -100,11 +100,11 @@ export function HomePage() {
           </div>
 
           <div className="af-kart af-kenar-kart" id="af-sag">
-            <div className="af-emoji">{sag.emoji}</div>
-            <div className="af-ad">{sag.ad}</div>
-            <div className="af-okul">{sag.okul}</div>
-            <div className="af-tema">{sag.tema}</div>
-            <div className="af-soz">{sag.soz}</div>
+            <div className="af-k-emoji">{sag.emoji}</div>
+            <div className="af-k-ad">{sag.ad}</div>
+            <div className="af-k-okul">{sag.okul}</div>
+            <div className="af-k-tema">{sag.tema}</div>
+            <div className="af-k-soz">{sag.soz}</div>
           </div>
 
           <button

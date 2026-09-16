@@ -25,7 +25,7 @@ const SINIF_GRUPLARI = [
   { etiket: "Lise", siniflar: [9, 10, 11, 12] },
 ];
 
-export default function FikirPage() {
+export function FikirPage() {
   const [tema, setTema] = useState("");
   const [adSoyad, setAdSoyad] = useState("");
   const [il, setIl] = useState("");
