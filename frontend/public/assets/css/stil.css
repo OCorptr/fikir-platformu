@@ -1115,7 +1115,7 @@ html.koyu-mod .ogrenci-alan select {
   box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.5);
 }
 .af-lb-kapat {
-  position: fixed; top: 2rem; right: 2.4rem; z-index: 97;
+  position: fixed; top: 6.5rem; right: 2.4rem; z-index: 999;
   width: 3.2rem; height: 3.2rem; border-radius: 50%; border: none;
   background: #fff; color: var(--lacivert);
   font-size: 1.4rem; font-weight: 800; cursor: pointer;
