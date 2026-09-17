@@ -142,7 +142,7 @@ export default function FikirPage() {
               </div>
 
               <div className="bolum-basligi turuncu">3 · Fikrim</div>
-              <textarea rows={10} maxLength={MAX} value={fikir} onChange={(e) => setFikir(e.target.value)} placeholder="Fikrini buraya yaz... Dünyamızı daha güzel bir yer yapan ne olabilir?" />
+              <textarea id="fikrim" rows={10} maxLength={MAX} value={fikir} onChange={(e) => setFikir(e.target.value)} placeholder="Fikrini buraya yaz... Dünyamızı daha güzel bir yer yapan ne olabilir?" />
               <div className="sayac-satiri">
                 <span>{fikir.length} / {MAX} karakter</span>
               </div>
