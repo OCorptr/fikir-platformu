@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { UstBar } from "../components/UstBar";
 
-const MAX = 600;
+const MAX = 1500;
 const ILLER = ["Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"];
 
 const TEMALAR = [
@@ -142,14 +142,13 @@ export default function FikirPage() {
               </div>
 
               <div className="bolum-basligi turuncu">3 · Fikrim</div>
-              <textarea rows={5} maxLength={MAX} value={fikir} onChange={(e) => setFikir(e.target.value)} placeholder="Fikrini buraya yaz... Dünyamızı daha güzel bir yer yapan ne olabilir?" />
+              <textarea rows={10} maxLength={MAX} value={fikir} onChange={(e) => setFikir(e.target.value)} placeholder="Fikrini buraya yaz... Dünyamızı daha güzel bir yer yapan ne olabilir?" />
               <div className="sayac-satiri">
                 <span>{fikir.length} / {MAX} karakter</span>
               </div>
 
               <div className="fikir-butonlar">
-                <button type="button" className="btn-ikincil" onClick={() => setEkipAcik(!ekipAcik)}>Ekip Olarak Katıl</button>
-                <button type="button" className="btn-ana" onClick={gonder}>Fikrimi Gönder 🚀</button>
+                <button type="button" className="btn-ana btn-tam" onClick={gonder}>Fikrimi Gönder 🚀</button>
               </div>
             </>
           )}
