@@ -1,7 +1,5 @@
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { UstBar } from "../components/UstBar";
-
-/* fikir.html sayfasının birebir kopyası — üst bar, balon+maskot, altın form kartı */
 
 const MAX = 600;
 const ILLER = ["Adana","Adıyaman","Afyonkarahisar","Ağrı","Aksaray","Amasya","Ankara","Antalya","Ardahan","Artvin","Aydın","Balıkesir","Bartın","Batman","Bayburt","Bilecik","Bingöl","Bitlis","Bolu","Burdur","Bursa","Çanakkale","Çankırı","Çorum","Denizli","Diyarbakır","Düzce","Edirne","Elazığ","Erzincan","Erzurum","Eskişehir","Gaziantep","Giresun","Gümüşhane","Hakkâri","Hatay","Iğdır","Isparta","İstanbul","İzmir","Kahramanmaraş","Karabük","Karaman","Kars","Kastamonu","Kayseri","Kırıkkale","Kırklareli","Kırşehir","Kilis","Kocaeli","Konya","Kütahya","Malatya","Manisa","Mardin","Mersin","Muğla","Muş","Nevşehir","Niğde","Ordu","Osmaniye","Rize","Sakarya","Samsun","Siirt","Sinop","Sivas","Şanlıurfa","Şırnak","Tekirdağ","Tokat","Trabzon","Tunceli","Uşak","Van","Yalova","Yozgat","Zonguldak"];
@@ -25,7 +23,7 @@ const SINIF_GRUPLARI = [
   { etiket: "Lise", siniflar: [9, 10, 11, 12] },
 ];
 
-export function FikirPage() {
+export default function FikirPage() {
   const [tema, setTema] = useState("");
   const [adSoyad, setAdSoyad] = useState("");
   const [il, setIl] = useState("");
@@ -59,18 +57,13 @@ export function FikirPage() {
     setGonderildi(true);
   }
 
-  function sifirla() {
-    fikriniTemizle();
-    setGonderildi(false);
-  }
-
   return (
     <>
       <UstBar />
       <main className="fikir-hero">
         <div className="fikir-sol">
           <div className="balon-kapsa">
-            <div className="balon" id="balon">
+            <div className="balon">
               {gonderildi
                 ? "Fikrin bize ulaştı, teşekkür ederiz! 🎉"
                 : hata
@@ -92,7 +85,14 @@ export function FikirPage() {
               </svg>
               <h2 style={{ color: "#16355c", fontSize: "1.8rem" }}>Fikrin bize ulaştı!</h2>
               <p style={{ color: "#647a92" }}>Fikrinin değerlendirme sürecini buradan takip edebilirsin.</p>
-              <button className="btn-ikincil" type="button" onClick={sifirla}>Yeni Fikir Yaz</button>
+              <div className="adimlar">
+                <span className="adim aktif">Gönderildi</span>
+                <span className="adim">Ön Değerlendirme</span>
+                <span className="adim">Komisyon İncelemesi</span>
+                <span className="adim">Planlama</span>
+                <span className="adim">Hayata Geçirildi</span>
+              </div>
+              <button type="button" className="btn-ikincil" onClick={() => { setFikir(""); }}>Yeni Fikir Yaz</button>
             </div>
           ) : (
             <>
@@ -117,7 +117,7 @@ export function FikirPage() {
                   <label htmlFor="ogr-il">İl</label>
                   <select id="ogr-il" value={il} onChange={(e) => setIl(e.target.value)}>
                     <option value="">İl seç...</option>
-                    {ILLER.map((il) => <option key={il} value={il}>{il}</option>)}
+                    {ILLER.map((ilAdi: string) => <option key={ilAdi} value={ilAdi}>{ilAdi}</option>)}
                   </select>
                 </div>
                 <div className="ogrenci-alan">
@@ -145,11 +145,11 @@ export function FikirPage() {
               <textarea rows={5} maxLength={MAX} value={fikir} onChange={(e) => setFikir(e.target.value)} placeholder="Fikrini buraya yaz... Dünyamızı daha güzel bir yer yapan ne olabilir?" />
               <div className="sayac-satiri">
                 <span>{fikir.length} / {MAX} karakter</span>
-                <button type="button" className="btn-link" onClick={sifirla}>Temizle</button>
               </div>
 
               <div className="fikir-butonlar">
-                <button type="button" className="btn-ana btn-tam" onClick={gonder}>Fikrini Gönder 🚀</button>
+                <button type="button" className="btn-ikincil" onClick={() => setEkipAcik(!ekipAcik)}>Ekip Olarak Katıl</button>
+                <button type="button" className="btn-ana" onClick={gonder}>Fikrimi Gönder 🚀</button>
               </div>
             </>
           )}

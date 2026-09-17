@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
-import { FikirPage } from "./pages/FikirPage";
+import FikirPage from "./pages/FikirPage";
 import { HomePage } from "./pages/HomePage";
 
 /* her rotada govde sinifi degisir: fikir sayfasi = sayfa-fikir, ana sayfa = sayfa-index */
