@@ -471,7 +471,7 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .tema:hover { border-color: var(--lacivert); transform: translateY(-0.15rem); }
 .tema.aktif { background: var(--lacivert); border-color: var(--lacivert); color: #fff; box-shadow: 0 0.4rem 1rem rgba(22, 53, 92, 0.28); }
 #fikrim {
-  width: 100%; min-height: 10rem; resize: vertical;
+  width: 100%; min-height: 7.5rem; resize: vertical;
   border: 0.16rem solid #C9D8E6; border-radius: 1.2rem;
   padding: 0.8rem 1rem; background: #FBFDFF;
   font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 1.12rem; line-height: 1.5; color: var(--metin);
