@@ -2,6 +2,7 @@ using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -150,6 +151,63 @@ public static class AuthEndpoints
             await girisYoneticisi.SignOutAsync();
             return Results.Ok(new { message = "Çıkış yapıldı." });
         });
+
+        // /me kimlik doğrulamasız da çağrılabilir; authenticated=false döner
+        grup.MapGet("/me", async (
+            HttpContext http,
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            FikirPlatformuDbContext veritabani) =>
+        {
+            // AllowAnonymous: cookie auth pipeline üzerinden oturum varsa User dolu olur
+            if (http.User?.Identity?.IsAuthenticated != true)
+            {
+                return Results.Ok(new { authenticated = false });
+            }
+
+            var kullaniciId = kullaniciYoneticisi.GetUserId(http.User);
+            if (kullaniciId is null)
+            {
+                return Results.Ok(new { authenticated = false });
+            }
+
+            var kullanici = await kullaniciYoneticisi.FindByIdAsync(kullaniciId);
+            if (kullanici is null)
+            {
+                return Results.Ok(new { authenticated = false });
+            }
+
+            var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
+
+            var profil = await veritabani.StudentProfiles
+                .AsNoTracking()
+                .Where(p => p.ApplicationUserId == kullaniciId)
+                .Join(
+                    veritabani.Provinces,
+                    p => p.ProvinceId,
+                    il => il.Id,
+                    (p, il) => new
+                    {
+                        p.Id,
+                        p.ProvinceId,
+                        ProvinceName = il.Name,
+                        p.District,
+                        p.School,
+                        p.Grade,
+                        p.StudentNumber
+                    })
+                .FirstOrDefaultAsync(http.RequestAborted);
+
+            return Results.Ok(new
+            {
+                authenticated = true,
+                email = kullanici.Email,
+                firstName = kullanici.FirstName,
+                lastName = kullanici.LastName,
+                emailConfirmed = kullanici.EmailConfirmed,
+                roles = roller,
+                profile = profil
+            });
+        }).AllowAnonymous();
 
         grup.MapPost("/forgot-password", async (
             SifremiUnuttumIstegi istek,
