@@ -3,7 +3,6 @@
 // Kategori + fikir metni yeterli — öğrenci bilgileri (il/okul/sınıf) backend profilinden alınır.
 
 import { useEffect, useState, type FormEvent } from "react";
-import { UstBar } from "../components/UstBar";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { getCategories } from "../services/references";
@@ -233,7 +232,6 @@ export default function FikirPage() {
   if (!kimlikKontrolEdildi) {
     return (
       <>
-        <UstBar />
         <main className="fikir-hero">
           <div className="yukleme-ekrani">
             <div className="yukleme-carki" aria-hidden="true" />
@@ -374,7 +372,6 @@ export default function FikirPage() {
 
   return (
     <>
-      <UstBar />
       <main className="fikir-hero">
         <div className="fikir-sol">
           <div className="balon-kapsa">

@@ -1,7 +1,7 @@
 # Proje Durumu — YENİ OTURUM AÇILDIGINDA ÖNCE BU DOSYAYI OKU
 
 > Son güncelleme: 2026-09-20
-> Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41–43 karar günlüğü)
+> Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41–44 karar günlüğü)
 > Kaynak belge: `Fikir Platformu 11.08.2026.pdf`
 
 Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten sonra
@@ -28,7 +28,9 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 2++ — Ana sayfa React'e taşındı (index.html birebir kopya) | ✅ Tamam |
 | 3 — Fikir girişi (backend) | ✅ Tamam (17/17 birim testi + uçtan uca) |
 | 3 — Fikir girişi (frontend) | ✅ Tamam — FikirPage backend'e bağlı; taslak kaydet/güncelle/sil + gönder çalışıyor; süreç takibi stepper korundu |
-| 4-10 | ⬜ Başlanmadı (plan §34) |
+| 4 — İl AR-GE paneli (backend) | ✅ Tamam — inbox + read + assign + evaluators uçları; idea_read_receipts + idea_assignments migration; seed (manager/evaluator İstanbul); uçtan uca test |
+| 4 — İl AR-GE paneli (frontend) | ✅ Tamam — `/il-panel` (InboxPage) + `/il-panel/fikir/{id}` (ApplicationDetailPage); Üst bar'da rol bazlı link + kullanıcı adı |
+| 5-10 | ⬜ Başlanmadı (plan §34) |
 
 **Frontend aktif sayfalar:**
 - `/` → `HomePage.tsx` — vitrin + CTA + arşiv modalı
@@ -128,20 +130,45 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 
 ## Sıradaki adımlar (gerçek sıra)
 
-1. **Aşama 4 — İl AR-GE paneli (SIRADAKİ):**
-   - İl bazlı veri sınırı (öğrenci iline göre filtreleme, başka ile erişemez)
-   - Gelen kutusu (yeni/okundu, filtreler, arama)
-   - Değerlendirici atama
-   - Başvuru detay ekranı + değerlendirme akışı (Aşama 5'e köprü)
-2. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
+1. **Aşama 5 — Değerlendirme akışı (SIRADAKI):**
+   - Değerlendirme kriterleri (plan §20): Yenilikçilik, Uygulanabilirlik, Etki, Özgünlük; puanlama türü (1–5 arası?)
+   - Evaluator puanlama formu (kriter başına puan + yorum)
+   - Adaylık puan eşiği (plan §22) → otomatik "aday havuzu"
+   - ProvinceManager onayı (plan §23)
+   - Durum geçişleri: Submitted → InEvaluation → EvaluationCompleted → Approved
+2. **Production'a hazırlık:**
+   - `ProvinceStaff` tablosu (plan §42 #3) — manager/evaluator'lar gerçek ile bağlanır
+   - SMTP e-posta adaptörü (development → üretim)
+   - CORS üretim ayarları
+3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
    çıkarılması ve onaylanan sürümün `blocked_terms` tablosuna yüklenmesi.
-3. Açık kararlar (plan §37):
+4. Açık kararlar (plan §37):
    - Minimum fikir uzunluğu
    - Ekip özelliğinin ilk sürüme girip girmeyeceği
    - Filtrenin `Flag` seviyesinin ilk sürümde etkin olup olmayacağı
-   - Tek veya çoklu değerlendirici zorunluluğu
-   - Adaylık puan eşiği
+   - Tek veya çoklu değerlendirici zorunluluğu (eşik/karar)
+   - Adaylık puan eşiği (somut sayı)
    - Değerlendirme kriterlerinin kesin adları ve puanlama türleri
+
+### Tamamlanan: Aşama 4 — İl AR-GE paneli
+
+**Backend:**
+- `idea_read_receipts` + `idea_assignments` tabloları (migration)
+- `/api/province/inbox` (gönderilmiş fikirler + okundu/atanmış bilgisi)
+- `/api/province/ideas/{id}` (detay)
+- `/api/province/ideas/{id}/read` (kullanıcı bazlı okundu)
+- `/api/province/ideas/{id}/assign` (sadece ProvinceManager)
+- `/api/province/evaluators` (değerlendirici listesi)
+- Seed: `manager@local` (ProvinceManager) + `evaluator@local` (ProvinceEvaluator) — şifre `12345`, İstanbul ili
+
+**Frontend:**
+- `services/province.ts` — getInbox, getProvinceIdea, markRead, assignEvaluator, listEvaluators
+- `pages/ProvinceInboxPage.tsx` — gelen kutusu tablosu, yeni/okundu badge, tıklayınca detaya
+- `pages/ApplicationDetailPage.tsx` — detay, otomatik okundu işaretleme, "Değerlendiriciye Ata" modal (sadece Manager)
+- Üst bar: rol bazlı "İl Paneli" linki + kullanıcı adı
+- Detay placeholder: "Değerlendir (Aşama 5)" disabled
+
+**Uçtan uca test (curl):** Öğrenci kayıt + emailConfirmed + login + taslak + submit → Manager login + inbox görür + detay + read + assign → Inbox atama bilgisiyle ✓
 
 ### Not: Ana sayfa ve görsel doğrulama (referans)
 - Ana sayfa React'e birebir taşındı ✅: üst bar (logolar köşelerde), GELECEĞİN FİKRİ PLATFORMU
@@ -175,6 +202,21 @@ Aşama 2+ (inline AuthModal) ve Aşama 3 frontend tamamlanırken aşağıdaki ka
 4. **Öğrenci bilgileri frontend'de yok (plan §42 #1 uygulandı):** İl, okul, sınıf, okul no
    alanları `FikirPage` formundan **kaldırıldı**; backend öğrencinin `StudentProfile`'ından
    alıyor. Fikir gönderildiğinde `province_id` profile kopyalanır.
+
+### Karar günlüğü — Aşama 4 (2026-09-20)
+
+5. **İl AR-GE il bağlantısı (plan §42 #3 kısmi):** Bu sprint'te kullanıcının hangi ile bağlı
+   olduğu `AspNetUsers` tablosunda tutulmamaktadır (plan §42 #3 için ayrı tablo gerekli).
+   Geçici olarak tüm `ProvinceManager`/`ProvinceEvaluator` demo hesapları **İstanbul (id 34)**
+   ile ilişkilendirilmiştir. `GetProvinceForStaffAsync` helper'ı bu sabit döner; gerçek atama
+   yapıldığında helper değişecektir. Production'a geçmeden önce ayrı `ProvinceStaff` tablosu
+   (user_id, province_id) eklenmelidir.
+6. **Değerlendirme adayı ataması:** Bir fikre birden fazla evaluator atanabilir (şu an UI tek
+   seçim gösterir; `idea_assignments` tablosu çoklu atamayı destekler). Çoklu zorunluluk
+   kararı henüz verilmedi (plan §37 açık).
+7. **Okundu işaretleme:** Detay sayfası açılır açılmaz otomatik olarak kullanıcı bazında
+   okundu işaretlenir (`POST /api/province/ideas/{id}/read`). Bu sayede inbox badge'i
+   güncel kalır.
 
 ---
 

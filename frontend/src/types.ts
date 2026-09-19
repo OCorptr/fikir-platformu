@@ -103,3 +103,79 @@ export interface ApiError {
   title?: string;
   status?: number;
 }
+
+// İl AR-GE paneli (Aşama 4)
+
+// /api/province/inbox — gelen kutusu
+export interface InboxEntry {
+  ideaId: string;
+  categoryId: number;
+  categoryName: string;
+  provinceId: number;
+  provinceName: string;
+  content: string;
+  submittedAt: string;
+  studentFirstName: string;
+  studentLastName: string;
+  studentSchool: string | null;
+  studentGrade: number | null;
+  studentNumber: string | null;
+  assignedEvaluatorUserIds: string[];
+  isReadByMe: boolean;
+  readAtByMe: string | null;
+}
+
+// /api/province/ideas/{id} — başvuru detayı
+export interface IdeaDetailStudentProfile {
+  applicationUserId: string;
+  firstName: string;
+  lastName: string;
+  provinceId: number;
+  provinceName: string;
+  district: string | null;
+  school: string | null;
+  grade: number | null;
+  studentNumber: string | null;
+}
+
+export interface IdeaDetailIdea {
+  id: string;
+  categoryId: number;
+  categoryName: string;
+  provinceId: number;
+  provinceName: string;
+  content: string;
+  status: IdeaStatus;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  studentProfile: IdeaDetailStudentProfile;
+}
+
+export interface IdeaDetailResponse {
+  idea: IdeaDetailIdea;
+  readByMe: boolean;
+  readAt: string | null;
+  assignedEvaluatorIds: string[];
+}
+
+// /api/province/evaluators — ProvinceManager için değerlendirici listesi
+export interface ProvinceEvaluatorRef {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
+// POST /api/province/ideas/{id}/read — okundu işaretleme cevabı
+export interface ReadMarkResponse {
+  ideaId: string;
+  readAt: string;
+}
+
+// POST /api/province/ideas/{id}/assign — atama cevabı
+export interface AssignResponse {
+  ideaId: string;
+  evaluatorUserId: string;
+  assignedAt: string;
+}

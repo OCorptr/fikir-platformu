@@ -402,3 +402,145 @@
 .bolum-basligi + .gonder-durumu {
   margin-top: 0.2rem;
 }
+
+
+/* ============================================================
+   İl AR-GE Paneli (Aşama 4)
+   ============================================================ */
+.il-panel-hero {
+  display: grid;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  padding: 6rem 1rem 2rem;
+  min-height: calc(100svh - 4rem);
+}
+.il-panel-hero > .fikir-karti {
+  max-width: 64rem;
+  width: 100%;
+}
+.il-panel-ozet {
+  color: #647a92;
+  margin: 0.2rem 0 1rem;
+}
+.il-panel-bos {
+  padding: 2rem 0;
+  text-align: center;
+  color: #647a92;
+  font-size: 1.1rem;
+}
+.il-panel-tablo {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 1rem;
+  background: #fff;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.il-panel-tablo thead th {
+  background: #eef4fb;
+  color: #16355c;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 0.7rem 0.8rem;
+  text-align: left;
+  border-bottom: 0.16rem solid #d8e3ee;
+}
+.il-panel-tablo tbody td {
+  padding: 0.7rem 0.8rem;
+  border-bottom: 0.1rem solid #ecf2f7;
+  vertical-align: top;
+  font-size: 0.95rem;
+  color: #33475f;
+}
+.il-panel-tablo tbody tr {
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.il-panel-tablo tbody tr:hover {
+  background: #f7fafd;
+}
+.il-panel-tablo tbody tr.okunmamis td {
+  background: #fffaf0;
+  font-weight: 600;
+}
+.il-panel-tablo .icerik-hucre {
+  max-width: 16rem;
+}
+.il-panel-tablo .icerik-ozet {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.35;
+}
+.il-panel-tablo .meta {
+  color: #8aa0b5;
+  font-weight: 600;
+  font-size: 0.82rem;
+  margin-top: 0.2rem;
+}
+.durum-nokta {
+  display: inline-block;
+  font-weight: 900;
+}
+.durum-nokta.okunmus { color: #2c6e3f; }
+.durum-nokta.okunmamis { color: #ef7814; font-size: 1.2rem; }
+
+/* Üst nav */
+.ust-nav {
+  display: flex;
+  gap: 0.4rem;
+  margin-left: 1rem;
+  align-items: center;
+}
+.ust-nav-link {
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.8rem;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #16355c;
+  text-decoration: none;
+  background: #eef4fb;
+  transition: background 0.12s, color 0.12s;
+}
+.ust-nav-link:hover {
+  background: #1f9fa4;
+  color: #fff;
+}
+.ust-kullanici {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 0.35rem 0.8rem;
+  border-radius: 0.8rem;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-right: 0.6rem;
+}
+
+/* Detay */
+.detay-icerik {
+  background: #f7fafd;
+  border: 0.16rem solid #d8e3ee;
+  border-radius: 1rem;
+  padding: 1rem;
+  color: #16355c;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+}
+.detay-ogrenci,
+.detay-atama {
+  background: #f7fafd;
+  border: 0.16rem solid #d8e3ee;
+  border-radius: 1rem;
+  padding: 0.8rem 1rem;
+  color: #16355c;
+  margin-bottom: 1rem;
+}
+.detay-atama ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+}
