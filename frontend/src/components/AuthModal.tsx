@@ -29,27 +29,40 @@ export function AuthModal({ acik, onAuthed }: Props) {
   const [kayitAd, setKayitAd] = useState("");
   const [kayitSoyad, setKayitSoyad] = useState("");
   const [kayitIlId, setKayitIlId] = useState<number | "">("");
+  const [kayitOkul, setKayitOkul] = useState("");
+  const [kayitSinif, setKayitSinif] = useState<number | "">("");
+  const [kayitOkulNo, setKayitOkulNo] = useState("");
   const [kayitEposta, setKayitEposta] = useState("");
   const [kayitSifre, setKayitSifre] = useState("");
 
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
 
-  // Modal ilk açıldığında illeri yükle
+  // Modal her açılışında illeri yükle (kapandığında sıfırla ki her seferinde fresh gelsin)
   useEffect(() => {
-    if (!acik || iller.length > 0) return;
+    if (!acik) {
+      setIller([]);
+      setIllerYukleniyor(false);
+      return;
+    }
     const controller = new AbortController();
     setIllerYukleniyor(true);
     getProvinces(controller.signal)
       .then((liste) => setIller(liste))
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
-          setHata("İl listesi yüklenemedi. Sayfayı yenile.");
+          const aciklama =
+            e instanceof ApiHttpError
+              ? `${e.status} ${e.message}`
+              : e instanceof Error
+                ? e.message
+                : String(e);
+          setHata(`İl listesi yüklenemedi: ${aciklama}`);
         }
       })
       .finally(() => setIllerYukleniyor(false));
     return () => controller.abort();
-  }, [acik, iller.length]);
+  }, [acik]);
 
   if (!acik) return null;
 
@@ -88,8 +101,8 @@ export function AuthModal({ acik, onAuthed }: Props) {
       setHata("İl seçimi zorunludur.");
       return;
     }
-    if (!kayitEposta.trim() || !kayitSifre || kayitSifre.length < 8) {
-      setHata("E-posta zorunlu; şifre en az 8 karakter olmalı.");
+    if (!kayitEposta.trim() || !kayitSifre || kayitSifre.length < 5) {
+      setHata("E-posta zorunlu; şifre en az 5 karakter olmalı.");
       return;
     }
     setCalisiyor(true);
@@ -101,6 +114,9 @@ export function AuthModal({ acik, onAuthed }: Props) {
         email: kayitEposta.trim(),
         password: kayitSifre,
         provinceId: kayitIlId as number,
+        school: kayitOkul.trim() ? kayitOkul.trim() : null,
+        grade: kayitSinif === "" ? null : kayitSinif,
+        studentNumber: kayitOkulNo.trim() ? kayitOkulNo.trim() : null,
       });
       setMod("dogrulamaBekleniyor");
     } catch (e) {
@@ -162,7 +178,7 @@ export function AuthModal({ acik, onAuthed }: Props) {
           <form onSubmit={handleGiris} className="auth-form">
             <div className="bolum-basligi mavi">E-posta</div>
             <input
-              className="tema-secim"
+              className="tema-input"
               type="email"
               autoComplete="email"
               required
@@ -172,7 +188,7 @@ export function AuthModal({ acik, onAuthed }: Props) {
             />
             <div className="bolum-basligi turuncu">Şifre</div>
             <input
-              className="tema-secim"
+              className="tema-input"
               type="password"
               autoComplete="current-password"
               required
@@ -198,7 +214,7 @@ export function AuthModal({ acik, onAuthed }: Props) {
               <div className="alan">
                 <span>Ad</span>
                 <input
-                  className="tema-secim"
+                  className="tema-input"
                   required
                   value={kayitAd}
                   onChange={(e) => setKayitAd(e.target.value)}
@@ -209,7 +225,7 @@ export function AuthModal({ acik, onAuthed }: Props) {
               <div className="alan">
                 <span>Soyad</span>
                 <input
-                  className="tema-secim"
+                  className="tema-input"
                   required
                   value={kayitSoyad}
                   onChange={(e) => setKayitSoyad(e.target.value)}
@@ -218,48 +234,104 @@ export function AuthModal({ acik, onAuthed }: Props) {
                 />
               </div>
             </div>
-            <div className="alan">
-              <span>İl</span>
-              <select
-                className="tema-secim"
-                required
-                value={kayitIlId}
-                onChange={(e) => setKayitIlId(e.target.value === "" ? "" : Number(e.target.value))}
-                disabled={illerYukleniyor}
-              >
-                <option value="">
-                  {illerYukleniyor ? "İller yükleniyor…" : "İl seç…"}
-                </option>
-                {iller.map((il) => (
-                  <option key={il.id} value={il.id}>{il.name}</option>
-                ))}
-              </select>
+
+            <div className="auth-iki-sutun">
+              <div className="alan">
+                <span>İl</span>
+                <select
+                  className="tema-secim"
+                  required
+                  value={kayitIlId}
+                  onChange={(e) => setKayitIlId(e.target.value === "" ? "" : Number(e.target.value))}
+                  disabled={illerYukleniyor}
+                >
+                  <option value="">
+                    {illerYukleniyor ? "İller yükleniyor…" : "İl seç…"}
+                  </option>
+                  {iller.map((il) => (
+                    <option key={il.id} value={il.id}>{il.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="alan">
+                <span>Okul Adı</span>
+                <input
+                  className="tema-input"
+                  value={kayitOkul}
+                  onChange={(e) => setKayitOkul(e.target.value)}
+                  placeholder="Örnek: Atatürk Ortaokulu"
+                  maxLength={80}
+                />
+              </div>
             </div>
-            <div className="alan">
-              <span>E-posta</span>
-              <input
-                className="tema-secim"
-                type="email"
-                autoComplete="email"
-                required
-                value={kayitEposta}
-                onChange={(e) => setKayitEposta(e.target.value)}
-                placeholder="ornek@okul.edu.tr"
-              />
+
+            <div className="auth-iki-sutun">
+              <div className="alan">
+                <span>Sınıf</span>
+                <select
+                  className="tema-secim"
+                  value={kayitSinif}
+                  onChange={(e) => setKayitSinif(e.target.value === "" ? "" : Number(e.target.value))}
+                >
+                  <option value="">Sınıf seç…</option>
+                  <optgroup label="İlkokul">
+                    {[1, 2, 3, 4].map((s) => (
+                      <option key={s} value={s}>{s}. sınıf</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Ortaokul">
+                    {[5, 6, 7, 8].map((s) => (
+                      <option key={s} value={s}>{s}. sınıf</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Lise">
+                    {[9, 10, 11, 12].map((s) => (
+                      <option key={s} value={s}>{s}. sınıf</option>
+                    ))}
+                  </optgroup>
+                </select>
+              </div>
+              <div className="alan">
+                <span>Okul No</span>
+                <input
+                  className="tema-input"
+                  inputMode="numeric"
+                  value={kayitOkulNo}
+                  onChange={(e) => setKayitOkulNo(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                  placeholder="1045"
+                  maxLength={12}
+                />
+              </div>
             </div>
-            <div className="alan">
-              <span>Şifre <span className="not">(en az 8 karakter)</span></span>
-              <input
-                className="tema-secim"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                value={kayitSifre}
-                onChange={(e) => setKayitSifre(e.target.value)}
-                placeholder="••••••••"
-              />
+
+            <div className="auth-iki-sutun">
+              <div className="alan">
+                <span>E-posta</span>
+                <input
+                  className="tema-input"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={kayitEposta}
+                  onChange={(e) => setKayitEposta(e.target.value)}
+                  placeholder="ornek@okul.edu.tr"
+                />
+              </div>
+              <div className="alan">
+                <span>Şifre <span className="not">(en az 5 karakter)</span></span>
+                <input
+                  className="tema-input"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={5}
+                  value={kayitSifre}
+                  onChange={(e) => setKayitSifre(e.target.value)}
+                  placeholder="•••••"
+                />
+              </div>
             </div>
+
             <div className="fikir-butonlar">
               <button
                 type="submit"

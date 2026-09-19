@@ -63,6 +63,9 @@ public static class AuthEndpoints
                 Id = Guid.NewGuid(),
                 ApplicationUserId = kullanici.Id,
                 ProvinceId = istek.ProvinceId,
+                School = string.IsNullOrWhiteSpace(istek.School) ? null : istek.School.Trim(),
+                Grade = istek.Grade is > 0 and <= 12 ? istek.Grade : null,
+                StudentNumber = string.IsNullOrWhiteSpace(istek.StudentNumber) ? null : istek.StudentNumber.Trim(),
                 CreatedAt = simdi,
                 UpdatedAt = simdi
             });
@@ -266,7 +269,10 @@ public static class AuthEndpoints
         string LastName,
         string Email,
         string Password,
-        int ProvinceId);
+        int ProvinceId,
+        string? School = null,
+        int? Grade = null,
+        string? StudentNumber = null);
 
     public sealed record GirisIstegi(string Email, string Password, bool RememberMe = true);
 

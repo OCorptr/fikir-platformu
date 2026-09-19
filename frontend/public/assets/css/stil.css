@@ -710,7 +710,7 @@ html.koyu-mod .bolum-basligi.mavi { color: #5FB0EA; }
    ERİŞİLEBİLİRLİK — sağ kenar düğmesi + araç paneli
    ============================================================ */
 .erisilebilirlik-dugme {
-  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 80;
+  position: fixed; right: 0; top: 50%; transform: translateY(-50%); z-index: 100;
   width: 3.7rem; height: 4rem; border: none; cursor: pointer;
   border-radius: 1.1rem 0 0 1.1rem;
   background: linear-gradient(135deg, #1E88C9, #16355C);
@@ -721,7 +721,7 @@ html.koyu-mod .bolum-basligi.mavi { color: #5FB0EA; }
 .erisilebilirlik-dugme:hover { width: 4.3rem; }
 .erisilebilirlik-dugme img { width: 2.5rem; height: 2.5rem; }
 .erisilebilirlik-panel {
-  position: fixed; right: 4.3rem; top: 50%; transform: translateY(-50%); z-index: 81;
+  position: fixed; right: 4.3rem; top: 50%; transform: translateY(-50%); z-index: 101;
   width: 23rem; max-height: 86vh; overflow-y: auto; background: #fff; border-radius: 1.5rem;
   box-shadow: 0 1.2rem 3rem rgba(15, 35, 70, 0.3);
   padding: 1.4rem 1.5rem 1.2rem; display: none;

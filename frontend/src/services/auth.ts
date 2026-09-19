@@ -13,6 +13,9 @@ export async function register(payload: {
   email: string;
   password: string;
   provinceId: number;
+  school?: string | null;
+  grade?: number | null;
+  studentNumber?: string | null;
 }): Promise<RegisterResponse> {
   return apiRequest<RegisterResponse>("/api/auth/register", {
     method: "POST",

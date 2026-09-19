@@ -212,12 +212,35 @@
 }
 
 
+/* AuthModal: yazı yazılan alanlar (input[type=text|email|password]) — .tema-input */
+.tema-input {
+  width: 100%;
+  border: 0.16rem solid #C9D8E6;
+  border-radius: 1.4rem;
+  background-color: #F6FAFD;
+  color: #16355C;
+  padding: 0.6rem 1.1rem;
+  font-family: 'Nunito', sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+.tema-input::placeholder { color: #A9BACB; font-weight: 600; }
+.tema-input:focus {
+  border-color: #1F9FA4;
+  box-shadow: 0 0 0 0.35rem rgba(31, 159, 164, 0.14);
+  background-color: #fff;
+}
+
+
 /* ============================================================
    AuthModal — /fikir sayfasında giriş/kayıt lightbox'ı
    ============================================================ */
 .af-lightbox > .auth-modal-kart {
   position: relative;
-  max-width: 32rem;
+  max-width: 40rem;
   width: calc(100% - 2.4rem);
   max-height: calc(100svh - 3rem);
   overflow-y: auto;
@@ -271,6 +294,11 @@
 .auth-iki-sutun {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+.auth-uc-sutun {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
   gap: 0.6rem;
 }
 .auth-bilgi {
