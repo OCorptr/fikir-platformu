@@ -32,7 +32,9 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 4 — İl AR-GE paneli (frontend) | ✅ Tamam — `/il-panel` (InboxPage) + `/il-panel/fikir/{id}` (ApplicationDetailPage); Üst bar'da rol bazlı link + kullanıcı adı |
 | 5 — Değerlendirme akışı (backend) | ✅ Tamam — Evaluation entity (4 kriter, 1-5 puan), idea_evaluations migration, SubmitEvaluationService (durum geçişleri), ApproveIdeaService, CandidatesQueryService; uçtan uca 4.25 ortalama → aday → onay → Locked |
 | 5 — Değerlendirme akışı (frontend) | ✅ Tamam — detayda Puanla/Yorumla modalı (slider), kriter ortalamaları + geçmiş, İl Onayı Ver (Manager), Adaylar sayfası (/il-panel/adaylar) |
-| 6-10 | ⬜ Başlanmadı (plan §34) |
+| 6 — Bakanlık paneli (backend) | ✅ Tamam — Period + PeriodSelection entity, periods + period_selections migration, PeriodService (3 aylık otomatik + kategori başına tek seçim), MinistryEndpoints (5 uç); Locked → Planned durum geçişi; uçtan uca test |
+| 6 — Bakanlık paneli (frontend) | ✅ Tamam — MinistryPage: dönem listesi + 'Yeni Dönem Oluştur' + kategori gruplu aday tablosu + 'Seç' + seçilenler |
+| 7-10 | ⬜ Başlanmadı (plan §34) |
 
 **Frontend aktif sayfalar:**
 - `/` → `HomePage.tsx` — vitrin + CTA + arşiv modalı
@@ -132,12 +134,13 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 
 ## Sıradaki adımlar (gerçek sıra)
 
-1. **Aşama 6 — Bakanlık paneli (MinistryOfficial):**
-   - 81 ilin aday havuzlarını toplar
-   - Üç aylık dönemde her kategoriden bir fikir seçer
-   - Planlama/Hayata Geçirme akışı
+1. **Aşama 7 — Hayata geçirme (Implementation tracking):**
+   - Seçilen (Planned) fikirlerin uygulama takibi
+   - İl düzeyinde uygulama raporları
+   - Bakanlık özet ekranı (tüm planlar, durum)
 2. **Production'a hazırlık:**
    - `ProvinceStaff` tablosu (plan §42 #3) — manager/evaluator'lar gerçek ile bağlanır
+   - Bakanlık kullanıcısının tüm illeri görmesi (helper güncelleme, ayrı tablo)
    - SMTP e-posta adaptörü (development → üretim)
    - CORS üretim ayarları
 3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
@@ -149,6 +152,46 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
    - Tek veya çoklu değerlendirici zorunluluğu (eşik/karar)
    - Adaylık puan eşiği (somut sayı — şimdilik 3.5)
    - Değerlendirme kriterlerinin kesin adları ve puanlama türleri (4 kriter × 1-5; sabit)
+
+### Karar günlüğü — Aşama 6 (2026-09-20)
+
+12. **Bakanlık dönem yapısı (plan §25):** Dönem otomatik olarak **3 aylık** oluşturulur;
+    etiket "Dönem YYYY-AA-GG" formatında. Dönem başlangıç tarihi `POST`'ta belirtilmezse
+    `clock.UtcNow` kullanılır.
+13. **Dönem kapatma (plan §25 sonraki adım):** Şu an dönem `Open` ile başlar, tüm 10 kategori
+    seçildiğinde otomatik `SelectionComplete` olur **YOK** — manuel kapatma Aşama 7'de.
+14. **Kategori başına tek seçim (plan §26):** UNIQUE (period_id, category_id) ile
+    veritabanı düzeyinde zorunlu; `SelectAsync` zaten seçim varsa hata döner.
+15. **Bakanlık il bağlantısı (plan §42 #3):** Aşama 4'teki gibi sabit İstanbul sorunu burada da var;
+    `GetProvinceForStaffAsync` helper'ı ministry için de hardcoded İstanbul döndürüyor. Bakanlık
+    tüm illeri görebilmeli, bu helper Aşama 7'de düzeltilecek (örn. tüm illere erişim, ya da
+    `ProvinceStaff` tablosuna MinistryOfficial için boş bir kayıt).
+
+### Tamamlanan: Aşama 6 — Bakanlık paneli
+
+**Backend:**
+- `Period` + `PeriodSelection` entity (Ministry domain), `PeriodStatus` enum (Open, SelectionComplete, Archived)
+- `periods` + `period_selections` tabloları (migration); UNIQUE (period_id, category_id)
+- `Idea` durum geçişleri: `Plan()` eklendi (Locked → Planned, plan §27)
+- `IPeriodRepository` + `PeriodRepository` (list, get, selection kontrolü)
+- `PeriodService` — `CreateAsync` (otomatik 3 aylık, sabit etiket); `SelectAsync` (kategori kontrolü, Locked kontrolü, kategori eşleşme kontrolü)
+- `MinistryEndpoints`:
+  - `GET /api/ministry/periods`
+  - `POST /api/ministry/periods` (otomatik 3 aylık, plan §25)
+  - `GET /api/ministry/periods/{id}/candidates` (kategori gruplu aday havuzu — Locked fikirler)
+  - `POST /api/ministry/periods/{id}/select` (`{categoryId, ideaId}`, plan §26)
+  - `GET /api/ministry/periods/{id}/selected` (seçilen 10 fikir)
+- Seed: `ministry@local` / `12345` → Bakanlık Yetkili (MinistryOfficial)
+- `IIdeaRepository`'ye `GetForAnyProvinceAsync` eklendi (Bakanlık tüm illeri görebilir)
+
+**Frontend:**
+- `types.ts` — Period, PeriodStatus, PeriodCandidate, PeriodCategoryGroup, PeriodCandidatesResponse, SelectedIdea, PeriodSelectedResponse
+- `services/ministry.ts` — listPeriods, createPeriod, getPeriodCandidates, selectForPeriod, getPeriodSelected
+- `pages/MinistryPage.tsx` — dönem listesi + "Yeni Dönem Oluştur" + kategori gruplu aday tablosu + "Seç" + seçilenler bölümü
+- `App.tsx` — `/bakanlik` + `/bakanlik/:periodId` rotaları
+- Üst bar — "Bakanlık" linki (MinistryOfficial için)
+
+**Uçtan uca test (curl):** ministry login → yeni dönem (Eylül 2026 → Aralık 2026) → 1 aday (Kültür ve Sanat, İstanbul, Locked) → kategori seçimi → SelectedAt + Planned durum geçişi ✓
 
 ### Tamamlanan: Aşama 4 — İl AR-GE paneli
 
