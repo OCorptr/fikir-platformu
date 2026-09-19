@@ -14,9 +14,11 @@ interface Props {
   acik: boolean;
   /** auth başarılı olduğunda çağrılır (FikirPage yeniden /me çeker). */
   onAuthed: () => void;
+  /** true → yalnız Giriş Yap sekmesi gösterilir (Kayıt Ol gizlenir); il personeli için. */
+  sadeceGiris?: boolean;
 }
 
-export function AuthModal({ acik, onAuthed }: Props) {
+export function AuthModal({ acik, onAuthed, sadeceGiris = false }: Props) {
   const [mod, setMod] = useState<Mod>("giris");
   const [iller, setIller] = useState<ProvinceRef[]>([]);
   const [illerYukleniyor, setIllerYukleniyor] = useState(false);
@@ -144,7 +146,7 @@ export function AuthModal({ acik, onAuthed }: Props) {
           <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
         </h1>
 
-        {mod !== "dogrulamaBekleniyor" && (
+        {mod !== "dogrulamaBekleniyor" && !sadeceGiris && (
           <div className="auth-sekmeler" role="tablist">
             <button
               type="button"

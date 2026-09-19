@@ -77,7 +77,7 @@ export function ProvinceInboxPage() {
           <div className="yukleme-carki" aria-hidden="true" />
           <span>Yükleniyor…</span>
         </div>
-        <AuthModal acik={authAcik} onAuthed={authGuncelle} />
+        <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
       </main>
     );
   }
@@ -177,7 +177,7 @@ export function ProvinceInboxPage() {
         )}
       </section>
 
-      <AuthModal acik={authAcik} onAuthed={authGuncelle} />
+      <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
     </main>
   );
 }

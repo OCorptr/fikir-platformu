@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { UstBar } from "../components/UstBar";
 
 const kazananlar = [
   {
@@ -61,7 +60,6 @@ export function HomePage() {
 
   return (
     <>
-      <UstBar />
       <main className="secim">
       <h1>
         GELECEĞİN FİKRİ
