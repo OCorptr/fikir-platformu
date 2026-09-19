@@ -30,7 +30,9 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 3 — Fikir girişi (frontend) | ✅ Tamam — FikirPage backend'e bağlı; taslak kaydet/güncelle/sil + gönder çalışıyor; süreç takibi stepper korundu |
 | 4 — İl AR-GE paneli (backend) | ✅ Tamam — inbox + read + assign + evaluators uçları; idea_read_receipts + idea_assignments migration; seed (manager/evaluator İstanbul); uçtan uca test |
 | 4 — İl AR-GE paneli (frontend) | ✅ Tamam — `/il-panel` (InboxPage) + `/il-panel/fikir/{id}` (ApplicationDetailPage); Üst bar'da rol bazlı link + kullanıcı adı |
-| 5-10 | ⬜ Başlanmadı (plan §34) |
+| 5 — Değerlendirme akışı (backend) | ✅ Tamam — Evaluation entity (4 kriter, 1-5 puan), idea_evaluations migration, SubmitEvaluationService (durum geçişleri), ApproveIdeaService, CandidatesQueryService; uçtan uca 4.25 ortalama → aday → onay → Locked |
+| 5 — Değerlendirme akışı (frontend) | ✅ Tamam — detayda Puanla/Yorumla modalı (slider), kriter ortalamaları + geçmiş, İl Onayı Ver (Manager), Adaylar sayfası (/il-panel/adaylar) |
+| 6-10 | ⬜ Başlanmadı (plan §34) |
 
 **Frontend aktif sayfalar:**
 - `/` → `HomePage.tsx` — vitrin + CTA + arşiv modalı
@@ -130,12 +132,10 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 
 ## Sıradaki adımlar (gerçek sıra)
 
-1. **Aşama 5 — Değerlendirme akışı (SIRADAKI):**
-   - Değerlendirme kriterleri (plan §20): Yenilikçilik, Uygulanabilirlik, Etki, Özgünlük; puanlama türü (1–5 arası?)
-   - Evaluator puanlama formu (kriter başına puan + yorum)
-   - Adaylık puan eşiği (plan §22) → otomatik "aday havuzu"
-   - ProvinceManager onayı (plan §23)
-   - Durum geçişleri: Submitted → InEvaluation → EvaluationCompleted → Approved
+1. **Aşama 6 — Bakanlık paneli (MinistryOfficial):**
+   - 81 ilin aday havuzlarını toplar
+   - Üç aylık dönemde her kategoriden bir fikir seçer
+   - Planlama/Hayata Geçirme akışı
 2. **Production'a hazırlık:**
    - `ProvinceStaff` tablosu (plan §42 #3) — manager/evaluator'lar gerçek ile bağlanır
    - SMTP e-posta adaptörü (development → üretim)
@@ -147,8 +147,8 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
    - Ekip özelliğinin ilk sürüme girip girmeyeceği
    - Filtrenin `Flag` seviyesinin ilk sürümde etkin olup olmayacağı
    - Tek veya çoklu değerlendirici zorunluluğu (eşik/karar)
-   - Adaylık puan eşiği (somut sayı)
-   - Değerlendirme kriterlerinin kesin adları ve puanlama türleri
+   - Adaylık puan eşiği (somut sayı — şimdilik 3.5)
+   - Değerlendirme kriterlerinin kesin adları ve puanlama türleri (4 kriter × 1-5; sabit)
 
 ### Tamamlanan: Aşama 4 — İl AR-GE paneli
 
@@ -217,6 +217,24 @@ Aşama 2+ (inline AuthModal) ve Aşama 3 frontend tamamlanırken aşağıdaki ka
 7. **Okundu işaretleme:** Detay sayfası açılır açılmaz otomatik olarak kullanıcı bazında
    okundu işaretlenir (`POST /api/province/ideas/{id}/read`). Bu sayede inbox badge'i
    güncel kalır.
+
+### Karar günlüğü — Aşama 5 (2026-09-20)
+
+8. **Değerlendirme kriterleri (plan §20, §37):** 4 kriter sabitlendi — Yenilikçilik,
+   Uygulanabilirlik, Etki, Özgünlük. Puanlama **1-5 arası tam sayı** (5 = en iyi).
+   İleride kriter ağırlıkları veya ek kriterler eklenirse karar günlüğüne işlenir.
+9. **Adaylık puan eşiği (plan §22, §37):** Sabit **3.5**. Bir fikir tüm kriterlerin ortalaması
+   bu eşiği geçerse otomatik `EvaluationCompleted` olur ve aday havuzunda görünür. Eşik
+   değeri şimdilik sabit; yönetim panelinden yapılandırılabilir hale getirmek Aşama 6'da
+   değerlendirilir.
+10. **Çoklu değerlendirici (plan §37):** Şimdilik **tek evaluator yeterli** (ilk gönderen
+    puanlama durum geçişini tetikler). `idea_evaluations` tablosu çoklu evaluator'u
+    destekler (composite key sayesinde). Çoklu zorunluluk kararı sonra verilecek.
+11. **Durum geçişleri (plan §17-18, §22-23):**
+    - Submitted → InEvaluation: ilk puanlama geldiğinde
+    - InEvaluation → EvaluationCompleted: ortalama ≥ 3.5 olduğunda (aynı Submit çağrısında)
+    - EvaluationCompleted → Locked: ProvinceManager onayı
+    - Locked: artık puanlama kabul edilmez (400)
 
 ---
 
