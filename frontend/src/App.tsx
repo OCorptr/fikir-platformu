@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { ProvinceInboxPage } from "./pages/ProvinceInboxPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { CandidatesPage } from "./pages/CandidatesPage";
+import { MinistryPage } from "./pages/MinistryPage";
 import { me } from "./services/auth";
 import type { MeResponse } from "./types";
 
@@ -49,6 +50,8 @@ export default function App() {
         <Route path="/il-panel" element={<ProvinceInboxPage />} />
         <Route path="/il-panel/adaylar" element={<CandidatesPage />} />
         <Route path="/il-panel/fikir/:id" element={<ApplicationDetailPage />} />
+        <Route path="/bakanlik" element={<MinistryPage />} />
+        <Route path="/bakanlik/:periodId" element={<MinistryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

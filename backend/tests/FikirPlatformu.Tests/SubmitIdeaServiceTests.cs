@@ -96,6 +96,11 @@ public sealed class SubmitIdeaServiceTests
             Task.FromResult<Idea?>(
                 idea.Id == ideaId && idea.ProvinceId == provinceId ? idea : null);
 
+        public Task<Idea?> GetForAnyProvinceAsync(
+            Guid ideaId,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult<Idea?>(idea.Id == ideaId ? idea : null);
+
         public Task AddAsync(Idea value, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 

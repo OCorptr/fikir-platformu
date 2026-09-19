@@ -240,3 +240,51 @@ export interface ApproveResponse {
   ideaId: string;
   approvedAt: string;
 }
+
+// Aşama 6 — Bakanlık
+
+export type PeriodStatus = "Open" | "SelectionComplete" | "Archived";
+
+export interface Period {
+  id: string;
+  label: string;
+  startAt: string;
+  endAt: string;
+  status: PeriodStatus;
+  createdAt: string;
+}
+
+export interface PeriodCandidate {
+  id: string;
+  provinceId: number;
+  provinceName: string;
+  content: string;
+  updatedAt: string;
+  isLocked: boolean;
+  isSelected: boolean;
+}
+
+export interface PeriodCategoryGroup {
+  categoryId: number;
+  categoryName: string;
+  selected: boolean;
+  selectedIdeaId?: string;
+  ideas: PeriodCandidate[];
+}
+
+export interface PeriodCandidatesResponse {
+  period: Period;
+  categories: PeriodCategoryGroup[];
+}
+
+export interface SelectedIdea {
+  CategoryId: number;
+  Idea: PeriodCandidate | null;
+  SelectedAt: string;
+  SelectedByUserId: string;
+}
+
+export interface PeriodSelectedResponse {
+  period: Period;
+  selections: SelectedIdea[];
+}

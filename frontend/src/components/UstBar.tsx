@@ -11,6 +11,8 @@ export function UstBar({ me }: UstBarProps = {}) {
     );
   const managerMi =
     me?.authenticated === true && me.roles.includes("ProvinceManager");
+  const ministryMi =
+    me?.authenticated === true && me.roles.includes("MinistryOfficial");
 
   return (
     <header className="ust">
@@ -26,6 +28,9 @@ export function UstBar({ me }: UstBarProps = {}) {
           )}
           {managerMi && (
             <a className="ust-nav-link" href="/il-panel/adaylar">Adaylar</a>
+          )}
+          {ministryMi && (
+            <a className="ust-nav-link" href="/bakanlik">Bakanlık</a>
           )}
         </nav>
       </div>

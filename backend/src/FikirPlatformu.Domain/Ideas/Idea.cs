@@ -135,6 +135,15 @@ public sealed class Idea : Entity
         UpdatedAt = at;
     }
 
+    /// <summary>Bakanlık tarafından dönemsel kategori seçimi (plan §27). Locked → Planned.</summary>
+    public void Plan(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.Locked)
+            throw new InvalidOperationException("Yalnızca il onaylı (Locked) fikirler planlamaya alınabilir.");
+        Status = IdeaSubmissionStatus.Planned;
+        UpdatedAt = at;
+    }
+
     private static string NormalizeContent(string content)
     {
         ArgumentNullException.ThrowIfNull(content);

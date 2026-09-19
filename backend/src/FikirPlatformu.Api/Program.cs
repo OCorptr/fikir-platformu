@@ -2,6 +2,7 @@ using FikirPlatformu.Api.Endpoints;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
+using FikirPlatformu.Application.Ministry;
 using FikirPlatformu.Application.Moderation;
 using FikirPlatformu.Application.Provinces;
 using FikirPlatformu.Infrastructure.Email;
@@ -28,6 +29,8 @@ builder.Services.AddScoped<AssignEvaluatorService>();
 builder.Services.AddScoped<SubmitEvaluationService>();
 builder.Services.AddScoped<ICandidatesQueryService, CandidatesQueryService>();
 builder.Services.AddScoped<ApproveIdeaService>();
+builder.Services.AddScoped<IPeriodRepository, PeriodRepository>();
+builder.Services.AddScoped<PeriodService>();
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
 builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
@@ -115,6 +118,7 @@ app.MapProfileEndpoints();
 app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
+app.MapMinistryEndpoints();
 
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())
@@ -167,6 +171,7 @@ if (app.Environment.IsDevelopment())
 
     await IlPersoneliOlusturAsync("manager@local", "İl", "Yönetici", "ProvinceManager");
     await IlPersoneliOlusturAsync("evaluator@local", "İl", "Değerlendirici", "ProvinceEvaluator");
+    await IlPersoneliOlusturAsync("ministry@local", "Bakanlık", "Yetkili", "MinistryOfficial");
 }
 
 app.Run();

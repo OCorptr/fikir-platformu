@@ -22,6 +22,13 @@ public sealed class IdeaRepository(FikirPlatformuDbContext context) : IIdeaRepos
             idea => idea.Id == ideaId && idea.ProvinceId == provinceId,
             cancellationToken);
 
+    public Task<Idea?> GetForAnyProvinceAsync(
+        Guid ideaId,
+        CancellationToken cancellationToken = default) =>
+        context.Ideas.FirstOrDefaultAsync(
+            idea => idea.Id == ideaId,
+            cancellationToken);
+
     public async Task AddAsync(Idea idea, CancellationToken cancellationToken = default)
     {
         await context.Ideas.AddAsync(idea, cancellationToken);

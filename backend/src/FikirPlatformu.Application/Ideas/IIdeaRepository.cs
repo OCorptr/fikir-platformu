@@ -14,6 +14,10 @@ public interface IIdeaRepository
         int provinceId,
         CancellationToken cancellationToken = default);
 
+    Task<Idea?> GetForAnyProvinceAsync(
+        Guid ideaId,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Idea idea, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

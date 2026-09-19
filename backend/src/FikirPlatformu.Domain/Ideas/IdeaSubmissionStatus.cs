@@ -7,5 +7,6 @@ public enum IdeaSubmissionStatus
     InEvaluation = 2,
     EvaluationCompleted = 3,
     Locked = 4,
-    Deleted = 5
+    Planned = 5,
+    Deleted = 6
 }
