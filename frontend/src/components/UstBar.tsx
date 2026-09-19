@@ -9,6 +9,8 @@ export function UstBar({ me }: UstBarProps = {}) {
     me?.authenticated === true && me.roles.some((r) =>
       r === "ProvinceEvaluator" || r === "ProvinceManager",
     );
+  const managerMi =
+    me?.authenticated === true && me.roles.includes("ProvinceManager");
 
   return (
     <header className="ust">
@@ -21,6 +23,9 @@ export function UstBar({ me }: UstBarProps = {}) {
           <a className="ust-nav-link" href="/fikir">Fikrimi Yaz</a>
           {ilPaneliGoster && (
             <a className="ust-nav-link" href="/il-panel">İl Paneli</a>
+          )}
+          {managerMi && (
+            <a className="ust-nav-link" href="/il-panel/adaylar">Adaylar</a>
           )}
         </nav>
       </div>

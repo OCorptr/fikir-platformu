@@ -108,6 +108,33 @@ public sealed class Idea : Entity
         UpdatedAt = deletedAt;
     }
 
+    /// <summary>İlk puanlama alındığında Submitted → InEvaluation (plan §17).</summary>
+    public void MoveToInEvaluation(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.Submitted)
+            throw new InvalidOperationException("Yalnızca gönderilmiş fikirler değerlendirmeye alınabilir.");
+        Status = IdeaSubmissionStatus.InEvaluation;
+        UpdatedAt = at;
+    }
+
+    /// <summary>Ortalama puan eşiği geçtiğinde InEvaluation → EvaluationCompleted (plan §22).</summary>
+    public void CompleteEvaluation(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.InEvaluation)
+            throw new InvalidOperationException("Yalnızca değerlendirmede olan fikirler tamamlanabilir.");
+        Status = IdeaSubmissionStatus.EvaluationCompleted;
+        UpdatedAt = at;
+    }
+
+    /// <summary>İl AR-GE yöneticisi onayı (plan §23).</summary>
+    public void Approve(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.EvaluationCompleted)
+            throw new InvalidOperationException("Yalnızca değerlendirmesi tamamlanmış fikirler onaylanabilir.");
+        Status = IdeaSubmissionStatus.Locked;
+        UpdatedAt = at;
+    }
+
     private static string NormalizeContent(string content)
     {
         ArgumentNullException.ThrowIfNull(content);

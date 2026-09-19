@@ -179,3 +179,64 @@ export interface AssignResponse {
   evaluatorUserId: string;
   assignedAt: string;
 }
+
+// Aşama 5 — Değerlendirme
+
+export type EvaluationCriterion =
+  | "Yenilikcilik"
+  | "Uygulanabilirlik"
+  | "Etki"
+  | "Ozgunluk";
+
+export const EVALUATION_CRITERIA: EvaluationCriterion[] = [
+  "Yenilikcilik",
+  "Uygulanabilirlik",
+  "Etki",
+  "Ozgunluk",
+];
+
+export const CRITERION_LABELS: Record<EvaluationCriterion, string> = {
+  Yenilikcilik: "Yenilikçilik",
+  Uygulanabilirlik: "Uygulanabilirlik",
+  Etki: "Etki",
+  Ozgunluk: "Özgünlük",
+};
+
+export interface EvaluationEntry {
+  ideaId: string;
+  evaluatorUserId: string;
+  criterion: EvaluationCriterion;
+  score: number;
+  comment: string | null;
+  evaluatedAt: string;
+}
+
+export interface IdeaEvaluationsResponse {
+  evaluations: EvaluationEntry[];
+  averages: Partial<Record<EvaluationCriterion, number>>;
+  threshold: number;
+}
+
+export interface CandidateSummary {
+  ideaId: string;
+  categoryId: number;
+  categoryName: string;
+  content: string;
+  averageScore: number;
+  completedAt: string;
+}
+
+export interface SubmitEvaluationItem {
+  criterion: EvaluationCriterion;
+  score: number;
+  comment?: string | null;
+}
+
+export interface SubmitEvaluationsRequest {
+  scores: SubmitEvaluationItem[];
+}
+
+export interface ApproveResponse {
+  ideaId: string;
+  approvedAt: string;
+}

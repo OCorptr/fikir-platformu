@@ -544,3 +544,65 @@
   margin: 0.4rem 0 0;
   padding-left: 1.2rem;
 }
+
+/* Aşama 5 — Değerlendirme */
+.detay-degerlendirme {
+  background: #f7fafd;
+  border: 0.16rem solid #d8e3ee;
+  border-radius: 1rem;
+  padding: 0.8rem 1rem;
+  color: #16355c;
+  margin-bottom: 1rem;
+}
+.kriter-liste {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.5rem;
+}
+.kriter-liste li {
+  background: #fff;
+  border: 0.1rem solid #d8e3ee;
+  border-radius: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.kriter-ortalama {
+  color: #ef7814;
+  font-weight: 900;
+}
+.degerlendirici-detay {
+  margin-top: 0.6rem;
+  font-size: 0.9rem;
+}
+.degerlendirici-detay summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #647a92;
+}
+.puanlama-liste {
+  list-style: none;
+  padding: 0;
+  margin: 0.4rem 0 0;
+}
+.puanlama-liste li {
+  padding: 0.3rem 0;
+  border-bottom: 0.05rem solid #ecf2f7;
+}
+.puanlama-liste li:last-child {
+  border-bottom: none;
+}
+input[type="range"] {
+  width: 100%;
+  margin: 0.2rem 0;
+}
+.meta {
+  color: #8aa0b5;
+  font-weight: 600;
+  font-size: 0.85rem;
+}

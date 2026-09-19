@@ -1,6 +1,8 @@
 using FikirPlatformu.Application.Abstractions;
+using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
 using FikirPlatformu.Application.Provinces;
+using FikirPlatformu.Domain.Evaluations;
 using FikirPlatformu.Domain.Ideas;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
@@ -13,31 +15,13 @@ namespace FikirPlatformu.Api.Endpoints;
 public static class ProvinceEndpoints
 {
     /// <summary>
-    /// Öğrencinin bağlı olduğu ilin kimliğini döner; profildeki il değiştirilince fikirler de yeni ile geçer (plan §42 #1).
+    /// Plan §42 #3: rol bazlı tek il atanır; bu sprint'te demo seed hesaplar için sabit İstanbul (id 34) döner.
+    /// Üretimde AspNetUsers → ProvinceStaff ayrı tablosu ile değiştirilecek.
     /// </summary>
-    private static async Task<int?> GetStudentProvinceIdOrNullAsync(
-        FikirPlatformuDbContext db,
-        string userId,
-        CancellationToken cancellationToken)
-    {
-        var profilId = await db.StudentProfiles
-            .Where(p => p.ApplicationUserId == userId)
-            .Select(p => (int?)p.ProvinceId)
-            .FirstOrDefaultAsync(cancellationToken);
-        return profilId;
-    }
-
-    /// <summary>İl AR-GE sorumlusunun yönettiği ilin kimliğini döner. Şimdilik seed hesaplar için tek il atanır (İstanbul).</summary>
     private static async Task<int> GetProvinceForStaffAsync(
         FikirPlatformuDbContext db,
         string userId,
-        CancellationToken cancellationToken)
-    {
-        // Şimdilik demo amaçlı: kullanıcının öğrenci profili varsa onun ili kullanılır (plan §42 #3 kararı: rol bazlı tek il atanır; burada test seed hesaplar için öğrenci profili oluşturulmaz, ayrı tabloda tutulur).
-        // Bu endpoint henüz geliştirme aşamasında — gerçek dağıtımda AspNetUser → ProvinceId bağlantısı ayrı tabloda tutulacak (plan §42 #3).
-        // Test seed'ı için sabit İstanbul (id 34) kullanılır; gerçek atama sonradan yapılacak.
-        return 34;
-    }
+        CancellationToken cancellationToken) => await Task.FromResult(34);
 
     public static IEndpointRouteBuilder MapProvinceEndpoints(this IEndpointRouteBuilder app)
     {
@@ -52,10 +36,6 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-
-            // Önce ilgili kullanıcının hangi ile bağlı olduğunu belirle.
-            // Rol bazlı: ProvinceManager/ProvinceEvaluator ayrı bir tabloda tutulacak (plan §42 #3).
-            // Şimdilik demo: seed hesap İstanbul'a bağlı (id 34).
             var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
             var liste = await inboxService.ListAsync(ilId, userId, cancellationToken);
             return Results.Ok(liste);
@@ -71,7 +51,6 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-
             await receipts.MarkReadAsync(id, userId, clock.UtcNow, cancellationToken);
             await receipts.SaveChangesAsync(cancellationToken);
             return Results.Ok(new { ideaId = id, readAt = clock.UtcNow });
@@ -90,7 +69,6 @@ public static class ProvinceEndpoints
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            // Atanacak kişinin gerçekten ProvinceEvaluator rolünde olduğunu doğrula
             var hedef = await userManager.FindByIdAsync(istek.EvaluatorUserId);
             if (hedef is null) return Results.NotFound(new { message = "Değerlendirici bulunamadı." });
             if (!await userManager.IsInRoleAsync(hedef, "ProvinceEvaluator"))
@@ -117,8 +95,6 @@ public static class ProvinceEndpoints
             FikirPlatformuDbContext db,
             UserManager<ApplicationUser> userManager) =>
         {
-            // Plan §42 #3: rol bazlı tek il atanır; şimdilik demo için İstanbul (id 34) varsayılır.
-            const int ilId = 34;
             var evaluatorRoleId = await db.Roles
                 .Where(r => r.Name == "ProvinceEvaluator")
                 .Select(r => r.Id)
@@ -144,8 +120,6 @@ public static class ProvinceEndpoints
                 })
                 .ToListAsync();
 
-            // Şimdilik tüm evaluator'ler İstanbul'a atanmış sayılır (plan §42 #3 henüz uygulanmadı).
-            _ = ilId;
             return Results.Ok(users);
         }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
 
@@ -160,7 +134,6 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-
             var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
 
             var fikir = await (
@@ -212,8 +185,104 @@ public static class ProvinceEndpoints
             });
         }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
 
+        // POST /api/province/ideas/{id}/evaluations — puanlama gönder (Evaluator veya Manager)
+        grup.MapPost("/ideas/{id:guid}/evaluations", async (
+            Guid id,
+            PuanlamaIstegi istek,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            SubmitEvaluationService service,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+
+            var scores = (istek.Scores ?? new List<PuanlamaIstegi.ScoreItem>())
+                .Select(s => new EvaluationScoreInput(s.Criterion, s.Score, s.Comment))
+                .ToList();
+
+            var sonuc = await service.SubmitAsync(
+                new SubmitEvaluationCommand(id, ilId, userId, scores),
+                cancellationToken);
+
+            return sonuc switch
+            {
+                SubmitEvaluationResult.Ok ok => Results.Ok(new { ideaId = id, evaluatedAt = ok.EvaluatedAt }),
+                SubmitEvaluationResult.NotFound => Results.NotFound(new { message = "Fikir bulunamadı veya başka ile ait." }),
+                SubmitEvaluationResult.Locked => Results.ValidationProblem(new Dictionary<string, string[]> { ["ideaId"] = ["Onaylanmış fikir puanlanamaz."] }),
+                SubmitEvaluationResult.NoScores => Results.ValidationProblem(new Dictionary<string, string[]> { ["scores"] = ["En az bir kriter puanı zorunludur."] }),
+                SubmitEvaluationResult.InvalidScore => Results.ValidationProblem(new Dictionary<string, string[]> { ["scores"] = ["Puanlar 1-5 arasında olmalıdır."] }),
+                _ => Results.StatusCode(500),
+            };
+        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+
+        // GET /api/province/ideas/{id}/evaluations — fikrin tüm puanları
+        grup.MapGet("/ideas/{id:guid}/evaluations", async (
+            Guid id,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            IIdeaEvaluationRepository repo,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+
+            var fikirMi = await db.Ideas.AnyAsync(i => i.Id == id && i.ProvinceId == ilId, cancellationToken);
+            if (!fikirMi) return Results.NotFound();
+
+            var tumu = await repo.GetForIdeaAsync(id, cancellationToken);
+            var ortalamalar = await repo.GetAveragesAsync(id, cancellationToken);
+            return Results.Ok(new
+            {
+                evaluations = tumu,
+                averages = ortalamalar,
+                threshold = SubmitEvaluationService.CandidateThreshold,
+            });
+        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+
+        // GET /api/province/candidates — otomatik aday havuzu
+        grup.MapGet("/candidates", async (
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            ICandidatesQueryService service,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var liste = await service.ListAsync(ilId, cancellationToken);
+            return Results.Ok(liste);
+        }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
+
+        // POST /api/province/ideas/{id}/approve — Manager onayı
+        grup.MapPost("/ideas/{id:guid}/approve", async (
+            Guid id,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            ApproveIdeaService service,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var sonuc = await service.ApproveAsync(new ApproveIdeaCommand(id, ilId, userId), cancellationToken);
+            return sonuc switch
+            {
+                ApproveIdeaResult.Ok ok => Results.Ok(new { ideaId = id, approvedAt = ok.ApprovedAt }),
+                ApproveIdeaResult.NotFound => Results.NotFound(new { message = "Fikir bulunamadı veya başka ile ait." }),
+                _ => Results.StatusCode(500),
+            };
+        }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
+
         return app;
     }
+}
 
-    public sealed record AssignEvaluatorIstegi(string EvaluatorUserId);
+public sealed record AssignEvaluatorIstegi(string EvaluatorUserId);
+
+public sealed record PuanlamaIstegi(List<PuanlamaIstegi.ScoreItem>? Scores)
+{
+    public sealed record ScoreItem(EvaluationCriterion Criterion, int Score, string? Comment);
 }

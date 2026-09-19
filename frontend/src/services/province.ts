@@ -2,11 +2,15 @@
 
 import { apiRequest } from "./api";
 import type {
+  ApproveResponse,
   AssignResponse,
+  CandidateSummary,
   IdeaDetailResponse,
+  IdeaEvaluationsResponse,
   InboxEntry,
   ProvinceEvaluatorRef,
   ReadMarkResponse,
+  SubmitEvaluationsRequest,
 } from "../types";
 
 export async function getInbox(signal?: AbortSignal): Promise<InboxEntry[]> {
@@ -37,5 +41,32 @@ export async function assignEvaluator(
   return apiRequest<AssignResponse>(`/api/province/ideas/${id}/assign`, {
     method: "POST",
     body: { evaluatorUserId },
+  });
+}
+
+export async function submitEvaluations(
+  id: string,
+  scores: SubmitEvaluationsRequest["scores"],
+): Promise<{ ideaId: string; evaluatedAt: string }> {
+  return apiRequest(`/api/province/ideas/${id}/evaluations`, {
+    method: "POST",
+    body: { scores },
+  });
+}
+
+export async function getEvaluations(
+  id: string,
+  signal?: AbortSignal,
+): Promise<IdeaEvaluationsResponse> {
+  return apiRequest<IdeaEvaluationsResponse>(`/api/province/ideas/${id}/evaluations`, { signal });
+}
+
+export async function getCandidates(signal?: AbortSignal): Promise<CandidateSummary[]> {
+  return apiRequest<CandidateSummary[]>("/api/province/candidates", { signal });
+}
+
+export async function approveIdea(id: string): Promise<ApproveResponse> {
+  return apiRequest<ApproveResponse>(`/api/province/ideas/${id}/approve`, {
+    method: "POST",
   });
 }

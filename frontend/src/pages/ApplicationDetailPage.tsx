@@ -7,15 +7,23 @@ import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
+  approveIdea,
   assignEvaluator,
+  getEvaluations,
   getProvinceIdea,
   listEvaluators,
   markRead,
+  submitEvaluations,
 } from "../services/province";
-import type {
-  IdeaDetailResponse,
-  MeAuthenticated,
-  ProvinceEvaluatorRef,
+import {
+  CRITERION_LABELS,
+  EVALUATION_CRITERIA,
+  type EvaluationEntry,
+  type IdeaDetailResponse,
+  type IdeaEvaluationsResponse,
+  type MeAuthenticated,
+  type ProvinceEvaluatorRef,
+  type SubmitEvaluationItem,
 } from "../types";
 
 export function ApplicationDetailPage() {
@@ -32,11 +40,24 @@ export function ApplicationDetailPage() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
 
+  // değerlendirme
+  const [evaluations, setEvaluations] = useState<IdeaEvaluationsResponse | null>(null);
+
   // atama modal
   const [ataAcik, setAtaAcik] = useState(false);
   const [evaluatorler, setEvaluatorler] = useState<ProvinceEvaluatorRef[]>([]);
   const [seciliEvaluator, setSeciliEvaluator] = useState<string>("");
   const [atamaCalisiyor, setAtamaCalisiyor] = useState(false);
+
+  // puanlama modal
+  const [puanlamaAcik, setPuanlamaAcik] = useState(false);
+  const [puanlar, setPuanlar] = useState<Record<string, { score: number; comment: string }>>(
+    Object.fromEntries(EVALUATION_CRITERIA.map((c) => [c, { score: 3, comment: "" }])),
+  );
+  const [puanlamaCalisiyor, setPuanlamaCalisiyor] = useState(false);
+
+  // onay
+  const [onayCalisiyor, setOnayCalisiyor] = useState(false);
 
   // /me
   useEffect(() => {
@@ -48,7 +69,7 @@ export function ApplicationDetailPage() {
     return () => controller.abort();
   }, []);
 
-  // detay + otomatik okundu
+  // detay + otomatik okundu + değerlendirmeleri yükle
   useEffect(() => {
     if (!ben || !id) return;
     const controller = new AbortController();
@@ -66,6 +87,8 @@ export function ApplicationDetailPage() {
             // okundu işaretleme hatası önemsiz
           }
         }
+        const ev = await getEvaluations(id, controller.signal);
+        setEvaluations(ev);
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           setHata(mesajCikar(e));
@@ -115,6 +138,45 @@ export function ApplicationDetailPage() {
       setHata(mesajCikar(e));
     } finally {
       setAtamaCalisiyor(false);
+    }
+  }
+
+  async function puanlamaGonder() {
+    if (!id) return;
+    setPuanlamaCalisiyor(true);
+    setHata(null);
+    try {
+      const skorlar: SubmitEvaluationItem[] = EVALUATION_CRITERIA.map((c) => ({
+        criterion: c,
+        score: puanlar[c].score,
+        comment: puanlar[c].comment.trim() ? puanlar[c].comment.trim() : null,
+      }));
+      await submitEvaluations(id, skorlar);
+      const ev = await getEvaluations(id);
+      setEvaluations(ev);
+      const d = await getProvinceIdea(id);
+      setDetay(d);
+      setPuanlamaAcik(false);
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setPuanlamaCalisiyor(false);
+    }
+  }
+
+  async function onayla() {
+    if (!id) return;
+    if (!confirm("Bu fikri onaylayıp kilitlemek istediğine emin misin?")) return;
+    setOnayCalisiyor(true);
+    setHata(null);
+    try {
+      await approveIdea(id);
+      const d = await getProvinceIdea(id);
+      setDetay(d);
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setOnayCalisiyor(false);
     }
   }
 
@@ -184,15 +246,61 @@ export function ApplicationDetailPage() {
                 )}
             </div>
 
+            <div className="bolum-basligi turuncu">Değerlendirme</div>
+            {evaluations && (
+              <div className="detay-degerlendirme">
+                <div className="meta">
+                  Eşik: <strong>{evaluations.threshold}</strong> · Toplam puan: <strong>{(evaluations.averages ? Object.values(evaluations.averages).reduce((a, b) => a + (b ?? 0), 0) / Math.max(1, Object.keys(evaluations.averages).length) : 0).toFixed(2)}</strong>
+                </div>
+                {Object.keys(evaluations.averages).length === 0 ? (
+                  <p className="meta">Henüz puanlama yapılmamış.</p>
+                ) : (
+                  <ul className="kriter-liste">
+                    {EVALUATION_CRITERIA.map((c) => (
+                      <li key={c}>
+                        <span className="kriter-ad">{CRITERION_LABELS[c]}</span>
+                        <span className="kriter-ortalama">
+                          {evaluations.averages[c] !== undefined ? evaluations.averages[c]!.toFixed(2) : "—"}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {evaluations.evaluations.length > 0 && (
+                  <details className="degerlendirici-detay">
+                    <summary>{evaluations.evaluations.length} puanlama</summary>
+                    <ul className="puanlama-liste">
+                      {evaluations.evaluations.map((e: EvaluationEntry, i: number) => (
+                        <li key={i}>
+                          <strong>{CRITERION_LABELS[e.criterion]}</strong> · {e.score}/5
+                          {e.comment ? <div className="meta">"{e.comment}"</div> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            )}
+
             <div className="fikir-butonlar">
-              {managerMi && (
+              {managerMi && detay.idea.status !== "Locked" && (
                 <button type="button" className="btn-ana" onClick={ataModalAc}>
                   🧑‍⚖️ Değerlendiriciye Ata
                 </button>
               )}
-              <button type="button" className="btn-ikincil" disabled>
-                ✏️ Değerlendir (Aşama 5)
-              </button>
+              {detay.idea.status !== "Locked" && (
+                <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(true)}>
+                  ✏️ Puanla / Yorumla
+                </button>
+              )}
+              {managerMi && detay.idea.status === "EvaluationCompleted" && (
+                <button type="button" className="btn-ana" onClick={onayla} disabled={onayCalisiyor}>
+                  {onayCalisiyor ? "Onaylanıyor…" : "✅ İl Onayı Ver"}
+                </button>
+              )}
+              {detay.idea.status === "Locked" && (
+                <span className="meta">🔒 İl onayı verildi; fikir kilitli.</span>
+              )}
             </div>
           </>
         )}
@@ -239,6 +347,63 @@ export function ApplicationDetailPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {puanlamaAcik && (
+        <div className="af-lightbox" role="dialog" aria-modal="true">
+          <div className="fikir-karti auth-modal-kart" style={{ maxWidth: "36rem" }}>
+            <h2 className="auth-modal-baslik">
+              <span style={{ color: "#1f9fa4" }}>Fikri</span>{" "}
+              <span style={{ color: "#ef7814" }}>Puanla</span>
+            </h2>
+            <p className="meta">Her kriter için 1-5 arası puan ver (5 = en iyi). Yorum opsiyonel.</p>
+            <div className="auth-form">
+              {EVALUATION_CRITERIA.map((c) => (
+                <div key={c} className="alan">
+                  <span>{CRITERION_LABELS[c]} · <strong>{puanlar[c].score}/5</strong></span>
+                  <input
+                    type="range"
+                    min={1}
+                    max={5}
+                    step={1}
+                    value={puanlar[c].score}
+                    onChange={(e) =>
+                      setPuanlar((prev) => ({
+                        ...prev,
+                        [c]: { ...prev[c], score: Number(e.target.value) },
+                      }))
+                    }
+                  />
+                  <input
+                    className="tema-input"
+                    placeholder="Yorum (opsiyonel)"
+                    value={puanlar[c].comment}
+                    onChange={(e) =>
+                      setPuanlar((prev) => ({
+                        ...prev,
+                        [c]: { ...prev[c], comment: e.target.value },
+                      }))
+                    }
+                    maxLength={500}
+                  />
+                </div>
+              ))}
+              <div className="fikir-butonlar">
+                <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(false)}>
+                  İptal
+                </button>
+                <button
+                  type="button"
+                  className="btn-ana"
+                  onClick={puanlamaGonder}
+                  disabled={puanlamaCalisiyor}
+                >
+                  {puanlamaCalisiyor ? "Gönderiliyor…" : "Puanları Kaydet"}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

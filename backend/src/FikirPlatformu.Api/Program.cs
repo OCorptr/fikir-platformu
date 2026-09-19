@@ -1,5 +1,6 @@
 using FikirPlatformu.Api.Endpoints;
 using FikirPlatformu.Application.Abstractions;
+using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
 using FikirPlatformu.Application.Moderation;
 using FikirPlatformu.Application.Provinces;
@@ -21,8 +22,12 @@ builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
 builder.Services.AddScoped<IIdeaRepository, IdeaRepository>();
 builder.Services.AddScoped<IIdeaReadReceiptRepository, IdeaReadReceiptRepository>();
 builder.Services.AddScoped<IIdeaAssignmentRepository, IdeaAssignmentRepository>();
+builder.Services.AddScoped<IIdeaEvaluationRepository, IdeaEvaluationRepository>();
 builder.Services.AddScoped<IProvinceInboxQueryService, ProvinceInboxQueryService>();
 builder.Services.AddScoped<AssignEvaluatorService>();
+builder.Services.AddScoped<SubmitEvaluationService>();
+builder.Services.AddScoped<ICandidatesQueryService, CandidatesQueryService>();
+builder.Services.AddScoped<ApproveIdeaService>();
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
 builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
