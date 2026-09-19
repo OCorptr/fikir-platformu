@@ -9,6 +9,11 @@ public interface IIdeaRepository
         Guid studentId,
         CancellationToken cancellationToken = default);
 
+    Task<Idea?> GetForProvinceAsync(
+        Guid ideaId,
+        int provinceId,
+        CancellationToken cancellationToken = default);
+
     Task AddAsync(Idea idea, CancellationToken cancellationToken = default);
 
     Task SaveChangesAsync(CancellationToken cancellationToken = default);

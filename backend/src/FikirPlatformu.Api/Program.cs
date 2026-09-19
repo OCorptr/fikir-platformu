@@ -2,6 +2,7 @@ using FikirPlatformu.Api.Endpoints;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Ideas;
 using FikirPlatformu.Application.Moderation;
+using FikirPlatformu.Application.Provinces;
 using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Moderation;
@@ -18,6 +19,10 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
 builder.Services.AddScoped<IIdeaRepository, IdeaRepository>();
+builder.Services.AddScoped<IIdeaReadReceiptRepository, IdeaReadReceiptRepository>();
+builder.Services.AddScoped<IIdeaAssignmentRepository, IdeaAssignmentRepository>();
+builder.Services.AddScoped<IProvinceInboxQueryService, ProvinceInboxQueryService>();
+builder.Services.AddScoped<AssignEvaluatorService>();
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
 builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
@@ -104,6 +109,7 @@ app.MapAuthEndpoints();
 app.MapProfileEndpoints();
 app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();
+app.MapProvinceEndpoints();
 
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())
@@ -124,6 +130,38 @@ using (var kapsam = app.Services.CreateScope())
             await rolYoneticisi.CreateAsync(new IdentityRole(rol));
         }
     }
+}
+
+// İl AR-GE demo seed: 1 ProvinceManager + 1 ProvinceEvaluator (İstanbul ili). Şifre "12345".
+// Bu seed sadece Development ortamında ve kullanıcı yoksa oluşturulur; idempotent.
+if (app.Environment.IsDevelopment())
+{
+    using var seedKapsam = app.Services.CreateScope();
+    var kullaniciYoneticisi = seedKapsam.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    var girisYoneticisi = seedKapsam.ServiceProvider.GetRequiredService<SignInManager<ApplicationUser>>();
+
+    async Task IlPersoneliOlusturAsync(string eposta, string ad, string soyad, params string[] roller)
+    {
+        var mevcut = await kullaniciYoneticisi.FindByEmailAsync(eposta);
+        if (mevcut is not null) return;
+        var kullanici = new ApplicationUser
+        {
+            UserName = eposta,
+            Email = eposta,
+            FirstName = ad,
+            LastName = soyad,
+            EmailConfirmed = true, // Development seed — e-posta doğrulaması atlandı
+        };
+        var sonuc = await kullaniciYoneticisi.CreateAsync(kullanici, "12345");
+        if (!sonuc.Succeeded) return;
+        foreach (var rol in roller)
+        {
+            await kullaniciYoneticisi.AddToRoleAsync(kullanici, rol);
+        }
+    }
+
+    await IlPersoneliOlusturAsync("manager@local", "İl", "Yönetici", "ProvinceManager");
+    await IlPersoneliOlusturAsync("evaluator@local", "İl", "Değerlendirici", "ProvinceEvaluator");
 }
 
 app.Run();

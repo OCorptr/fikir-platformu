@@ -16,6 +16,8 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<StudentProfile> StudentProfiles => Set<StudentProfile>();
     public DbSet<Province> Provinces => Set<Province>();
     public DbSet<BlockedTerm> BlockedTerms => Set<BlockedTerm>();
+    public DbSet<IdeaReadReceipt> IdeaReadReceipts => Set<IdeaReadReceipt>();
+    public DbSet<IdeaAssignment> IdeaAssignments => Set<IdeaAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -25,6 +27,8 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
         modelBuilder.ApplyConfiguration(new ProvinceConfiguration());
         modelBuilder.ApplyConfiguration(new IdeaCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new BlockedTermConfiguration());
+        modelBuilder.ApplyConfiguration(new IdeaReadReceiptConfiguration());
+        modelBuilder.ApplyConfiguration(new IdeaAssignmentConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }
