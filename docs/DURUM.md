@@ -1,18 +1,19 @@
 # Proje Durumu — YENİ OTURUM AÇILDIGINDA ÖNCE BU DOSYAYI OKU
 
-> Son güncelleme: 2026-09-19
-> Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41–42 karar günlüğü)
+> Son güncelleme: 2026-09-20
+> Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41–43 karar günlüğü)
 > Kaynak belge: `Fikir Platformu 11.08.2026.pdf`
 
 Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten sonra
 "Bir bakışta durum" bölümü güncellenir ve commit edilir.
 
 > **ÖNEMLİ — kullanıcı kararı (2026-09-19):** React tarafındaki kayıt / giriş / doğrulama /
-> profil / şifre akışları **kaldırıldı**. Kullanıcı bunlar istediği gibi yapılmadığı için
-> sildi. Backend Identity uçları kodda duruyor (AuthEndpoints, ProfileEndpoints) fakat
-> frontend tarafından tüketilmiyor. Yeni uygulamada şu an **yalnız iki sayfa** var:
-> `HomePage` (/) ve `FikirPage` (/fikir). Aşama 2 frontend tarafında **iptal edildi**;
-> yalnız Aşama 3 backend + Aşama 3 frontend kalıyor.
+> profil / şifre akışları **iptal edildi** (kullanıcı istediği gibi yapılmadığı için).
+> Sonra (2026-09-20) kullanıcı **inline modal** yaklaşımını onayladı: kayıt/giriş akışları
+> `/fikir` sayfasında **AuthModal** (kapatılamaz, Fikrini Anlat temalı) olarak yeniden yazıldı;
+> Aşama 2'nin ayrı sayfaları yerine bu kullanılıyor. Backend Identity uçları aynı — frontend
+> artık `/api/auth/{register,login,verify-email,logout,me}` çağırıyor. Yeni uygulamada iki sayfa:
+> `HomePage` (/) ve `FikirPage` (/fikir).
 
 ---
 
@@ -22,16 +23,18 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 |---|---|
 | 0 — Gereksinim mutabakatı | ✅ Tamam (plan §3 kesinleşen kararlar) |
 | 1 — Teknik temel ve depo düzeni | ✅ Tamam |
-| 2 — Kimlik ve öğrenci profili (backend) | 🟡 Backend Identity uçları var (AuthEndpoints, ProfileEndpoints); frontend tarafından tüketilmiyor |
-| 2+ — Öğrenci arayüzü (React: kayıt/giriş/doğrulama/profil) | ❌ İptal (kullanıcı kaldırdı — istediği gibi yapılmadığı için) |
+| 2 — Kimlik ve öğrenci profili (backend) | ✅ Backend Identity uçları tamam; **frontend tüketicisi AuthModal (inline, /fikir)** |
+| 2+ — Öğrenci arayüzü (React: kayıt/giriş/doğrulama/profil) | ✅ **Inline modal olarak yeniden yazıldı** (Aşama 3 frontend'le birlikte) |
 | 2++ — Ana sayfa React'e taşındı (index.html birebir kopya) | ✅ Tamam |
 | 3 — Fikir girişi (backend) | ✅ Tamam (17/17 birim testi + uçtan uca) |
-| 3 — Fikir girişi (frontend) | 🟡 Form var (`FikirPage.tsx`) fakat backend'e bağlı değil; gönder tuşu sadece UI toggle |
+| 3 — Fikir girişi (frontend) | ✅ Tamam — FikirPage backend'e bağlı; taslak kaydet/güncelle/sil + gönder çalışıyor; süreç takibi stepper korundu |
 | 4-10 | ⬜ Başlanmadı (plan §34) |
 
-**Frontend aktif sayfalar (onaylanan durum):**
+**Frontend aktif sayfalar:**
 - `/` → `HomePage.tsx` — vitrin + CTA + arşiv modalı
-- `/fikir` → `FikirPage.tsx` — tema + öğrenci bilgileri + 1.500 sayaç (henüz backend'e yazmıyor)
+- `/fikir` → `FikirPage.tsx`
+  - oturum yoksa → `AuthModal` (kapatılamaz, Fikrini Anlat teması, 4 satır × 2 sütun kayıt formu)
+  - oturum varsa → kategori DB'den + 1.500 sayaç + Taslak Kaydet / Gönder + mevcut taslaklar listesi
 
 **Paralel iş:** Netlify'daki statik prototip (`index.html`, `fikir.html`, `admin.html` +
 `assets/`) yayında ve canlı demo olarak kullanılıyor. Yeni gerçek uygulama `frontend/` +
@@ -78,13 +81,20 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 - ASP.NET Core Identity, **HttpOnly çerez** kimliği (localStorage token yasak — plan §8.4)
 - `ApplicationUser` (Ad/Soyad alanlı), roller: Student, ProvinceEvaluator, ProvinceManager, MinistryOfficial, SystemAdmin
 - Uçlar: `POST /api/auth/register`, `GET /api/auth/verify-email`, `POST /api/auth/login` (RequireConfirmedAccount=true),
-  `POST /api/auth/logout`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`
-- `GET/PUT /api/profile` (il güncellenebilir; okul/ilçe/sınıf/no serbest metin)
+  `POST /api/auth/logout`, `POST /api/auth/forgot-password`, `POST /api/auth/reset-password`,
+  **`GET /api/auth/me`** (AllowAnonymous; oturum varsa profil bilgisiyle döner)
+- `GET/PUT /api/profile` (il güncellenebilir; okul/ilçe/sınıf/no serbest metin) — şu an frontend tüketmiyor
 - `GET /api/reference/provinces` (81 il, plaka kimlikli) + `GET /api/reference/categories` (10 kategori)
 - Geliştirme e-postaları `dev-email/` klasörüne yazılır (üretimde SMTP adaptörü takılacak)
-- **Frontend tüketicisi yok:** React tarafında kayıt/giriş/profil/şifre akışları 2026-09-19'da kaldırıldı.
-  Backend uçları kodda duruyor fakat şu an hiçbir sayfa bunları çağırmıyor. Aşama 2 frontend
-  iptal edildi; bu uçlar ileride tekrar gerekirse ya yeniden yazılır ya da farklı bir karar verilir.
+
+### Aşama 2+ — Kimlik akışı (AuthModal, inline `/fikir`)
+- `AuthModal.tsx` — Fikrini Anlat temalı kapatılamaz lightbox; Giriş ↔ Kayıt toggle
+- `services/api.ts` — fetch wrapper, cookie auth (`credentials: 'include'`), `ApiHttpError`
+- `services/auth.ts` — register/login/logout/me
+- 4 satır × 2 sütun kayıt formu: Ad+Soyad, İl+Okul Adı, Sınıf+Okul No, E-posta+Şifre
+- Erişilebilirlik paneli z-index 100/101 (modal overlay 96 üstünde — modal açıkken de çalışır)
+- Modal eni 40rem; tema-input (input) + tema-secim (select) ayrımı
+- AuthModal hata mesajı gerçek API body'sini gösteriyor (errors dict veya message)
 
 ### Aşama 3 — Fikir girişi (backend tamam)
 - Öğrenciye özel uçlar: taslak oluşturma/güncelleme, gönderme, listeleme, detay ve taslak silme.
@@ -103,24 +113,29 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 - **Uçtan uca test:** kayıt/doğrulama/giriş → 1.500 sınırı → taslak → il değişikliği →
   gönderim → filtre engeli → boş gönderim engeli → listeleme → taslak silme ✓
 
+### Aşama 3 — Fikir girişi (frontend tamam)
+- `FikirPage.tsx` yeniden yazıldı; backend'e bağlı.
+- Sayfa açılınca `/api/auth/me` ile oturum kontrolü; yoksa AuthModal açılır (form blur'lu arka planda).
+- Kategori dropdown `/api/reference/categories`'tan (10 kategori).
+- İl/öğrenci bilgileri **frontend'de yok** — backend öğrencinin profilinden (`StudentProfile` + `AspNetUsers`)
+  alıyor; fikir gönderildiğinde `province_id` profile kopyalanır (plan §8.2, §42 #1).
+- Canlı 1.500 karakter sayacı (frontend UX; backend doğrular).
+- "Taslak Kaydet" + "Fikrimi Gönder 🚀" butonları, taslak değiştirilebilir; gönderim sonrası süreç
+  takibi stepper'ı korundu (Gönderildi → Ön Değerlendirme → Komisyon → Planlama → Hayata Geçirildi).
+- Mevcut taslaklar listesi: kategori, içerik özeti, durum etiketi, Düzenle / Sil işlemleri.
+
 ---
 
 ## Sıradaki adımlar (gerçek sıra)
 
-1. **Aşama 3 frontend'i backend'e bağla (SIRADAKİ):**
-   - `FikirPage.tsx` → `GET /api/reference/categories` (kategori dropdown DB'den)
-   - `GET /api/student/ideas` (mevcut taslaklar + gönderilenler)
-   - `POST /api/student/ideas/drafts` (taslak kaydet)
-   - `PUT /api/student/ideas/drafts/{id}` (taslak güncelle)
-   - `POST /api/student/ideas/{id}/submit` (gönder)
-   - `DELETE /api/student/ideas/{id}` (taslak sil)
-   - Canlı 1.500 karakter sayacı (frontend UX, backend doğrular)
-   - Gönderim sonrası süreç takibi ekranı
-2. **Aşama 2 frontend yeniden açılır mı?** Açılmadı sürece Identity uçları kullanılmıyor;
-   karar kullanıcıya ait. Şu an gündemde değil.
-3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
+1. **Aşama 4 — İl AR-GE paneli (SIRADAKİ):**
+   - İl bazlı veri sınırı (öğrenci iline göre filtreleme, başka ile erişemez)
+   - Gelen kutusu (yeni/okundu, filtreler, arama)
+   - Değerlendirici atama
+   - Başvuru detay ekranı + değerlendirme akışı (Aşama 5'e köprü)
+2. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
    çıkarılması ve onaylanan sürümün `blocked_terms` tablosuna yüklenmesi.
-4. Açık kararlar (plan §37):
+3. Açık kararlar (plan §37):
    - Minimum fikir uzunluğu
    - Ekip özelliğinin ilk sürüme girip girmeyeceği
    - Filtrenin `Flag` seviyesinin ilk sürümde etkin olup olmayacağı
@@ -138,6 +153,28 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
   sıfırla) — `AccessibilityPanel.tsx`.
 - Son görsel doğrulama (1366×768 + 560×1080): üst boşluk ~140px, alt boşluk ~118px,
   içerik dikeyde dengeli ve ortalanmış.
+
+---
+
+## Karar günlüğü — Aşama 2+ / Aşama 3 frontend (2026-09-20)
+
+Aşama 2+ (inline AuthModal) ve Aşama 3 frontend tamamlanırken aşağıdaki kararlar revize edildi:
+
+1. **Kimlik akışı konumu (Aşama 2+):** Kayıt/giriş/profil akışı **ayrı sayfa** olarak değil,
+   `/fikir` içinde **AuthModal** (kapatılamaz lightbox) olarak uygulandı. Anasayfadaki "Fikrini
+   Paylaş" CTA'sı `/fikir`'e yönlendirir; modal Fikrini Anlat temasında açılır (turkuaz+turuncu
+   balon, maskot, erişilebilirlik paneli modal açıkken de çalışır).
+2. **Kayıt formu alanları (§41 #1 güncelleme):** Register uç artık şu alanları kabul ediyor:
+   - **Zorunlu:** Ad, Soyad, İl, E-posta, Şifre (min 5 karakter)
+   - **Opsiyonel:** Okul Adı, Sınıf (1–12), Okul No
+   İlçe hâlâ sonra (profil güncellemesinden). Backend `StudentProfile.School/Grade/StudentNumber`
+   alanları opsiyonel string/int olarak kaydediliyor.
+3. **Şifre politikası (§41 #6 güncelleme):** Identity default'ları (büyük harf, küçük harf, rakam,
+   özel karakter) **kapatıldı**. Sadece `RequiredLength = 5` kaldı. Sebep: hedef kitle küçük
+   çocuklar; karmaşık kuralları beceremez. 5 hatalı giriş → 15 dakika kilit aynen korunuyor.
+4. **Öğrenci bilgileri frontend'de yok (plan §42 #1 uygulandı):** İl, okul, sınıf, okul no
+   alanları `FikirPage` formundan **kaldırıldı**; backend öğrencinin `StudentProfile`'ından
+   alıyor. Fikir gönderildiğinde `province_id` profile kopyalanır.
 
 ---
 
