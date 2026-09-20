@@ -66,7 +66,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
         options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
@@ -79,7 +79,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
         options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
@@ -91,7 +91,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
         options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };

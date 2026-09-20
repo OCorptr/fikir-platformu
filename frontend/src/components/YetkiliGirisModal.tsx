@@ -1,10 +1,14 @@
 // Yetkili Giriş Modalı — İl AR-GE personeli ve Bakanlık için (admin teması, sade).
 // Çocuk temalı sarı/kayıt özellikleri yok — sadece e-posta + şifre.
+// Açıldığında /me kontrol edilir: zaten province/ministry session varsa modal açılmadan
+// doğrudan ilgili panele yönlendirilir (plan §49: "çıkış sonrası aynı sayfada kal" kuralı
+// pasif session için geçerli — aktif oturum varsa yönlendir).
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { login, type LoginContext } from "../services/auth";
+import { login, me, type LoginContext } from "../services/auth";
+import { sessionForContext } from "../types";
 
 interface Props {
   acik: boolean;
@@ -17,6 +21,26 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [sifre, setSifre] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
+
+  // Modal açıldığında: zaten il/bakanlık oturumu varsa ilgili sayfaya yönlendir
+  useEffect(() => {
+    if (!acik) return;
+    const controller = new AbortController();
+    me(controller.signal)
+      .then((cevap) => {
+        const ministrySession = sessionForContext(cevap, "ministry");
+        const provinceSession = sessionForContext(cevap, "province");
+        if (ministrySession) {
+          navigate("/bakanlik");
+          onKapat();
+        } else if (provinceSession) {
+          navigate("/il-panel");
+          onKapat();
+        }
+      })
+      .catch(() => { /* oturum yoksa modal açık kalsın */ });
+    return () => controller.abort();
+  }, [acik, navigate, onKapat]);
 
   if (!acik) return null;
 
