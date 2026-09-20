@@ -2,7 +2,7 @@
 // Ministry session yoksa anasayfaya yönlendir (popup gösterme).
 
 import { useEffect, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
@@ -15,6 +15,8 @@ import {
 } from "../services/ministry";
 import { getImplementationSummary } from "../services/implementations";
 import {
+  donemEtiketi,
+  donemRozet,
   IMPLEMENTATION_LABELS,
   type ImplementationSummary,
   type MeSession,
@@ -39,6 +41,7 @@ const KATEGORI_EMOJI: Record<string, string> = {
 export function MinistryPage() {
   const { periodId, "*": kuyruk } = useParams<{ periodId?: string; "*": string }>();
   const sadeceUygulamalar = kuyruk === "uygulamalar";
+  const navigate = useNavigate();
 
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
@@ -65,15 +68,16 @@ export function MinistryPage() {
     return <Navigate to="/" replace />;
   }
 
-  // dönem listesi
+  // dönem listesi — periodId yoksa otomatik ilk Open dönem seçilir (URL'ye yazılır)
   const periodlariYenile = () => {
     const controller = new AbortController();
     setYukleniyor(true);
     listPeriods(controller.signal)
       .then((liste) => {
         setPeriods(liste);
-        if (!periodId && liste.length > 0 && liste[0].status === "Open") {
-          setAktif(liste[0]);
+        if (!periodId && !sadeceUygulamalar && liste.length > 0) {
+          const ilk = liste.find((p) => p.status === "Open") ?? liste[0];
+          navigate(`/bakanlik/${ilk.id}`, { replace: true });
         }
       })
       .catch((e) => {
@@ -151,7 +155,7 @@ export function MinistryPage() {
       ben={ben}
       baslik={baslik}
       aciklama={aciklama}
-      donemRozet={aktif ? `📅 ${aktif.label}` : undefined}
+      donemRozet={aktif ? `📅 ${donemRozet(aktif)}` : undefined}
     >
       {!kimlikKontrolEdildi && (
         <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
@@ -193,12 +197,11 @@ export function MinistryPage() {
                   <option value="">Dönem seç…</option>
                   {periods.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.label} ({new Date(p.startAt).toLocaleDateString("tr-TR")} – {new Date(p.endAt).toLocaleDateString("tr-TR")}) [{PERIOD_STATUS_LABELS[p.status]}]
+                      {donemEtiketi(p)} [{PERIOD_STATUS_LABELS[p.status]}]
                     </option>
                   ))}
                 </select>
               )}
-              <span className="tablo-notu">Açık dönem: fikir seçilebilir · Kapalı: salt okunur · Dönemler 3 ayda bir otomatik oluşturulur</span>
             </div>
 
             {hata && (
@@ -213,9 +216,9 @@ export function MinistryPage() {
 
             {aktif && (
               <div style={{ marginBottom: "0.4rem", fontWeight: 800, color: "var(--lacivert)", fontSize: "1.05rem" }}>
-                {aktif.label}
-                <span className="meta" style={{ marginLeft: "0.6rem" }}>
-                  {new Date(aktif.startAt).toLocaleDateString("tr-TR")} – {new Date(aktif.endAt).toLocaleDateString("tr-TR")} · {PERIOD_STATUS_LABELS[aktif.status]}
+                {donemEtiketi(aktif)}
+                <span className="durum" style={{ marginLeft: "0.6rem", background: aktif.status === "Open" ? "#E7F6EC" : "#FDEBD8", color: aktif.status === "Open" ? "#2E7D46" : "#B26A05" }}>
+                  {aktif.status === "Open" ? "🟢 Açık" : PERIOD_STATUS_LABELS[aktif.status]}
                 </span>
               </div>
             )}

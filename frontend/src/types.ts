@@ -282,6 +282,39 @@ export const PERIOD_STATUS_LABELS: Record<PeriodStatus, string> = {
   Archived: "Arşivlendi",
 };
 
+// 3 aylık dönem etiketi: "2026 IV. Dönem (Ekim-Aralık)"
+// label backend'den saçma gelirse (örn "Dönem 2026-09-20") StartAt'tan yeniden hesaplar.
+const AY_ADLARI = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+];
+function ayAraligi(baslangic: Date, bitis: Date): string {
+  return `${AY_ADLARI[baslangic.getMonth()]}–${AY_ADLARI[bitis.getMonth()]}`;
+}
+function ceyrekNo(ay: number): 1 | 2 | 3 | 4 {
+  return (Math.floor(ay / 3) + 1) as 1 | 2 | 3 | 4;
+}
+const ROMAN: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "IV" };
+
+export function donemEtiketi(p: Pick<Period, "label" | "startAt" | "endAt">): string {
+  const baslangic = new Date(p.startAt);
+  const bitis = new Date(p.endAt);
+  const yil = baslangic.getFullYear();
+  const sira = ROMAN[ceyrekNo(baslangic.getMonth())] ?? "I";
+  const yeni = `${yil} ${sira}. Dönem (${ayAraligi(baslangic, bitis)})`;
+  // backend etiketi zaten temiz formatdaysa (örn "2026-Q4 (Ekim-Aralık)") onu da kabul et,
+  // ama "Dönem 2026-XX-XX" gibi saçma ise yeni formatla değiştir.
+  if (!p.label || /^D[öo]nem \d{4}-\d{2}-\d{2}$/i.test(p.label.trim())) return yeni;
+  return p.label;
+}
+
+// Sağ üst rozette kullanılan kısa etiket: "IV. Dönem · 2026"
+export function donemRozet(p: Pick<Period, "label" | "startAt">): string {
+  const baslangic = new Date(p.startAt);
+  const sira = ROMAN[ceyrekNo(baslangic.getMonth())] ?? "I";
+  return `${sira}. Dönem · ${baslangic.getFullYear()}`;
+}
+
 export interface Period {
   id: string;
   label: string;

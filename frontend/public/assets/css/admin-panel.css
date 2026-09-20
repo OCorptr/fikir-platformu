@@ -164,7 +164,7 @@ table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .btn-masa.turuncu:hover { border-color: var(--turuncu-baslik); background: #FDEBD8; }
 .btn-masa.mavi:hover { border-color: #1E88C9; background: #E3F0FB; }
 .btn-masa.altin:hover { border-color: var(--sari); background: #FCF3D5; }
-.adaylar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+.adaylar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
 .aday-kart {
   border: 0.18rem solid #E3ECF4; border-radius: 1.4rem; background: #FBFDFF;
   padding: 1.4rem 1.3rem; text-align: center;
