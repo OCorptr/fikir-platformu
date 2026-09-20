@@ -79,6 +79,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
   const ilMenu: MenuItem[] = [
     { hedef: "/il-panel", baslik: "Gelen Fikirler", svg: ikon.gelen },
     ...(managerMi ? [{ hedef: "/il-panel/adaylar", baslik: "Aday Havuzu", svg: ikon.aday } as MenuItem] : []),
+    ...(managerMi ? [{ hedef: "/il-panel/ekip", baslik: "Ekip", svg: ikon.aday } as MenuItem] : []),
   ];
 
   const ministryMenu: MenuItem[] = [

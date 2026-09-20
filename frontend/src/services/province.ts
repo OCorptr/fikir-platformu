@@ -30,8 +30,26 @@ export async function markRead(id: string): Promise<ReadMarkResponse> {
   });
 }
 
-export async function listEvaluators(): Promise<ProvinceEvaluatorRef[]> {
-  return apiRequest<ProvinceEvaluatorRef[]>("/api/province/evaluators");
+export async function listEvaluators(signal?: AbortSignal): Promise<ProvinceEvaluatorRef[]> {
+  return apiRequest<ProvinceEvaluatorRef[]>("/api/province/evaluators", { signal });
+}
+
+// Sprint 6: manager kendi iline evaluator atar (province_user_assignments)
+export async function assignEvaluatorToProvince(
+  userId: string,
+): Promise<{ userId: string; provinceId: number }> {
+  return apiRequest("/api/province/evaluators", {
+    method: "POST",
+    body: { userId },
+  });
+}
+
+export async function removeEvaluatorFromProvince(
+  userId: string,
+): Promise<void> {
+  await apiRequest(`/api/province/evaluators/${userId}`, {
+    method: "DELETE",
+  });
 }
 
 export async function assignEvaluator(

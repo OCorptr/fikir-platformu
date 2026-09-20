@@ -7,6 +7,7 @@ import { HomePage } from "./pages/HomePage";
 import { ProvinceInboxPage } from "./pages/ProvinceInboxPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { CandidatesPage } from "./pages/CandidatesPage";
+import { EkipPage } from "./pages/EkipPage";
 import { MinistryPage } from "./pages/MinistryPage";
 
 /* her rotada govde sinifi degisir:
@@ -39,6 +40,7 @@ export default function App() {
         <Route path="/fikir" element={<FikirPage />} />
         <Route path="/il-panel" element={<ProvinceInboxPage />} />
         <Route path="/il-panel/adaylar" element={<CandidatesPage />} />
+        <Route path="/il-panel/ekip" element={<EkipPage />} />
         <Route path="/il-panel/fikir/:id" element={<ApplicationDetailPage />} />
         <Route path="/bakanlik" element={<MinistryPage />} />
         <Route path="/bakanlik/uygulamalar" element={<MinistryPage />} />
