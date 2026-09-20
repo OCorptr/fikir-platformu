@@ -2,11 +2,11 @@
    ADMIN PANEL — sidebar düzeni (TailAdmin kalıbı)
    admin.html'e özel stiller — stil.css'in devamı niteliğinde
    ============================================================ */
-.govde { margin-left: 15.5rem; min-height: 100vh; display: flex; flex-direction: column; }
+.govde { margin-left: 13rem; min-height: 100vh; display: flex; flex-direction: column; }
 
 /* ---- sol sidebar ---- */
 .kenar {
-  position: fixed; left: 0; top: 0; bottom: 0; width: 15.5rem; z-index: 20;
+  position: fixed; left: 0; top: 0; bottom: 0; width: 13rem; z-index: 20;
   background: linear-gradient(180deg, #16355C 0%, #0F1B31 100%);
   display: flex; flex-direction: column;
 }
@@ -76,6 +76,36 @@
 .sek-icerik { display: none; }
 .sek-icerik.aktif { display: block; animation: fadeIn 0.25s both; }
 .tablo-kart { background: #fff; border-radius: 1.4rem; box-shadow: 0 0.8rem 2.2rem rgba(30, 60, 120, 0.10); padding: 1.2rem 1.4rem; }
+.veri-tablo {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.92rem;
+  margin-top: 0.5rem;
+}
+.veri-tablo th, .veri-tablo td {
+  padding: 0.75rem 0.9rem;
+  text-align: left;
+  border-bottom: 0.1rem solid #E3ECF4;
+  vertical-align: middle;
+}
+.veri-tablo th {
+  background: #F5F8FB;
+  color: #16355C;
+  font-weight: 800;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+.veri-tablo tbody tr:hover { background: #FAFCFE; }
+.veri-tablo tbody tr:last-child td { border-bottom: 0; }
+.veri-tablo td b { color: #16355C; font-weight: 700; }
+.veri-tablo .meta { color: #647a92; font-size: 0.85rem; }
+.ekip-ekle-form { display: flex; flex-wrap: wrap; gap: 0.7rem; align-items: flex-end; margin-bottom: 1rem; }
+.ekip-ekle-form > label { display: flex; flex-direction: column; gap: 0.25rem; flex: 1 1 12rem; min-width: 0; }
+.ekip-ekle-form > label span { font-size: 0.78rem; color: #647a92; font-weight: 700; }
+.ekip-ekle-form > button { flex: 0 0 auto; height: 2.5rem; padding: 0 1.4rem; white-space: nowrap; }
 .tablo-araclar { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.9rem; flex-wrap: wrap; }
 .arama-kutu {
   width: 22rem; border: 0.16rem solid #C9D8E6; border-radius: 2rem; background: #FBFDFF;

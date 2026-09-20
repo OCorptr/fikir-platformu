@@ -197,7 +197,7 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
               required
               value={girisEposta}
               onChange={(e) => setGirisEposta(e.target.value)}
-              placeholder="ornek@okul.edu.tr"
+              placeholder=""
             />
             <div className="bolum-basligi turuncu">Şifre</div>
             <input
@@ -272,7 +272,7 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   className="tema-input"
                   value={kayitOkul}
                   onChange={(e) => setKayitOkul(e.target.value)}
-                  placeholder="Örnek: Atatürk Ortaokulu"
+                  placeholder=""
                   maxLength={80}
                 />
               </div>
@@ -327,7 +327,7 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   required
                   value={kayitEposta}
                   onChange={(e) => setKayitEposta(e.target.value)}
-                  placeholder="ornek@okul.edu.tr"
+                  placeholder=""
                 />
               </div>
               <div className="alan">

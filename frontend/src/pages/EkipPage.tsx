@@ -116,7 +116,7 @@ export function EkipPage() {
 
         {managerMi ? (
           <>
-            <form onSubmit={ataOlayi} className="ekip-ekle-form" style={{ marginBottom: "1rem", display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: "0.5rem", alignItems: "end" }}>
+            <form onSubmit={ataOlayi} className="ekip-ekle-form">
               <label>
                 <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Ad</span>
                 <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Ayşe" />
@@ -133,7 +133,7 @@ export function EkipPage() {
                 <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Şifre (en az 5)</span>
                 <input className="arama-kutu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="•••••" />
               </label>
-              <button type="submit" className="btn-ana" disabled={calisiyor} style={{ height: "2.4rem" }}>
+              <button type="submit" className="btn-ana" disabled={calisiyor}>
                 {calisiyor ? "Oluşturuluyor…" : "➕ Ekle"}
               </button>
             </form>
