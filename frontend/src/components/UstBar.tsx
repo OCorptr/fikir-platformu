@@ -19,6 +19,13 @@ export function UstBar(_props: UstBarProps = {}) {
           <span className="logo-slogan">Fikrin Geleceğimiz Olsun</span>
         </div>
       </div>
+      <div className="ust-sag">
+        <img
+          className="yuz-yil-logo"
+          src="/assets/img/1.webp"
+          alt="Türkiye Yüzyılı · MEB 100. Yıl logosu"
+        />
+      </div>
     </header>
   );
 }

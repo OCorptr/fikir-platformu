@@ -24,6 +24,21 @@ import {
 
 const MAX_KARAKTER = 1500;
 
+// Kategori adina gore emoji prefix (referans fikir.html ile ayni ikonlar)
+function kategoriEmoji(ad: string): string {
+  if (ad.includes("Kültür") || ad.includes("Sanat")) return "🎨";
+  if (ad.includes("Spor")) return "⚽";
+  if (ad.includes("Bilim") || ad.includes("Teknoloji")) return "🔬";
+  if (ad.includes("Yapay Zek")) return "🤖";
+  if (ad.includes("Çevre")) return "🌱";
+  if (ad.includes("Sosyal")) return "🤝";
+  if (ad.includes("Girişimcilik")) return "💡";
+  if (ad.includes("Afet")) return "🚨";
+  if (ad.includes("Değerler")) return "📖";
+  if (ad.includes("Yerli") || ad.includes("Mill")) return "🏭";
+  return "🎨";
+}
+
 export default function FikirPage() {
   // oturum (öğrenci context'i)
   const [ben, setBen] = useState<MeSession | null>(null);
@@ -279,23 +294,23 @@ export default function FikirPage() {
 
 
           <form onSubmit={handleGonder} className="fikir-form">
-            <div className="alan">
-              <span>Tema</span>
-              <select
-                className="tema-secim"
-                value={kategoriId}
-                onChange={(e) => setKategoriId(e.target.value === "" ? "" : Number(e.target.value))}
-                required
-              >
-                <option value="">Tema seç…</option>
+          <div className="bolum-basligi turkuaz">1 · Temanı Seç</div>
+          <select
+            className="tema-secim"
+            value={kategoriId}
+            onChange={(e) => setKategoriId(e.target.value === "" ? "" : Number(e.target.value))}
+            required
+            aria-label="Tema seç"
+          >
+            <option value="">🎨 Bir tema seç…</option>
                 {kategoriler.map((k) => (
-                  <option key={k.id} value={k.id}>{k.name}</option>
+                  <option key={k.id} value={k.id}>{kategoriEmoji(k.name)} {k.name}</option>
                 ))}
               </select>
-            </div>
 
-            <div className="alan">
-              <span>Fikrin ({fikir.length}/{MAX_KARAKTER})</span>
+          <div className="bolum-basligi turuncu">3 · Fikrim</div>
+          <div className="alan">
+            <span>Fikrin ({fikir.length}/{MAX_KARAKTER})</span>
               <textarea
                 className="fikir-metni"
                 value={fikir}
@@ -321,7 +336,8 @@ export default function FikirPage() {
                 className="btn-ana btn-tam"
                 disabled={calisiyor === "taslak" || calisiyor === "gonder"}
               >
-                {calisiyor === "gonder" ? "Gönderiliyor…" : aktifTaslakId ? "Taslağı Gönder" : "Gönder"}
+                {calisiyor === "gonder" ? "Gönderiliyor…" : aktifTaslakId ? "Taslağı Gönder" : "Fikrimi Gönder"}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11.5 21 3l-5 18-4.5-7.5z"/><path d="M11.5 13.5 21 3"/></svg>
               </button>
             </div>
           </form>
