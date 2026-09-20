@@ -34,7 +34,10 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 5 — Değerlendirme akışı (frontend) | ✅ Tamam — detayda Puanla/Yorumla modalı (slider), kriter ortalamaları + geçmiş, İl Onayı Ver (Manager), Adaylar sayfası (/il-panel/adaylar) |
 | 6 — Bakanlık paneli (backend) | ✅ Tamam — Period + PeriodSelection entity, periods + period_selections migration, PeriodService (3 aylık otomatik + kategori başına tek seçim), MinistryEndpoints (5 uç); Locked → Planned durum geçişi; uçtan uca test |
 | 6 — Bakanlık paneli (frontend) | ✅ Tamam — MinistryPage: dönem listesi + 'Yeni Dönem Oluştur' + kategori gruplu aday tablosu + 'Seç' + seçilenler |
-| 7-10 | ⬜ Başlanmadı (plan §34) |
+| 7 — Ana sayfa / arşiv / sertifika | ⬜ Plan §1660 — büyük iş (dinamik vitrin + arşiv filtreleri + sertifika PDF + e-posta); şu an HomePage vitrini sahte veriyle |
+| 8 — Hayata geçirme (backend) | ✅ Tamam — ImplementationReport entity, implementation_reports migration, SubmitImplementationReportService (Planned → ImplementationInProgress → ImplementationCompleted/Failed), ImplementationSummaryQueryService (Bakanlık özeti); uçtan uca test |
+| 8 — Hayata geçirme (frontend) | ✅ Tamam — ApplicationDetailPage'de Manager için 'Uygulama Raporu' formu + geçmiş listesi; MinistryPage'de 'Uygulama Takibi' tablosu |
+| 9-10 | ⬜ Başlanmadı (plan §34) |
 
 **Frontend aktif sayfalar:**
 - `/` → `HomePage.tsx` — vitrin + CTA + arşiv modalı
@@ -134,13 +137,14 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 
 ## Sıradaki adımlar (gerçek sıra)
 
-1. **Aşama 7 — Hayata geçirme (Implementation tracking):**
-   - Seçilen (Planned) fikirlerin uygulama takibi
-   - İl düzeyinde uygulama raporları
-   - Bakanlık özet ekranı (tüm planlar, durum)
+1. **Aşama 7 — Ana sayfa, arşiv ve sertifika (plan §1660):**
+   - Dinamik ana sayfa kartları (gerçek seçilen/uygulanan fikirler)
+   - Otomatik arşivleme (eski dönemler)
+   - Sertifika PDF üretimi
+   - Okul müdürüne e-posta bildirimi
 2. **Production'a hazırlık:**
    - `ProvinceStaff` tablosu (plan §42 #3) — manager/evaluator'lar gerçek ile bağlanır
-   - Bakanlık kullanıcısının tüm illeri görmesi (helper güncelleme, ayrı tablo)
+   - Bakanlık kullanıcısının tüm illeri görmesi (helper güncelleme)
    - SMTP e-posta adaptörü (development → üretim)
    - CORS üretim ayarları
 3. **Küfür listesi veri çalışması:** aday listenin kurumca incelenmesi, yanlış pozitiflerin
@@ -152,6 +156,39 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
    - Tek veya çoklu değerlendirici zorunluluğu (eşik/karar)
    - Adaylık puan eşiği (somut sayı — şimdilik 3.5)
    - Değerlendirme kriterlerinin kesin adları ve puanlama türleri (4 kriter × 1-5; sabit)
+
+### Karar günlüğü — Aşama 8 (2026-09-20)
+
+16. **Uygulama durumları (plan §28):** 4 durum — NotStarted, InProgress, Completed, Failed.
+    Sadece il yöneticisi (`ProvinceManager`) rapor girebilir; `ProvinceEvaluator` ve
+    `MinistryOfficial` rapor geçmişini okuyabilir. Durum değişimi `Idea` entity'de domain
+    metotları ile: `StartImplementation`, `CompleteImplementation`, `FailImplementation`
+    (Plan §28'in geçiş mantığı).
+17. **Rapor geçmişi:** Her rapor ayrı satır (`implementation_reports`); sıralama
+    `reported_at DESC`. Raporlar salt okunur (yoksa state geçişi yapılmaz).
+18. **Bakanlık özeti:** `/api/ministry/implementations` — tüm `Planned` + `Implementation*`
+    fikirler, dönem etiketiyle birlikte. Sıralama `updated_at DESC`.
+
+### Tamamlanan: Aşama 8 — Hayata geçirme
+
+**Backend:**
+- `Idea` durum geçişleri: `Planned` → `ImplementationInProgress` → `ImplementationCompleted` (veya `ImplementationFailed`)
+- `ImplementationReport` entity + `ImplementationStatus` enum (NotStarted, InProgress, Completed, Failed; `[JsonStringEnumConverter]`)
+- `implementation_reports` tablosu (migration)
+- `IImplementationReportRepository` + `ImplementationReportRepository`
+- `SubmitImplementationReportService` — durum geçişi + rapor kaydı
+- `IImplementationSummaryQueryService` + `ImplementationSummaryQueryService` — tüm Planned+Implementation fikirler (Bakanlık özeti)
+- `/api/province/ideas/{id}/implementations` (POST Manager + GET Evaluator/Manager)
+- `/api/ministry/implementations` (MinistryOfficial özeti)
+
+**Frontend:**
+- `types.ts` — `ImplementationStatus` + `IMPLEMENTATION_LABELS` + `ImplementationReport` + `ImplementationSummary` + `IdeaStatus`'a yeni değerler
+- `services/implementations.ts` — `submitImplementationReport`, `getImplementationReports`, `getImplementationSummary`
+- `ApplicationDetailPage` — Manager için "Uygulama Raporu" formu (durum dropdown + not + Kaydet) + rapor geçmişi listesi
+- `MinistryPage` — "Uygulama Takibi (tüm dönemler)" tablosu — status badge + dönem + kategori + il
+- `FikirPage.durumEtiketi` — yeni durumlar (Planlandı, Uygulamada, Uygulandı, Başarısız)
+
+**Uçtan uca test (curl):** manager login → InProgress raporu 200 (Planned → ImplementationInProgress) → Completed raporu 200 → 2 rapor geçmişi → Bakanlık özeti ImplementationCompleted ✓
 
 ### Karar günlüğü — Aşama 6 (2026-09-20)
 
