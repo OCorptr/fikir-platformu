@@ -222,19 +222,17 @@ export default function FikirPage() {
   // Kimlik yoksa FORM GÃ–STERÄ°LMEZ â€” sadece AuthModal arka planda aÃ§Ä±lÄ±r.
   if (!ben) {
     return (
-      <>
-        <main className="fikir-hero">
-          <div className="fikir-sol">
-            <div className="balon-kapsa">
-              <div className="balon">
-                Merhaba! Fikrini yazmadan önce <b>hesabınla giriş yap</b> ya da yeni bir hesap oluştur. Sıra sende! 🖐
-              </div>
+      <main className="fikir-hero">
+        <div className="fikir-sol">
+          <div className="balon-kapsa">
+            <div className="balon">
+              Merhaba! Fikrini yazmadan önce <b>hesabınla giriş yap</b> ya da yeni bir hesap oluştur. Sıra sende! 🖐
             </div>
-            <img className="maskot-fikir" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu" />
           </div>
-        </main>
+          <img className="maskot-fikir" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu" />
+        </div>
         <AuthModal acik={authAcik} onAuthed={authGuncelle} arkadaMi />
-      </>
+      </main>
     );
   }
 
