@@ -258,6 +258,8 @@ export const CRITERION_LABELS: Record<EvaluationCriterion, string> = {
 export interface EvaluationEntry {
   ideaId: string;
   evaluatorUserId: string;
+  evaluatorFirstName: string | null;
+  evaluatorLastName: string | null;
   criterion: EvaluationCriterion;
   score: number;
   comment: string | null;

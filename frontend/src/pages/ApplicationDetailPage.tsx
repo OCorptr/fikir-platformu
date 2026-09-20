@@ -248,17 +248,22 @@ export function ApplicationDetailPage() {
                 </div>
               </div>
 
-              <div className="bolum-basligi turkuaz">Atama</div>
+              <div className="bolum-basligi turkuaz">Değerlendiren</div>
               <div className="detay-atama">
-                {detay.assignedEvaluatorIds.length === 0
-                  ? <span className="meta">Henüz değerlendirici atanmamış.</span>
-                  : (
-                    <ul>
-                      {detay.assignedEvaluatorIds.map((aid) => (
-                        <li key={aid}>{aid}</li>
-                      ))}
-                    </ul>
-                  )}
+                {(() => {
+                  const liste = evaluations?.evaluations ?? [];
+                  if (liste.length === 0) return <span className="meta">Henüz değerlendirme yapılmamış.</span>;
+                  const son = [...liste].sort((a, b) => new Date(b.evaluatedAt).getTime() - new Date(a.evaluatedAt).getTime())[0];
+                  const ad = [son.evaluatorFirstName, son.evaluatorLastName].filter(Boolean).join(" ") || son.evaluatorUserId;
+                  return (
+                    <>
+                      <strong>{ad}</strong>
+                      <div className="meta">
+                        Son değerlendirme: {new Date(son.evaluatedAt).toLocaleString("tr-TR")}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <div className="bolum-basligi turuncu">Değerlendirme</div>

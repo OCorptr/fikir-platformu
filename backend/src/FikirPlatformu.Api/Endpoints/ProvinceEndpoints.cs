@@ -247,9 +247,30 @@ public static class ProvinceEndpoints
 
             var tumu = await repo.GetForIdeaAsync(id, cancellationToken);
             var ortalamalar = await repo.GetAveragesAsync(id, cancellationToken);
+
+            // Evaluator adlarını tek sorguda çek (UI'da "Kim değerlendirmiş" göstermek için).
+            var evaluatorAdlari = tumu.Count == 0
+                ? new Dictionary<string, (string Ad, string Soyad)>()
+                : await db.Users.AsNoTracking()
+                    .Where(u => tumu.Select(e => e.EvaluatorUserId).Distinct().Contains(u.Id))
+                    .Select(u => new { u.Id, u.FirstName, u.LastName })
+                    .ToDictionaryAsync(u => u.Id, u => (Ad: u.FirstName, Soyad: u.LastName), cancellationToken);
+
+            var evaluationsDto = tumu.Select(e => new
+            {
+                ideaId = e.IdeaId,
+                evaluatorUserId = e.EvaluatorUserId,
+                evaluatorFirstName = evaluatorAdlari.TryGetValue(e.EvaluatorUserId, out var n) ? n.Ad : null,
+                evaluatorLastName = evaluatorAdlari.TryGetValue(e.EvaluatorUserId, out var n2) ? n2.Soyad : null,
+                criterion = e.Criterion.ToString(),
+                score = e.Score,
+                comment = e.Comment,
+                evaluatedAt = e.EvaluatedAt,
+            });
+
             return Results.Ok(new
             {
-                evaluations = tumu,
+                evaluations = evaluationsDto,
                 averages = ortalamalar,
                 threshold = SubmitEvaluationService.CandidateThreshold,
             });
