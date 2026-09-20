@@ -25,6 +25,17 @@ import {
   sessionForContext,
 } from "../types";
 
+const KATEGORI_EMOJI: Record<string, string> = {
+  "Kültür ve Sanat": "🎨",
+  "Spor ve Sağlıklı Yaşam": "⚽",
+  "Bilim ve Teknoloji": "🔬",
+  "Çevre ve Sürdürülebilirlik": "🌱",
+  "Yapay Zekâ": "🤖",
+  "Girişimcilik": "💡",
+  "Değerler Eğitimi": "📖",
+  "Sosyal Sorumluluk": "🤝",
+};
+
 export function MinistryPage() {
   const { periodId, "*": kuyruk } = useParams<{ periodId?: string; "*": string }>();
   const sadeceUygulamalar = kuyruk === "uygulamalar";
@@ -210,41 +221,54 @@ export function MinistryPage() {
             )}
 
             {aktif && adaylar && (
-              <div className="tablo-sarmal">
-                <table className="tablo">
-                  <thead>
-                    <tr>
-                      <th>Kategori</th>
-                      <th>İl</th>
-                      <th>Fikir</th>
-                      <th>Durum</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {adaylar.categories.flatMap((g) =>
-                      g.ideas.map((i) => (
-                        <tr key={i.id}>
-                          <td><strong>{g.categoryName}</strong></td>
-                          <td>{i.provinceName}</td>
-                          <td className="fikir-hucre"><div className="icerik-ozet">{i.content || <i>(boş)</i>}</div></td>
-                          <td>
-                            {i.isSelected
-                              ? <span className="durum yesil">✓ Seçildi</span>
-                              : <span className="meta">{g.selected ? "kategori seçildi" : "aday"}</span>}
-                          </td>
-                          <td>
-                            {!g.selected && (
-                              <button type="button" className="btn-masa mavi" onClick={() => secimYap(g.categoryId, i.id)}>
-                                👑 Seç
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      )),
-                    )}
-                  </tbody>
-                </table>
+              <div>
+                {adaylar.categories.map((g) => {
+                  const emoji = KATEGORI_EMOJI[g.categoryName] ?? "💡";
+                  return (
+                    <div key={g.categoryId} style={{ marginBottom: "1.4rem" }}>
+                      <div className="bolum-basligi turuncu">
+                        {emoji} {g.categoryName} · {g.ideas.length} aday{g.selected ? " · kategori seçildi" : ""}
+                      </div>
+                      {g.ideas.length === 0 ? (
+                        <div className="il-panel-bos" style={{ marginTop: "0.5rem" }}>
+                          <p>📭 Bu kategoride aday fikir bulunmuyor.</p>
+                          <p className="meta">Eşiği (3.5) geçen fikirler otomatik aday olur.</p>
+                        </div>
+                      ) : (
+                        <div className="adaylar">
+                          {g.ideas.map((i) => (
+                            <div
+                              key={i.id}
+                              className={`aday-kart ${i.isSelected ? "secili" : ""} ${g.selected && !i.isSelected ? "soluk" : ""}`}
+                            >
+                              <div className="aday-emoji">{emoji}</div>
+                              <h3>{i.provinceName}</h3>
+                              <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
+                              <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
+                              {i.isSelected ? (
+                                <span className="durum altin">⭐ Bu Dönemin Fikri</span>
+                              ) : g.selected ? (
+                                <span className="meta">kategori seçildi</span>
+                              ) : (
+                                <span className="durum yesil">✓ Aday</span>
+                              )}
+                              {!g.selected && (
+                                <button
+                                  type="button"
+                                  className="btn-ana btn-aday"
+                                  onClick={() => secimYap(g.categoryId, i.id)}
+                                  disabled={aktif.status !== "Open"}
+                                >
+                                  👑 Ayın Fikri Seç
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </section>

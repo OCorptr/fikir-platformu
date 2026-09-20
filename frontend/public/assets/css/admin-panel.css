@@ -125,6 +125,19 @@
 .filtre-secici:focus { border-color: #1E88C9; }
 .filtre-secici:hover { border-color: #1E88C9; }
 .tablo-sarmal { overflow-x: auto; }
+.meta { color: #647A92; font-size: 0.88rem; font-weight: 700; }
+.icerik-ozet { font-family: 'Nunito', sans-serif; font-weight: 600; color: var(--metin); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.il-panel-bos { background: #F6FAFD; border: 0.14rem dashed #C9D8E6; border-radius: 1.2rem; padding: 1.6rem 1.4rem; text-align: center; color: #647A92; font-weight: 700; font-size: 1rem; }
+.il-panel-bos p { margin: 0.3rem 0; }
+.yukleme-ekrani { display: flex; align-items: center; gap: 0.7rem; padding: 1.4rem 1rem; color: #647A92; font-weight: 800; }
+.yukleme-carki { width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 0.22rem solid #C9D8E6; border-top-color: var(--lacivert); animation: spin 0.8s linear infinite; flex: 0 0 auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-banner { display: flex; align-items: center; gap: 0.6rem; border-radius: 1rem; padding: 0.75rem 1rem; font-weight: 800; font-size: 0.95rem; margin-bottom: 0.8rem; }
+.status-banner__icon { width: 1.6rem; height: 1.6rem; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-family: 'Baloo 2', sans-serif; font-weight: 800; flex: 0 0 auto; }
+.status-banner--error { background: #FDE7E2; color: #B23B2E; }
+.status-banner--error .status-banner__icon { background: #B23B2E; color: #fff; }
+.status-banner--info { background: #E3F0FB; color: #1E5C9E; }
+.status-banner--info .status-banner__icon { background: #1E5C9E; color: #fff; }
 table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .tablo th {
   text-align: left; font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 0.85rem;
@@ -214,6 +227,12 @@ html.koyu-mod .tema-mini .tm-ad { color: #C9D6E8; }
 html.koyu-mod .tema-mini .tm-deger { color: #DCE7F5; }
 html.koyu-mod .belge-notu { background: rgba(246, 180, 14, 0.14); color: #E8C766; }
 html.koyu-mod .donem-rozeti { background: #1B2C49; color: #DCE7F5; }
+html.koyu-mod .meta { color: #93A9C4; }
+html.koyu-mod .il-panel-bos { background: #1B2C49; border-color: #31486B; color: #93A9C4; }
+html.koyu-mod .yukleme-ekrani { color: #93A9C4; }
+html.koyu-mod .icerik-ozet { color: #DCE7F5; }
+html.koyu-mod .status-banner--error { background: rgba(178, 59, 46, 0.18); color: #F4A39A; }
+html.koyu-mod .status-banner--info { background: rgba(30, 92, 158, 0.22); color: #7FB6E8; }
 
 /* ---- küçük ekran ---- */
 @media (max-width: 1100px) {
