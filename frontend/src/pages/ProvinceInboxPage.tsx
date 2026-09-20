@@ -87,7 +87,7 @@ export function ProvinceInboxPage() {
   return (
     <AdminLayout
       ben={ben}
-      baslik={`Gelen Fikirler · ${inbox.length}`}
+      baslik="Gelen Fikirler"
       donemRozet="📅 2026-2027 · Eylül"
     >
       {!kimlikKontrolEdildi && (
