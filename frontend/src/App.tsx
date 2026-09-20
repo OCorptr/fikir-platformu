@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { UstBar } from "./components/UstBar";
 import FikirPage from "./pages/FikirPage";
 import { HomePage } from "./pages/HomePage";
@@ -38,13 +39,17 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/fikir" element={<FikirPage />} />
-        <Route path="/il-panel" element={<ProvinceInboxPage />} />
-        <Route path="/il-panel/adaylar" element={<CandidatesPage />} />
-        <Route path="/il-panel/ekip" element={<EkipPage />} />
-        <Route path="/il-panel/fikir/:id" element={<ApplicationDetailPage />} />
-        <Route path="/bakanlik" element={<MinistryPage />} />
-        <Route path="/bakanlik/uygulamalar" element={<MinistryPage />} />
-        <Route path="/bakanlik/:periodId" element={<MinistryPage />} />
+        <Route element={<ProtectedRoute context="province" />}>
+          <Route path="/il-panel" element={<ProvinceInboxPage />} />
+          <Route path="/il-panel/adaylar" element={<CandidatesPage />} />
+          <Route path="/il-panel/ekip" element={<EkipPage />} />
+          <Route path="/il-panel/fikir/:id" element={<ApplicationDetailPage />} />
+        </Route>
+        <Route element={<ProtectedRoute context="ministry" />}>
+          <Route path="/bakanlik" element={<MinistryPage />} />
+          <Route path="/bakanlik/uygulamalar" element={<MinistryPage />} />
+          <Route path="/bakanlik/:periodId" element={<MinistryPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
