@@ -109,8 +109,8 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
     try {
       await logout(ctx);
     } catch { /* yoksay */ }
-    // Aynı sayfada kal — sayfa ben=null olunca AuthModal otomatik açılır.
-    // Anasayfaya atma, admin sayfasında çıkış → aynı sayfada tekrar giriş yapılabilir olmalı.
+    // Çıkış başarılı → anasayfaya yönlendir. replace:true ki geri tuşu admin'e dönmesin.
+    navigate("/", { replace: true });
   }
 
   return (
