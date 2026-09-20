@@ -137,27 +137,6 @@ export function ProvinceReportPage() {
 
       {kimlikKontrolEdildi && ben && (
         <>
-          <div className="rapor-filtre">
-            <select className="secim-kutu" value={temaFiltresi} onChange={(e) => setTemaFiltresi(e.target.value)}>
-              <option value="">Tema: Tümü</option>
-              {temalar.map((t) => (
-                <option key={t} value={t}>{temaEmoji(t)} {t}</option>
-              ))}
-            </select>
-            <select
-              className="secim-kutu"
-              value={sonucFiltresi}
-              onChange={(e) => setSonucFiltresi(e.target.value as typeof sonucFiltresi)}
-            >
-              <option value="hepsi">Sonuç: Tümü</option>
-              <option value="ayinFikri">{SONUC_DURUM_IKON.ayinFikri.ikon} {SONUC_DURUM_IKON.ayinFikri.etiket}</option>
-              <option value="aday">{SONUC_DURUM_IKON.aday.ikon} {SONUC_DURUM_IKON.aday.etiket}</option>
-              <option value="yetersiz">{SONUC_DURUM_IKON.yetersiz.ikon} {SONUC_DURUM_IKON.yetersiz.etiket}</option>
-              <option value="beklemede">{SONUC_DURUM_IKON.beklemede.ikon} {SONUC_DURUM_IKON.beklemede.etiket}</option>
-            </select>
-            <span style={{ flex: 1 }} />
-          </div>
-
           {hata && (
             <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
               <span className="status-banner__icon">!</span><span>{hata}</span>
@@ -189,6 +168,25 @@ export function ProvinceReportPage() {
 
               <div className="bolum-satir-baslik">
                 <div className="bolum-basligi kirmizi">📋 Fikir Kayıtları ({filtreli.length})</div>
+                <div className="bolum-satir-filtreler">
+                  <select className="secim-kutu" value={temaFiltresi} onChange={(e) => setTemaFiltresi(e.target.value)}>
+                    <option value="">Tema: Tümü</option>
+                    {temalar.map((t) => (
+                      <option key={t} value={t}>{temaEmoji(t)} {t}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="secim-kutu"
+                    value={sonucFiltresi}
+                    onChange={(e) => setSonucFiltresi(e.target.value as typeof sonucFiltresi)}
+                  >
+                    <option value="hepsi">Sonuç: Tümü</option>
+                    <option value="ayinFikri">{SONUC_DURUM_IKON.ayinFikri.ikon} {SONUC_DURUM_IKON.ayinFikri.etiket}</option>
+                    <option value="aday">{SONUC_DURUM_IKON.aday.ikon} {SONUC_DURUM_IKON.aday.etiket}</option>
+                    <option value="yetersiz">{SONUC_DURUM_IKON.yetersiz.ikon} {SONUC_DURUM_IKON.yetersiz.etiket}</option>
+                    <option value="beklemede">{SONUC_DURUM_IKON.beklemede.ikon} {SONUC_DURUM_IKON.beklemede.etiket}</option>
+                  </select>
+                </div>
                 <div className="bolum-satir-butonlar">
                   <button type="button" className="btn-ikincil btn-kucul" onClick={csvIndir}>⬇ Excel'e Aktar</button>
                   <button type="button" className="btn-ikincil btn-kucul" onClick={() => window.print()}>🖨 Yazdır</button>
