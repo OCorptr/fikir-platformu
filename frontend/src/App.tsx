@@ -30,11 +30,21 @@ function GovdeSinifi() {
   return null;
 }
 
+/* UstBar (üst logo + slogan + MEB logosu) yalnizca anasayfa ve /fikir'de gösterilir.
+   Admin panellerde (.kenar + .ustbar zaten AdminLayout'ta var) UstBar
+   gereksiz yer kaplar ve logonun uzerinde panel durur. */
+function KosulluUstBar() {
+  const yol = useLocation().pathname;
+  const adminMi = yol.startsWith("/il-panel") || yol.startsWith("/bakanlik");
+  if (adminMi) return null;
+  return <UstBar />;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <GovdeSinifi />
-      <UstBar />
+      <KosulluUstBar />
       <AccessibilityPanel />
       <Routes>
         <Route path="/" element={<HomePage />} />
