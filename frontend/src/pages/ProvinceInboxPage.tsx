@@ -2,18 +2,16 @@
 // ProvinceEvaluator veya ProvinceManager rolü olmadan /fikir'e yönlendirir.
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
-import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getInbox } from "../services/province";
-import type { InboxEntry, MeSession, sessionForContext } from "../types";
+import { type InboxEntry, type MeSession, sessionForContext } from "../types";
 
 export function ProvinceInboxPage() {
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
-  const [authAcik, setAuthAcik] = useState(false);
 
   const [inbox, setInbox] = useState<InboxEntry[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -25,8 +23,8 @@ export function ProvinceInboxPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { const s = sessionForContext(c, "province"); if (s) setBen(s); else setAuthAcik(true); })
-      .catch(() => setAuthAcik(true))
+      .then((c) => setBen(sessionForContext(c, "province")))
+      .catch(() => setBen(null))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
   }, []);
@@ -39,26 +37,18 @@ export function ProvinceInboxPage() {
     getInbox(controller.signal)
       .then(setInbox)
       .catch((e) => {
-        if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
+        if (!(e instanceof DOMException && e.name === "AbortError")) {
+          setHata(mesajCikar(e));
+        }
       })
       .finally(() => setYukleniyor(false));
     return () => controller.abort();
   }, [ben]);
 
-  function authGuncelle() {
-    setAuthAcik(false);
-    setKimlikKontrolEdildi(false);
-    const controller = new AbortController();
-    me(controller.signal)
-      .then((c) => setBen(sessionForContext(c, "province")))
-      .catch(() => setAuthAcik(true))
-      .finally(() => setKimlikKontrolEdildi(true));
-    return () => controller.abort();
+  // Province session yoksa anasayfaya yönlendir (popup gösterme — sadece anasayfadan giriş yapılır).
+  if (kimlikKontrolEdildi && !ben) {
+    return <Navigate to="/" replace />;
   }
-
-  // sessionForContext zaten doğru scheme ile authenticate olmuş session'ı döner;
-  // yanlış hesapla (örn. öğrenci / bakanlık) bu sayfaya gelenlerde ben=null kalır ve
-  // AuthModal açılır — ayrı bir yönlendirme gerekmez.
 
   const filtreli = arama.trim()
     ? inbox.filter((i) =>
@@ -81,7 +71,7 @@ export function ProvinceInboxPage() {
         <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
       )}
 
-      {kimlikKontrolEdildi && (
+      {kimlikKontrolEdildi && ben && (
         <>
           <div className="istatistikler" style={{ marginBottom: "1rem" }}>
             <div className="istat">
@@ -112,12 +102,16 @@ export function ProvinceInboxPage() {
 
             {hata && (
               <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
-                <span className="status-banner__icon">!</span><span>{hata}</span>
+                <span className="status-banner__icon">!</span>
+                <span>{hata}</span>
               </div>
             )}
 
             {yukleniyor && (
-              <div className="status-banner status-banner--info"><span className="status-banner__icon">i</span><span>Gelen kutusu yükleniyor…</span></div>
+              <div className="status-banner status-banner--info">
+                <span className="status-banner__icon">i</span>
+                <span>Gelen kutusu yükleniyor…</span>
+              </div>
             )}
 
             {!yukleniyor && inbox.length === 0 && (
@@ -181,8 +175,6 @@ export function ProvinceInboxPage() {
           </section>
         </>
       )}
-
-      <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
     </AdminLayout>
   );
 }
@@ -192,3 +184,4 @@ function mesajCikar(e: unknown): string {
   if (e instanceof Error) return e.message;
   return "Beklenmeyen bir hata oluştu.";
 }
+

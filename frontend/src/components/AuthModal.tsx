@@ -143,10 +143,6 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
       // dışarı tıklayınca kapatma yok — kullanıcı ancak giriş/kayıt yaparak çıkabilir
     >
       <div className="fikir-karti auth-modal-kart">
-        <div className="balon-kapsa">
-          <div className="balon">{balikMesaji}</div>
-        </div>
-
         <h1 id="auth-modal-baslik" className="auth-modal-baslik">
           <span style={{ color: "#1f9fa4" }}>Fikrine</span>{" "}
           <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
@@ -378,3 +374,4 @@ function mesajCikar(e: unknown): string {
   if (e instanceof Error) return e.message;
   return "Beklenmeyen bir hata oluştu.";
 }
+

@@ -2,7 +2,7 @@
 // Admin teması (assets/css/admin-panel.css) kullanılır; anasayfa ve /fikir bu temayı kullanmaz.
 
 import { useEffect, type ReactNode } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { logout, type LoginContext } from "../services/auth";
 import type { MeSession } from "../types";
 
@@ -109,8 +109,8 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
     try {
       await logout(ctx);
     } catch { /* yoksay */ }
-    window.history.pushState({}, "", "/");
-    window.dispatchEvent(new PopStateEvent("popstate"));
+    // Aynı sayfada kal — sayfa ben=null olunca AuthModal otomatik açılır.
+    // Anasayfaya atma, admin sayfasında çıkış → aynı sayfada tekrar giriş yapılabilir olmalı.
   }
 
   return (

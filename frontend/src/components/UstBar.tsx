@@ -1,61 +1,23 @@
-import type { MeResponse } from "../types";
-
 interface UstBarProps {
-  me?: MeResponse | null;
+  /** geriye dönük uyumluluk — kullanılmıyor */
+  me?: unknown;
+  /** geriye dönük uyumluluk — kullanılmıyor */
   onLogout?: () => void;
 }
 
-export function UstBar({ me, onLogout }: UstBarProps = {}) {
-  const ilPaneliGoster =
-    me?.authenticated === true && me.roles.some((r) =>
-      r === "ProvinceEvaluator" || r === "ProvinceManager",
-    );
-  const managerMi =
-    me?.authenticated === true && me.roles.includes("ProvinceManager");
-  const ministryMi =
-    me?.authenticated === true && me.roles.includes("MinistryOfficial");
-
+/**
+ * Üst bar — sadece logo + slogan. Link/buton YOK.
+ * Logo `<a>` değil `<div>`: tıklanınca sayfa değişmez (admin teması bu davranışı istiyor).
+ * Navigasyon il/bakanlık paneli içindeki sidebar'dan yapılır.
+ */
+export function UstBar(_props: UstBarProps = {}) {
   return (
     <header className="ust">
       <div className="ust-sol">
-        <a className="logo" href="/">
+        <div className="logo">
           <img className="logo-mark" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE" />
           <span className="logo-slogan">Fikrin Geleceğimiz Olsun</span>
-        </a>
-        <nav className="ust-nav">
-          <a className="ust-nav-link" href="/fikir">Fikrimi Yaz</a>
-          {ilPaneliGoster && (
-            <a className="ust-nav-link" href="/il-panel">İl Paneli</a>
-          )}
-          {managerMi && (
-            <a className="ust-nav-link" href="/il-panel/adaylar">Adaylar</a>
-          )}
-          {ministryMi && (
-            <a className="ust-nav-link" href="/bakanlik">Bakanlık</a>
-          )}
-        </nav>
-      </div>
-      <div className="ust-sag">
-        {me?.authenticated && (
-          <>
-            <span className="ust-kullanici">{me.firstName} {me.lastName}</span>
-            {onLogout && (
-              <button
-                type="button"
-                className="ust-cikis"
-                onClick={onLogout}
-                title="Çıkış Yap"
-              >
-                🚪 Çıkış
-              </button>
-            )}
-          </>
-        )}
-        <img
-          className="yuz-yil-logo"
-          src="/assets/img/1.webp"
-          alt="Türkiye Yüzyılı · MEB 100. Yıl logosu"
-        />
+        </div>
       </div>
     </header>
   );

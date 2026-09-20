@@ -32,7 +32,7 @@ import {
   type ImplementationStatus,
   type MeSession,
   type ProvinceEvaluatorRef,
-  type sessionForContext,
+  sessionForContext,
   type SubmitEvaluationItem,
 } from "../types";
 

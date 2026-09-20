@@ -1,11 +1,9 @@
 // /bakanlik, /bakanlik/:periodId, /bakanlik/uygulamalar — Bakanlık paneli (admin temalı).
-// /bakanlik & /bakanlik/:periodId → Dönemler & Adaylar
-// /bakanlik/uygulamalar                → Uygulama Takibi
+// Ministry session yoksa anasayfaya yönlendir (popup gösterme).
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
-import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
@@ -21,9 +19,9 @@ import {
   type ImplementationSummary,
   type MeSession,
   type Period,
-  type sessionForContext,
   type PeriodCandidatesResponse,
   type PeriodSelectedResponse,
+  sessionForContext,
 } from "../types";
 
 export function MinistryPage() {
@@ -32,7 +30,6 @@ export function MinistryPage() {
 
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
-  const [authAcik, setAuthAcik] = useState(false);
 
   const [periods, setPeriods] = useState<Period[]>([]);
   const [aktif, setAktif] = useState<Period | null>(null);
@@ -45,11 +42,16 @@ export function MinistryPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { const s = sessionForContext(c, "ministry"); if (s) setBen(s); else setAuthAcik(true); })
-      .catch(() => setAuthAcik(true))
+      .then((c) => setBen(sessionForContext(c, "ministry")))
+      .catch(() => setBen(null))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
   }, []);
+
+  // Ministry session yoksa anasayfaya yönlendir.
+  if (kimlikKontrolEdildi && !ben) {
+    return <Navigate to="/" replace />;
+  }
 
   // dönem listesi
   const periodlariYenile = () => {
@@ -113,17 +115,6 @@ export function MinistryPage() {
     return () => controller.abort();
   }, [ben, periodId, sadeceUygulamalar]);
 
-  function authGuncelle() {
-    setAuthAcik(false);
-    setKimlikKontrolEdildi(false);
-    const controller = new AbortController();
-    me(controller.signal)
-      .then((c) => setBen(sessionForContext(c, "ministry")))
-      .catch(() => setAuthAcik(true))
-      .finally(() => setKimlikKontrolEdildi(true));
-    return () => controller.abort();
-  }
-
   async function yeniDonem() {
     setHata(null);
     try {
@@ -149,7 +140,6 @@ export function MinistryPage() {
     } catch (e) { setHata(mesajCikar(e)); }
   }
 
-  // başlık + açıklama moduna göre
   const baslik = sadeceUygulamalar ? "Uygulama Takibi" : "Dönemler & Aday Havuzu";
   const aciklama = sadeceUygulamalar
     ? "Tüm dönemlerde uygulamaya alınan fikirlerin durum özeti"
@@ -166,7 +156,7 @@ export function MinistryPage() {
         <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
       )}
 
-      {kimlikKontrolEdildi && !sadeceUygulamalar && (
+      {kimlikKontrolEdildi && ben && !sadeceUygulamalar && (
         <>
           <div className="istatistikler" style={{ marginBottom: "1rem" }}>
             <div className="istat">
@@ -328,7 +318,7 @@ export function MinistryPage() {
         </>
       )}
 
-      {kimlikKontrolEdildi && sadeceUygulamalar && (
+      {kimlikKontrolEdildi && ben && sadeceUygulamalar && (
         <section className="tablo-kart">
           <div className="bolum-basligi turuncu" style={{ marginBottom: "0.6rem" }}>
             🚀 Tüm Uygulamalar ({uygulamalar.length})
@@ -378,8 +368,6 @@ export function MinistryPage() {
           )}
         </section>
       )}
-
-      <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
     </AdminLayout>
   );
 }

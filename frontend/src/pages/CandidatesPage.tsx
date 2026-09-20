@@ -1,14 +1,13 @@
 // /il-panel/adaylar — aday havuzu (admin temalı).
-// Ortalama puanı eşik (3.5) üstü olan ve değerlendirmesi tamamlanan fikirler.
+// ProvinceManager rolü yoksa anasayfaya yönlendir (popup gösterme).
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
-import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getCandidates } from "../services/province";
-import type { CandidateSummary, MeSession, sessionForContext } from "../types";
+import { type CandidateSummary, type MeSession, sessionForContext } from "../types";
 
 const EMOJI: Record<string, string> = {
   "Kültür ve Sanat": "🎨",
@@ -24,7 +23,6 @@ const EMOJI: Record<string, string> = {
 export function CandidatesPage() {
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
-  const [authAcik, setAuthAcik] = useState(false);
 
   const [adaylar, setAdaylar] = useState<CandidateSummary[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
@@ -35,8 +33,8 @@ export function CandidatesPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { const s = sessionForContext(c, "province"); if (s) setBen(s); else setAuthAcik(true); })
-      .catch(() => setAuthAcik(true))
+      .then((c) => setBen(sessionForContext(c, "province")))
+      .catch(() => setBen(null))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
   }, []);
@@ -55,20 +53,16 @@ export function CandidatesPage() {
     return () => controller.abort();
   }, [ben]);
 
-  function authGuncelle() {
-    setAuthAcik(false);
-    setKimlikKontrolEdildi(false);
-    const controller = new AbortController();
-    me(controller.signal)
-      .then((c) => setBen(sessionForContext(c, "province")))
-      .catch(() => setAuthAcik(true))
-      .finally(() => setKimlikKontrolEdildi(true));
-    return () => controller.abort();
+  // Province session yoksa anasayfaya yönlendir.
+  if (kimlikKontrolEdildi && !ben) {
+    return <Navigate to="/" replace />;
   }
 
   const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
+  if (kimlikKontrolEdildi && ben && !managerMi) {
+    return <Navigate to="/" replace />;
+  }
 
-  // kategoriye göre grupla (yoksa tek grup)
   const gruplar = useMemo(() => {
     const m = new Map<string, CandidateSummary[]>();
     for (const a of adaylar) {
@@ -79,7 +73,6 @@ export function CandidatesPage() {
     return Array.from(m.entries());
   }, [adaylar]);
 
-  // kategori emojilerini türet
   function emoji(k: string) { return EMOJI[k] ?? "💡"; }
 
   return (
@@ -93,7 +86,7 @@ export function CandidatesPage() {
         <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
       )}
 
-      {kimlikKontrolEdildi && (
+      {kimlikKontrolEdildi && ben && (
         <>
           <div className="bolum-basligi turkuaz" style={{ marginBottom: "1rem" }}>
             ⭐ Adaylar ({adaylar.length})
@@ -135,8 +128,6 @@ export function CandidatesPage() {
           ))}
         </>
       )}
-
-      <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
     </AdminLayout>
   );
 }
@@ -146,3 +137,4 @@ function mesajCikar(e: unknown): string {
   if (e instanceof Error) return e.message;
   return "Beklenmeyen bir hata oluştu.";
 }
+

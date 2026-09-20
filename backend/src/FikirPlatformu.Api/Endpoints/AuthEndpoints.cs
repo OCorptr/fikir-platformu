@@ -113,7 +113,8 @@ public static class AuthEndpoints
         grup.MapPost("/login", async (
             GirisIstegi istek,
             [FromQuery] string? role,
-            SignInManager<ApplicationUser> girisYoneticisi) =>
+            SignInManager<ApplicationUser> girisYoneticisi,
+            HttpContext http) =>
         {
             var kullanici = await girisYoneticisi.UserManager.FindByEmailAsync(istek.Email);
             if (kullanici is null)
@@ -121,24 +122,16 @@ public static class AuthEndpoints
                 return KimlikHatasi("E-posta veya şifre geçersiz.");
             }
 
-            var sonuc = await girisYoneticisi.PasswordSignInAsync(
-                kullanici, istek.Password, istek.RememberMe, lockoutOnFailure: true);
+            // Önce şifre kontrolü — SignInManager ile doğrulayalım, böylece lockout çalışır.
+            var dogrulama = await girisYoneticisi.CheckPasswordSignInAsync(
+                kullanici, istek.Password, lockoutOnFailure: true);
 
-            if (sonuc.IsNotAllowed)
+            if (!dogrulama.Succeeded)
             {
-                return Results.Json(new
-                {
-                    message = "E-posta adresiniz doğrulanmamış. Doğrulama e-postasındaki bağlantıyı kullanın."
-                }, statusCode: 403);
-            }
-
-            if (sonuc.IsLockedOut)
-            {
-                return Results.Json(new { message = "Çok fazla hatalı deneme yapıldı. Hesabınız geçici olarak kilitlendi." }, statusCode: 423);
-            }
-
-            if (!sonuc.Succeeded)
-            {
+                if (dogrulama.IsLockedOut)
+                    return Results.Json(new { message = "Çok fazla hatalı deneme yapıldı. Hesabınız geçici olarak kilitlendi." }, statusCode: 423);
+                if (dogrulama.IsNotAllowed)
+                    return Results.Json(new { message = "E-posta adresiniz doğrulanmamış. Doğrulama e-postasındaki bağlantıyı kullanın." }, statusCode: 403);
                 return KimlikHatasi("E-posta veya şifre geçersiz.");
             }
 
@@ -148,7 +141,6 @@ public static class AuthEndpoints
             // İstenen role ile hesabın rolleri uyuşmazsa, girişi reddet — başka hesaba karışma.
             if (scheme is null)
             {
-                await girisYoneticisi.SignOutAsync();
                 var beklenen = role switch
                 {
                     "student" => "öğrenci",
@@ -162,13 +154,16 @@ public static class AuthEndpoints
                 }, statusCode: 403);
             }
 
-            // Doğru scheme ile yeniden SignIn — ilk PasswordSignIn default scheme kullandı.
-            // Identity.Application (öğrenci) cookie'sini Province/Ministry scheme'i ile değiştiriyoruz.
-            if (scheme != IdentityConstants.ApplicationScheme)
+            // Doğru scheme ile cookie yaz.
+            // SignInManager default scheme (Identity.Application) ile çalışır; farklı scheme'ler için
+            // HttpContext.SignInAsync + Identity'nin ClaimsPrincipal'ını kullanıyoruz.
+            var principal = await girisYoneticisi.CreateUserPrincipalAsync(kullanici);
+            var props = new AuthenticationProperties
             {
-                await girisYoneticisi.SignOutAsync();
-                await girisYoneticisi.SignInAsync(kullanici, istek.RememberMe, scheme);
-            }
+                IsPersistent = istek.RememberMe,
+                ExpiresUtc = istek.RememberMe ? DateTimeOffset.UtcNow.AddDays(14) : (DateTimeOffset?)null,
+            };
+            await http.SignInAsync(scheme, principal, props);
 
             return Results.Ok(new
             {

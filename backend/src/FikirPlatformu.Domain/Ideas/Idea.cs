@@ -144,6 +144,34 @@ public sealed class Idea : Entity
         UpdatedAt = at;
     }
 
+    /// <summary>İl AR-GE yöneticisi uygulamaya başlattığında Planned → ImplementationInProgress (plan §28).</summary>
+    public void StartImplementation(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.Planned)
+            throw new InvalidOperationException("Yalnızca planlanmış fikirler uygulamaya başlatılabilir.");
+        Status = IdeaSubmissionStatus.ImplementationInProgress;
+        UpdatedAt = at;
+    }
+
+    /// <summary>Uygulama tamamlandı.</summary>
+    public void CompleteImplementation(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.ImplementationInProgress)
+            throw new InvalidOperationException("Yalnızca uygulamada olan fikirler tamamlanabilir.");
+        Status = IdeaSubmissionStatus.ImplementationCompleted;
+        UpdatedAt = at;
+    }
+
+    /// <summary>Uygulama başarısız/iptal.</summary>
+    public void FailImplementation(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.ImplementationInProgress
+            && Status != IdeaSubmissionStatus.Planned)
+            throw new InvalidOperationException("Yalnızca planlanmış veya uygulamada olan fikirler başarısız işaretlenebilir.");
+        Status = IdeaSubmissionStatus.ImplementationFailed;
+        UpdatedAt = at;
+    }
+
     private static string NormalizeContent(string content)
     {
         ArgumentNullException.ThrowIfNull(content);

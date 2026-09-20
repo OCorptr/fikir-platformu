@@ -620,6 +620,24 @@ input[type="range"] {
   from { transform: rotate(-1.2deg) scale(1.02); }
   to { transform: rotate(1.2deg) scale(1.02); }
 }
+/* === Fikir sayfasi: kimlik yokken durum yazisi maskotun uzerinde === */
+.fikir-sol { position: relative; }
+.maskot-ust-yazi {
+  position: absolute;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #16355C;
+  font-family: 'Baloo 2', sans-serif;
+  font-weight: 800;
+  font-size: clamp(1.05rem, 2.2vw, 1.4rem);
+  padding: 1rem;
+  pointer-events: none;
+  text-shadow: 0 0.5rem 1rem rgba(255, 255, 255, 0.9);
+}
+.maskot-ust-yazi b { color: #ef7814; }
 
 .ust-cikis {
   margin-right: 0.6rem;
@@ -637,3 +655,4 @@ input[type="range"] {
 .ust-cikis:hover {
   background: rgba(255, 255, 255, 0.32);
 }
+

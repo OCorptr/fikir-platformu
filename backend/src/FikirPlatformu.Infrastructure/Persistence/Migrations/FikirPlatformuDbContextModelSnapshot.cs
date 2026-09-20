@@ -680,6 +680,49 @@ namespace FikirPlatformu.Infrastructure.Persistence.Migrations
                     b.ToTable("idea_read_receipts", "public");
                 });
 
+            modelBuilder.Entity("FikirPlatformu.Domain.Implementations.ImplementationReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("IdeaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("idea_id");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("note");
+
+                    b.Property<DateTimeOffset>("ReportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reported_at");
+
+                    b.Property<string>("ReportedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)")
+                        .HasColumnName("reported_by_user_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdeaId")
+                        .HasDatabaseName("ix_implementation_reports_idea");
+
+                    b.HasIndex("IdeaId", "ReportedAt")
+                        .HasDatabaseName("ix_implementation_reports_idea_reported_at");
+
+                    b.ToTable("implementation_reports", "public");
+                });
+
             modelBuilder.Entity("FikirPlatformu.Domain.Ministry.Period", b =>
                 {
                     b.Property<Guid>("Id")
