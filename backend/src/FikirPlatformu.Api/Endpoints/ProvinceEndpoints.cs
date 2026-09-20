@@ -17,13 +17,22 @@ namespace FikirPlatformu.Api.Endpoints;
 public static class ProvinceEndpoints
 {
     /// <summary>
-    /// Plan §42 #3: rol bazlı tek il atanır; bu sprint'te demo seed hesaplar için sabit İstanbul (id 34) döner.
-    /// Üretimde AspNetUsers → ProvinceStaff ayrı tablosu ile değiştirilecek.
+    /// Plan §42 #3 düzeltmesi (Sprint 6): manager/evaluator kendi ili province_user_assignments
+    /// tablosundan çekilir. Kullanıcının birden fazla rol ataması varsa Manager kaydı öncelikli.
+    /// Atanmamış kullanıcı için 0 döner (endpoint 404 verir).
     /// </summary>
     private static async Task<int> GetProvinceForStaffAsync(
         FikirPlatformuDbContext db,
         string userId,
-        CancellationToken cancellationToken) => await Task.FromResult(34);
+        CancellationToken cancellationToken)
+    {
+        var atama = await db.ProvinceUserAssignments
+            .Where(a => a.UserId == userId
+                && (a.Role == "ProvinceManager" || a.Role == "ProvinceEvaluator"))
+            .OrderBy(a => a.Role == "ProvinceManager" ? 0 : 1) // Manager öncelikli
+            .FirstOrDefaultAsync(cancellationToken);
+        return atama?.ProvinceId ?? 0;
+    }
 
     public static IEndpointRouteBuilder MapProvinceEndpoints(this IEndpointRouteBuilder app)
     {
@@ -92,37 +101,39 @@ public static class ProvinceEndpoints
             };
         }).RequireAuthorization("ProvinceOnly");
 
-        // GET /api/province/evaluators — bu ildeki ProvinceEvaluator listesi (sadece ProvinceManager)
+        // GET /api/province/evaluators — bu ildeki atanmış ProvinceEvaluator listesi (sadece ProvinceManager)
+        // Sprint 6: sadece kendi ilindeki evaluator'ler (province_user_assignments tablosundan)
         grup.MapGet("/evaluators", async (
+            HttpContext http,
             FikirPlatformuDbContext db,
-            UserManager<ApplicationUser> userManager) =>
+            CancellationToken cancellationToken) =>
         {
-            var evaluatorRoleId = await db.Roles
-                .Where(r => r.Name == "ProvinceEvaluator")
-                .Select(r => r.Id)
-                .FirstOrDefaultAsync();
-            if (string.IsNullOrEmpty(evaluatorRoleId))
-                return Results.Ok(Array.Empty<object>());
+            var currentUserId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, currentUserId, cancellationToken);
+            if (ilId == 0) return Results.Forbid();
 
-            var userIds = await db.UserRoles
-                .Where(ur => ur.RoleId == evaluatorRoleId)
-                .Select(ur => ur.UserId)
-                .ToListAsync();
+            // Sadece manager kendi ilindeki atanmış evaluator'leri görebilir
+            var managerMi = await db.ProvinceUserAssignments
+                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
+            if (!managerMi) return Results.Forbid();
 
-            var users = await db.Users
-                .AsNoTracking()
-                .Where(u => userIds.Contains(u.Id))
-                .OrderBy(u => u.FirstName).ThenBy(u => u.LastName)
-                .Select(u => new
+            var liste = await (
+                from a in db.ProvinceUserAssignments
+                join u in db.Users on a.UserId equals u.Id
+                where a.ProvinceId == ilId && a.Role == "ProvinceEvaluator"
+                orderby a.AssignedAt descending
+                select new
                 {
                     u.Id,
                     u.FirstName,
                     u.LastName,
                     u.Email,
-                })
-                .ToListAsync();
+                    AssignedAt = a.AssignedAt,
+                }
+            ).ToListAsync(cancellationToken);
 
-            return Results.Ok(users);
+            return Results.Ok(liste);
         }).RequireAuthorization("ProvinceOnly");
 
         // GET /api/province/ideas/{id} — başvuru detayı
@@ -322,8 +333,70 @@ public static class ProvinceEndpoints
             return Results.Ok(liste);
         }).RequireAuthorization("ProvinceOnly");
 
+        // POST /api/province/evaluators — yeni evaluator ata (sadece ProvinceManager)
+        grup.MapPost("/evaluators", async (
+            EvaluatorAtaIstegi istek,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            IClock clock,
+            CancellationToken cancellationToken) =>
+        {
+            var currentUserId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, currentUserId, cancellationToken);
+            if (ilId == 0) return Results.Forbid();
+
+            var managerMi = await db.ProvinceUserAssignments
+                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
+            if (!managerMi) return Results.Forbid();
+
+            var hedefRoller = await db.UserRoles
+                .Where(ur => ur.UserId == istek.UserId)
+                .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                .ToListAsync(cancellationToken);
+            if (!hedefRoller.Contains("ProvinceEvaluator"))
+                return Results.BadRequest(new { message = "Kullanıcı ProvinceEvaluator rolünde değil." });
+
+            var mevcut = await db.ProvinceUserAssignments
+                .FirstOrDefaultAsync(a => a.UserId == istek.UserId && a.Role == "ProvinceEvaluator", cancellationToken);
+            if (mevcut is not null) db.ProvinceUserAssignments.Remove(mevcut);
+
+            var atama = FikirPlatformu.Domain.Identity.ProvinceUserAssignment.Create(
+                istek.UserId, ilId, "ProvinceEvaluator", currentUserId, clock.UtcNow);
+            db.ProvinceUserAssignments.Add(atama);
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.Ok(new { userId = istek.UserId, provinceId = ilId });
+        }).RequireAuthorization("ProvinceOnly");
+
+        // DELETE /api/province/evaluators/{userId} — evaluator atamasını kaldır (sadece ProvinceManager)
+        grup.MapDelete("/evaluators/{userId}", async (
+            string userId,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var currentUserId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(currentUserId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, currentUserId, cancellationToken);
+            if (ilId == 0) return Results.Forbid();
+
+            var managerMi = await db.ProvinceUserAssignments
+                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
+            if (!managerMi) return Results.Forbid();
+
+            var atama = await db.ProvinceUserAssignments
+                .FirstOrDefaultAsync(a => a.UserId == userId && a.Role == "ProvinceEvaluator" && a.ProvinceId == ilId, cancellationToken);
+            if (atama is null) return Results.NotFound();
+            db.ProvinceUserAssignments.Remove(atama);
+            await db.SaveChangesAsync(cancellationToken);
+            return Results.NoContent();
+        }).RequireAuthorization("ProvinceOnly");
+
         return app;
     }
+
+    public sealed record EvaluatorAtamaDto(string UserId, string Email, string FirstName, string LastName, DateTimeOffset AssignedAt);
+    public sealed record EvaluatorAtaIstegi(string UserId);
 
     public sealed record UygulamaRaporuIstegi(ImplementationStatus Status, string? Note);
 }

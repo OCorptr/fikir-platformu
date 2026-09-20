@@ -1,5 +1,6 @@
 using FikirPlatformu.Domain.Common;
 using FikirPlatformu.Domain.Evaluations;
+using FikirPlatformu.Domain.Identity;
 using FikirPlatformu.Domain.Ideas;
 using FikirPlatformu.Domain.Implementations;
 using FikirPlatformu.Domain.Ministry;
@@ -25,6 +26,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<Period> Periods => Set<Period>();
     public DbSet<PeriodSelection> PeriodSelections => Set<PeriodSelection>();
     public DbSet<ImplementationReport> ImplementationReports => Set<ImplementationReport>();
+    public DbSet<ProvinceUserAssignment> ProvinceUserAssignments => Set<ProvinceUserAssignment>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +42,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
         modelBuilder.ApplyConfiguration(new PeriodConfiguration());
         modelBuilder.ApplyConfiguration(new PeriodSelectionConfiguration());
         modelBuilder.ApplyConfiguration(new ImplementationReportConfiguration());
+        modelBuilder.ApplyConfiguration(new ProvinceUserAssignmentConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }
