@@ -358,19 +358,20 @@ export default function FikirPage() {
   );
 
   return (
-    <>
-        <main className="fikir-hero fikir-hero-onplanda">
-          <div className="maskot-onplan">
-            <img className="maskot-fikir" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu" />
-            <div className="maskot-yazi">
-              Merhaba! Fikrini yazmadan önce <b>giriş yap</b> ya da <b>kayıt ol</b>.
-              <br />
-              <span className="maskot-yazi-alt">Sıra sende!</span>
-            </div>
+    <main className="fikir-hero">
+      <div className="fikir-sol">
+        <div className="balon-kapsa">
+          <div className="balon">
+            {ben
+              ? <>Hoş geldin, <b>{ben.firstName}</b>! Bir <b>tema</b> seç, sonra fikrini anlat. Sıra sende! ✏️</>
+              : <>Merhaba, ben Fikri! Önce bir <b>tema</b> seç, sonra fikrini anlat. Sıra sende!</>}
           </div>
-        </main>
+        </div>
+        <img className="maskot-fikir" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu" />
+      </div>
+      {formIcerigi}
       <AuthModal acik={authAcik} onAuthed={authGuncelle} />
-    </>
+    </main>
   );
 }
 
