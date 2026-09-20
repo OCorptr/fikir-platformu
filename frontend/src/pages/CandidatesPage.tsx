@@ -1,12 +1,25 @@
-// /il-panel/adaylar — aday havuzu (Aşama 5), yalnız ProvinceManager.
+// /il-panel/adaylar — aday havuzu (admin temalı).
+// Ortalama puanı eşik (3.5) üstü olan ve değerlendirmesi tamamlanan fikirler.
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
+import { AdminLayout } from "../components/AdminLayout";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getCandidates } from "../services/province";
 import type { CandidateSummary, MeAuthenticated } from "../types";
+
+const EMOJI: Record<string, string> = {
+  "Kültür ve Sanat": "🎨",
+  "Spor ve Sağlıklı Yaşam": "⚽",
+  "Bilim ve Teknoloji": "🔬",
+  "Çevre ve Sürdürülebilirlik": "🌱",
+  "Yapay Zekâ": "🤖",
+  "Girişimcilik": "💡",
+  "Değerler Eğitimi": "📖",
+  "Sosyal Sorumluluk": "🤝",
+};
 
 export function CandidatesPage() {
   const [ben, setBen] = useState<MeAuthenticated | null>(null);
@@ -53,90 +66,79 @@ export function CandidatesPage() {
     return () => controller.abort();
   }
 
-  if (!kimlikKontrolEdildi) {
-    return (
-      <main className="fikir-hero">
-        <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
-        <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
-      </main>
-    );
-  }
-
   const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
   if (ben && !managerMi) return <Navigate to="/il-panel" replace />;
 
+  // kategoriye göre grupla (yoksa tek grup)
+  const gruplar = useMemo(() => {
+    const m = new Map<string, CandidateSummary[]>();
+    for (const a of adaylar) {
+      const k = a.categoryName;
+      if (!m.has(k)) m.set(k, []);
+      m.get(k)!.push(a);
+    }
+    return Array.from(m.entries());
+  }, [adaylar]);
+
+  // kategori emojilerini türet
+  function emoji(k: string) { return EMOJI[k] ?? "💡"; }
+
   return (
-    <main className="il-panel-hero">
-      <section className={`fikir-karti ${authAcik ? "fikir-form-blur" : ""}`}>
-        <button type="button" className="btn-ikincil" onClick={() => navigate("/il-panel")}>
-          ← Gelen kutusuna dön
-        </button>
+    <AdminLayout
+      ben={ben}
+      baslik="Aday Havuzu"
+      aciklama="Ortalama puanı 3.5 eşiğini geçen fikirler · bakanlığa dönemsel aday olarak gönderilebilir"
+      donemRozet="📅 2026-2027 · Eylül"
+    >
+      {!kimlikKontrolEdildi && (
+        <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
+      )}
 
-        <h1>
-          <span style={{ color: "#1f9fa4" }}>Aday</span>{" "}
-          <span style={{ color: "#ef7814" }}>Havuzu</span>
-        </h1>
-        <p className="il-panel-ozet">
-          Ortalama puanı <strong>3.5</strong> eşiğini geçen ve değerlendirmesi tamamlanan fikirler
-          otomatik burada görünür.
-        </p>
-
-        {hata && (
-          <div className="status-banner status-banner--error" role="alert">
-            <span className="status-banner__icon">!</span><span>{hata}</span>
+      {kimlikKontrolEdildi && (
+        <>
+          <div className="bolum-basligi turkuaz" style={{ marginBottom: "1rem" }}>
+            ⭐ Adaylar ({adaylar.length})
           </div>
-        )}
 
-        {yukleniyor && <p>Yükleniyor…</p>}
+          {hata && (
+            <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
+              <span className="status-banner__icon">!</span><span>{hata}</span>
+            </div>
+          )}
 
-        {!yukleniyor && adaylar.length === 0 && (
-          <div className="il-panel-bos">
-            <p>📭 Şu an aday havuzunda fikir bulunmuyor.</p>
-          </div>
-        )}
+          {yukleniyor && <div className="status-banner status-banner--info"><span className="status-banner__icon">i</span><span>Adaylar yükleniyor…</span></div>}
 
-        {adaylar.length > 0 && (
-          <table className="il-panel-tablo">
-            <thead>
-              <tr>
-                <th>Tema</th>
-                <th>Ortalama Puan</th>
-                <th>İçerik</th>
-                <th>Tamamlanma</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {adaylar.map((a) => (
-                <tr key={a.ideaId}>
-                  <td><strong>{a.categoryName}</strong></td>
-                  <td><span className="kriter-ortalama">{a.averageScore.toFixed(2)}</span></td>
-                  <td className="icerik-hucre">
-                    <div className="icerik-ozet">{a.content || <i>(boş)</i>}</div>
-                  </td>
-                  <td>
-                    <span className="meta">
-                      {new Date(a.completedAt).toLocaleDateString("tr-TR")}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="taslak-islem"
-                      onClick={() => navigate(`/il-panel/fikir/${a.ideaId}`)}
-                    >
-                      Aç
+          {!yukleniyor && adaylar.length === 0 && (
+            <div className="il-panel-bos">
+              <p>📭 Şu an aday havuzunda fikir bulunmuyor.</p>
+              <p className="meta">Değerlendirme eşiğini (3.5) geçen fikirler buraya otomatik düşer.</p>
+            </div>
+          )}
+
+          {!yukleniyor && adaylar.length > 0 && gruplar.map(([kat, liste]) => (
+            <section key={kat} className="tablo-kart" style={{ marginBottom: "1.2rem" }}>
+              <div className="bolum-basligi turuncu">{emoji(kat)} {kat} · {liste.length} aday</div>
+              <div className="adaylar" style={{ marginTop: "0.6rem" }}>
+                {liste.map((a) => (
+                  <div key={a.ideaId} className="aday-kart">
+                    <div className="aday-emoji">{emoji(kat)}</div>
+                    <h3>{kat}</h3>
+                    <div className="okul">Puan: <strong style={{ color: "var(--turuncu-baslik)" }}>{a.averageScore.toFixed(2)}</strong> / 5</div>
+                    <div className="fikir-alinti">"{a.content || "(boş)"}"</div>
+                    <span className="durum">✓ Değerlendirme tamam</span>
+                    <button type="button" className="btn-ana btn-aday" onClick={() => navigate(`/il-panel/fikir/${a.ideaId}`)}>
+                      📂 Detayı Aç
                     </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ))}
+        </>
+      )}
 
       <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
-    </main>
+    </AdminLayout>
   );
 }
 

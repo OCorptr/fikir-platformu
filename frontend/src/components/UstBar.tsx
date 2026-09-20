@@ -2,9 +2,10 @@ import type { MeResponse } from "../types";
 
 interface UstBarProps {
   me?: MeResponse | null;
+  onLogout?: () => void;
 }
 
-export function UstBar({ me }: UstBarProps = {}) {
+export function UstBar({ me, onLogout }: UstBarProps = {}) {
   const ilPaneliGoster =
     me?.authenticated === true && me.roles.some((r) =>
       r === "ProvinceEvaluator" || r === "ProvinceManager",
@@ -36,7 +37,19 @@ export function UstBar({ me }: UstBarProps = {}) {
       </div>
       <div className="ust-sag">
         {me?.authenticated && (
-          <span className="ust-kullanici">{me.firstName} {me.lastName}</span>
+          <>
+            <span className="ust-kullanici">{me.firstName} {me.lastName}</span>
+            {onLogout && (
+              <button
+                type="button"
+                className="ust-cikis"
+                onClick={onLogout}
+                title="Çıkış Yap"
+              >
+                🚪 Çıkış
+              </button>
+            )}
+          </>
         )}
         <img
           className="yuz-yil-logo"

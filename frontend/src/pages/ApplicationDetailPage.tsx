@@ -1,8 +1,9 @@
-// /il-panel/fikir/{id} — başvuru detayı (Aşama 4).
+// /il-panel/fikir/{id} — başvuru detayı (admin temalı).
 // Açılır açılmaz otomatik olarak okundu işaretler; ProvinceManager ise atama modalı açabilir.
 
 import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { AdminLayout } from "../components/AdminLayout";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
@@ -38,42 +39,34 @@ export function ApplicationDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  // kimlik
   const [ben, setBen] = useState<MeAuthenticated | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
 
-  // veri
   const [detay, setDetay] = useState<IdeaDetailResponse | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
 
-  // değerlendirme
   const [evaluations, setEvaluations] = useState<IdeaEvaluationsResponse | null>(null);
 
-  // atama modal
   const [ataAcik, setAtaAcik] = useState(false);
   const [evaluatorler, setEvaluatorler] = useState<ProvinceEvaluatorRef[]>([]);
   const [seciliEvaluator, setSeciliEvaluator] = useState<string>("");
   const [atamaCalisiyor, setAtamaCalisiyor] = useState(false);
 
-  // puanlama modal
   const [puanlamaAcik, setPuanlamaAcik] = useState(false);
   const [puanlar, setPuanlar] = useState<Record<string, { score: number; comment: string }>>(
     Object.fromEntries(EVALUATION_CRITERIA.map((c) => [c, { score: 3, comment: "" }])),
   );
   const [puanlamaCalisiyor, setPuanlamaCalisiyor] = useState(false);
 
-  // onay
   const [onayCalisiyor, setOnayCalisiyor] = useState(false);
 
-  // uygulama raporları
   const [raporlar, setRaporlar] = useState<ImplementationReport[]>([]);
   const [yeniDurum, setYeniDurum] = useState<ImplementationStatus>("InProgress");
   const [yeniNot, setYeniNot] = useState("");
   const [uygulamaCalisiyor, setUygulamaCalisiyor] = useState(false);
 
-  // /me
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
@@ -83,7 +76,6 @@ export function ApplicationDetailPage() {
     return () => controller.abort();
   }, []);
 
-  // detay + otomatik okundu + değerlendirmeleri yükle
   useEffect(() => {
     if (!ben || !id) return;
     const controller = new AbortController();
@@ -97,18 +89,14 @@ export function ApplicationDetailPage() {
           try {
             await markRead(id);
             setDetay((prev) => prev ? { ...prev, readByMe: true, readAt: new Date().toISOString() } : prev);
-          } catch {
-            // okundu işaretleme hatası önemsiz
-          }
+          } catch { /* yoksay */ }
         }
         const ev = await getEvaluations(id, controller.signal);
         setEvaluations(ev);
         try {
           const r = await getImplementationReports(id, controller.signal);
           setRaporlar(r);
-        } catch {
-          // yoksay — başka ile ait olabilir (Evaluator ise 403)
-        }
+        } catch { /* yoksay — evaluator ise 403 */ }
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           setHata(mesajCikar(e));
@@ -138,9 +126,7 @@ export function ApplicationDetailPage() {
       try {
         const liste = await listEvaluators();
         setEvaluatorler(liste);
-      } catch (e) {
-        setHata(mesajCikar(e));
-      }
+      } catch (e) { setHata(mesajCikar(e)); }
     }
   }
 
@@ -150,15 +136,11 @@ export function ApplicationDetailPage() {
     setHata(null);
     try {
       await assignEvaluator(id, seciliEvaluator);
-      // detayı yeniden çek
       const d = await getProvinceIdea(id);
       setDetay(d);
       setAtaAcik(false);
-    } catch (e) {
-      setHata(mesajCikar(e));
-    } finally {
-      setAtamaCalisiyor(false);
-    }
+    } catch (e) { setHata(mesajCikar(e)); }
+    finally { setAtamaCalisiyor(false); }
   }
 
   async function puanlamaGonder() {
@@ -177,11 +159,8 @@ export function ApplicationDetailPage() {
       const d = await getProvinceIdea(id);
       setDetay(d);
       setPuanlamaAcik(false);
-    } catch (e) {
-      setHata(mesajCikar(e));
-    } finally {
-      setPuanlamaCalisiyor(false);
-    }
+    } catch (e) { setHata(mesajCikar(e)); }
+    finally { setPuanlamaCalisiyor(false); }
   }
 
   async function onayla() {
@@ -193,11 +172,8 @@ export function ApplicationDetailPage() {
       await approveIdea(id);
       const d = await getProvinceIdea(id);
       setDetay(d);
-    } catch (e) {
-      setHata(mesajCikar(e));
-    } finally {
-      setOnayCalisiyor(false);
-    }
+    } catch (e) { setHata(mesajCikar(e)); }
+    finally { setOnayCalisiyor(false); }
   }
 
   async function uygulamaRaporGonder() {
@@ -211,20 +187,8 @@ export function ApplicationDetailPage() {
       const d = await getProvinceIdea(id);
       setDetay(d);
       setYeniNot("");
-    } catch (e) {
-      setHata(mesajCikar(e));
-    } finally {
-      setUygulamaCalisiyor(false);
-    }
-  }
-
-  if (!kimlikKontrolEdildi) {
-    return (
-      <main className="fikir-hero">
-        <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
-        <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
-      </main>
-    );
+    } catch (e) { setHata(mesajCikar(e)); }
+    finally { setUygulamaCalisiyor(false); }
   }
 
   const yetkili =
@@ -235,169 +199,188 @@ export function ApplicationDetailPage() {
   const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
 
   return (
-    <main className="il-panel-hero">
-      <section className={`fikir-karti ${authAcik ? "fikir-form-blur" : ""}`}>
-        <button type="button" className="btn-ikincil" onClick={() => navigate("/il-panel")}>
-          ← Gelen kutusuna dön
-        </button>
+    <AdminLayout
+      ben={ben}
+      baslik="Başvuru Detayı"
+      aciklama={detay ? `${detay.idea.categoryName} · ${detay.idea.provinceName}` : "Fikir detayları"}
+      donemRozet="📅 2026-2027 · Eylül"
+    >
+      {!kimlikKontrolEdildi && (
+        <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
+      )}
 
-        {yukleniyor && <p>Yükleniyor…</p>}
-
-        {hata && (
-          <div className="status-banner status-banner--error" role="alert">
-            <span className="status-banner__icon">!</span>
-            <span>{hata}</span>
+      {kimlikKontrolEdildi && (
+        <>
+          <div style={{ marginBottom: "0.8rem" }}>
+            <button type="button" className="btn-ikincil" onClick={() => navigate("/il-panel")}>
+              ← Gelen kutusuna dön
+            </button>
           </div>
-        )}
 
-        {detay && (
-          <>
-            <h1>
-              <span style={{ color: "#1f9fa4" }}>{detay.idea.categoryName}</span>{" "}
-              <span style={{ color: "#647a92", fontSize: "1rem" }}>· {detay.idea.provinceName}</span>
-            </h1>
+          {hata && (
+            <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
+              <span className="status-banner__icon">!</span><span>{hata}</span>
+            </div>
+          )}
 
-            <div className="bolum-basligi turuncu">Fikir</div>
-            <div className="detay-icerik">{detay.idea.content || <i>(boş)</i>}</div>
+          {yukleniyor && <div className="status-banner status-banner--info"><span className="status-banner__icon">i</span><span>Detay yükleniyor…</span></div>}
 
-            <div className="bolum-basligi mavi">Öğrenci</div>
-            <div className="detay-ogrenci">
-              <strong>{detay.idea.studentProfile.firstName} {detay.idea.studentProfile.lastName}</strong>
-              <div className="meta">
-                {detay.idea.studentProfile.provinceName}
-                {detay.idea.studentProfile.school ? ` · ${detay.idea.studentProfile.school}` : ""}
-                {detay.idea.studentProfile.grade ? ` · ${detay.idea.studentProfile.grade}. sınıf` : ""}
-                {detay.idea.studentProfile.studentNumber ? ` · No: ${detay.idea.studentProfile.studentNumber}` : ""}
+          {detay && (
+            <div className="tablo-kart" style={{ padding: "1.4rem 1.6rem" }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
+                <h2 style={{ fontFamily: "'Baloo 2', sans-serif", color: "var(--lacivert)", fontSize: "1.4rem" }}>
+                  {detay.idea.categoryName}
+                  <span style={{ color: "#647a92", fontSize: "1rem", fontWeight: 600 }}> · {detay.idea.provinceName}</span>
+                </h2>
+                <span className={`durum ${detay.idea.status === "Locked" ? "mavi" : detay.idea.status === "EvaluationCompleted" ? "yesil" : "turuncu"}`}>
+                  {detay.idea.status}
+                </span>
               </div>
-            </div>
 
-            <div className="bolum-basligi turkuaz">Atama</div>
-            <div className="detay-atama">
-              {detay.assignedEvaluatorIds.length === 0
-                ? <span className="meta">Henüz değerlendirici atanmamış.</span>
-                : (
-                  <ul>
-                    {detay.assignedEvaluatorIds.map((id) => (
-                      <li key={id}>{id}</li>
-                    ))}
-                  </ul>
-                )}
-            </div>
+              <div className="bolum-basligi turuncu">Fikir</div>
+              <div className="detay-icerik">{detay.idea.content || <i>(boş)</i>}</div>
 
-            <div className="bolum-basligi turuncu">Değerlendirme</div>
-            {evaluations && (
-              <div className="detay-degerlendirme">
+              <div className="bolum-basligi mavi">Öğrenci</div>
+              <div className="detay-ogrenci">
+                <strong>{detay.idea.studentProfile.firstName} {detay.idea.studentProfile.lastName}</strong>
                 <div className="meta">
-                  Eşik: <strong>{evaluations.threshold}</strong> · Toplam puan: <strong>{(evaluations.averages ? Object.values(evaluations.averages).reduce((a, b) => a + (b ?? 0), 0) / Math.max(1, Object.keys(evaluations.averages).length) : 0).toFixed(2)}</strong>
+                  {detay.idea.studentProfile.provinceName}
+                  {detay.idea.studentProfile.school ? ` · ${detay.idea.studentProfile.school}` : ""}
+                  {detay.idea.studentProfile.grade ? ` · ${detay.idea.studentProfile.grade}. sınıf` : ""}
+                  {detay.idea.studentProfile.studentNumber ? ` · No: ${detay.idea.studentProfile.studentNumber}` : ""}
                 </div>
-                {Object.keys(evaluations.averages).length === 0 ? (
-                  <p className="meta">Henüz puanlama yapılmamış.</p>
-                ) : (
-                  <ul className="kriter-liste">
-                    {EVALUATION_CRITERIA.map((c) => (
-                      <li key={c}>
-                        <span className="kriter-ad">{CRITERION_LABELS[c]}</span>
-                        <span className="kriter-ortalama">
-                          {evaluations.averages[c] !== undefined ? evaluations.averages[c]!.toFixed(2) : "—"}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {evaluations.evaluations.length > 0 && (
-                  <details className="degerlendirici-detay">
-                    <summary>{evaluations.evaluations.length} puanlama</summary>
-                    <ul className="puanlama-liste">
-                      {evaluations.evaluations.map((e: EvaluationEntry, i: number) => (
-                        <li key={i}>
-                          <strong>{CRITERION_LABELS[e.criterion]}</strong> · {e.score}/5
-                          {e.comment ? <div className="meta">"{e.comment}"</div> : null}
+              </div>
+
+              <div className="bolum-basligi turkuaz">Atama</div>
+              <div className="detay-atama">
+                {detay.assignedEvaluatorIds.length === 0
+                  ? <span className="meta">Henüz değerlendirici atanmamış.</span>
+                  : (
+                    <ul>
+                      {detay.assignedEvaluatorIds.map((aid) => (
+                        <li key={aid}>{aid}</li>
+                      ))}
+                    </ul>
+                  )}
+              </div>
+
+              <div className="bolum-basligi turuncu">Değerlendirme</div>
+              {evaluations && (
+                <div className="detay-degerlendirme">
+                  <div className="meta">
+                    Eşik: <strong>{evaluations.threshold}</strong> · Toplam puan: <strong>{(evaluations.averages ? Object.values(evaluations.averages).reduce((a, b) => a + (b ?? 0), 0) / Math.max(1, Object.keys(evaluations.averages).length) : 0).toFixed(2)}</strong>
+                  </div>
+                  {Object.keys(evaluations.averages).length === 0 ? (
+                    <p className="meta">Henüz puanlama yapılmamış.</p>
+                  ) : (
+                    <ul className="kriter-liste">
+                      {EVALUATION_CRITERIA.map((c) => (
+                        <li key={c}>
+                          <span className="kriter-ad">{CRITERION_LABELS[c]}</span>
+                          <span className="kriter-ortalama">
+                            {evaluations.averages[c] !== undefined ? evaluations.averages[c]!.toFixed(2) : "—"}
+                          </span>
                         </li>
                       ))}
                     </ul>
-                  </details>
+                  )}
+                  {evaluations.evaluations.length > 0 && (
+                    <details className="degerlendirici-detay">
+                      <summary>{evaluations.evaluations.length} puanlama detayı</summary>
+                      <ul className="puanlama-liste">
+                        {evaluations.evaluations.map((e: EvaluationEntry, i: number) => (
+                          <li key={i}>
+                            <strong>{CRITERION_LABELS[e.criterion]}</strong> · {e.score}/5
+                            {e.comment ? <div className="meta">"{e.comment}"</div> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </div>
+              )}
+
+              <div className="fikir-butonlar" style={{ marginTop: "1rem" }}>
+                {managerMi && detay.idea.status !== "Locked" && (
+                  <button type="button" className="btn-ana" onClick={ataModalAc}>
+                    🧑‍⚖️ Değerlendiriciye Ata
+                  </button>
+                )}
+                {detay.idea.status !== "Locked" && (
+                  <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(true)}>
+                    ✏️ Puanla / Yorumla
+                  </button>
+                )}
+                {managerMi && detay.idea.status === "EvaluationCompleted" && (
+                  <button type="button" className="btn-ana" onClick={onayla} disabled={onayCalisiyor}>
+                    {onayCalisiyor ? "Onaylanıyor…" : "✅ İl Onayı Ver"}
+                  </button>
+                )}
+                {detay.idea.status === "Locked" && (
+                  <span className="meta">🔒 İl onayı verildi; fikir kilitli.</span>
                 )}
               </div>
-            )}
 
-            <div className="fikir-butonlar">
-              {managerMi && detay.idea.status !== "Locked" && (
-                <button type="button" className="btn-ana" onClick={ataModalAc}>
-                  🧑‍⚖️ Değerlendiriciye Ata
-                </button>
-              )}
-              {detay.idea.status !== "Locked" && (
-                <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(true)}>
-                  ✏️ Puanla / Yorumla
-                </button>
-              )}
-              {managerMi && detay.idea.status === "EvaluationCompleted" && (
-                <button type="button" className="btn-ana" onClick={onayla} disabled={onayCalisiyor}>
-                  {onayCalisiyor ? "Onaylanıyor…" : "✅ İl Onayı Ver"}
-                </button>
-              )}
-              {detay.idea.status === "Locked" && (
-                <span className="meta">🔒 İl onayı verildi; fikir kilitli.</span>
+              {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed") && (
+                <>
+                  <div className="bolum-basligi turkuaz" style={{ marginTop: "1.4rem" }}>Uygulama Raporu</div>
+                  <div className="detay-uygulama-form">
+                    <div className="auth-iki-sutun">
+                      <div className="alan">
+                        <span>Durum</span>
+                        <select
+                          className="secim-kutu"
+                          value={yeniDurum}
+                          onChange={(e) => setYeniDurum(e.target.value as ImplementationStatus)}
+                        >
+                          {IMPLEMENTATION_STATUSES.map((s) => (
+                            <option key={s} value={s}>{IMPLEMENTATION_LABELS[s]}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="alan">
+                      <span>Not (opsiyonel)</span>
+                      <input
+                        className="arama-kutu"
+                        style={{ width: "100%" }}
+                        value={yeniNot}
+                        onChange={(e) => setYeniNot(e.target.value)}
+                        placeholder="Uygulama hakkında kısa bilgi"
+                        maxLength={500}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-ana"
+                      onClick={uygulamaRaporGonder}
+                      disabled={uygulamaCalisiyor}
+                    >
+                      {uygulamaCalisiyor ? "Kaydediliyor…" : "📝 Raporu Kaydet"}
+                    </button>
+                  </div>
+
+                  {raporlar.length > 0 && (
+                    <details className="degerlendirici-detay" open style={{ marginTop: "0.8rem" }}>
+                      <summary>Rapor geçmişi ({raporlar.length})</summary>
+                      <ul className="puanlama-liste">
+                        {raporlar.map((r) => (
+                          <li key={r.id}>
+                            <span className={`durum ${r.status === "Completed" ? "yesil" : r.status === "Failed" ? "turuncu" : "mavi"}`}>{IMPLEMENTATION_LABELS[r.status]}</span>
+                            {" · "}
+                            {new Date(r.reportedAt).toLocaleString("tr-TR")}
+                            {r.note ? <div className="meta">"{r.note}"</div> : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
               )}
             </div>
-
-            {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed") && (
-              <>
-                <div className="bolum-basligi turkuaz">Uygulama Raporu</div>
-                <div className="detay-uygulama-form">
-                  <div className="auth-iki-sutun">
-                    <div className="alan">
-                      <span>Durum</span>
-                      <select
-                        className="tema-secim"
-                        value={yeniDurum}
-                        onChange={(e) => setYeniDurum(e.target.value as ImplementationStatus)}
-                      >
-                        {IMPLEMENTATION_STATUSES.map((s) => (
-                          <option key={s} value={s}>{IMPLEMENTATION_LABELS[s]}</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="alan">
-                    <span>Not (opsiyonel)</span>
-                    <input
-                      className="tema-input"
-                      value={yeniNot}
-                      onChange={(e) => setYeniNot(e.target.value)}
-                      placeholder="Uygulama hakkında kısa bilgi"
-                      maxLength={500}
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    className="btn-ana"
-                    onClick={uygulamaRaporGonder}
-                    disabled={uygulamaCalisiyor}
-                  >
-                    {uygulamaCalisiyor ? "Kaydediliyor…" : "📝 Raporu Kaydet"}
-                  </button>
-                </div>
-
-                {raporlar.length > 0 && (
-                  <details className="degerlendirici-detay" open>
-                    <summary>Rapor geçmişi ({raporlar.length})</summary>
-                    <ul className="puanlama-liste">
-                      {raporlar.map((r) => (
-                        <li key={r.id}>
-                          <strong>{IMPLEMENTATION_LABELS[r.status]}</strong> ·{" "}
-                          {new Date(r.reportedAt).toLocaleString("tr-TR")}
-                          {r.note ? <div className="meta">"{r.note}"</div> : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </details>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </section>
+          )}
+        </>
+      )}
 
       {ataAcik && (
         <div className="af-lightbox" role="dialog" aria-modal="true">
@@ -413,7 +396,8 @@ export function ApplicationDetailPage() {
                 <div className="alan">
                   <span>Değerlendirici seç</span>
                   <select
-                    className="tema-secim"
+                    className="secim-kutu"
+                    style={{ width: "100%" }}
                     value={seciliEvaluator}
                     onChange={(e) => setSeciliEvaluator(e.target.value)}
                   >
@@ -426,15 +410,8 @@ export function ApplicationDetailPage() {
                   </select>
                 </div>
                 <div className="fikir-butonlar">
-                  <button type="button" className="btn-ikincil" onClick={() => setAtaAcik(false)}>
-                    İptal
-                  </button>
-                  <button
-                    type="button"
-                    className="btn-ana"
-                    onClick={ataGonder}
-                    disabled={!seciliEvaluator || atamaCalisiyor}
-                  >
+                  <button type="button" className="btn-ikincil" onClick={() => setAtaAcik(false)}>İptal</button>
+                  <button type="button" className="btn-ana" onClick={ataGonder} disabled={!seciliEvaluator || atamaCalisiyor}>
                     {atamaCalisiyor ? "Atanıyor…" : "Ata"}
                   </button>
                 </div>
@@ -470,7 +447,8 @@ export function ApplicationDetailPage() {
                     }
                   />
                   <input
-                    className="tema-input"
+                    className="arama-kutu"
+                    style={{ width: "100%" }}
                     placeholder="Yorum (opsiyonel)"
                     value={puanlar[c].comment}
                     onChange={(e) =>
@@ -484,15 +462,8 @@ export function ApplicationDetailPage() {
                 </div>
               ))}
               <div className="fikir-butonlar">
-                <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(false)}>
-                  İptal
-                </button>
-                <button
-                  type="button"
-                  className="btn-ana"
-                  onClick={puanlamaGonder}
-                  disabled={puanlamaCalisiyor}
-                >
+                <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(false)}>İptal</button>
+                <button type="button" className="btn-ana" onClick={puanlamaGonder} disabled={puanlamaCalisiyor}>
                   {puanlamaCalisiyor ? "Gönderiliyor…" : "Puanları Kaydet"}
                 </button>
               </div>
@@ -502,7 +473,7 @@ export function ApplicationDetailPage() {
       )}
 
       <AuthModal acik={authAcik} onAuthed={authGuncelle} sadeceGiris />
-    </main>
+    </AdminLayout>
   );
 }
 

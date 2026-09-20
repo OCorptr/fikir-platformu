@@ -190,6 +190,7 @@
   font-weight: 800;
   color: #647a92;
 }
+body.sayfa-admin .yukleme-ekrani { min-height: 40vh; }
 .yukleme-carki {
   width: 2.6rem;
   height: 2.6rem;
@@ -605,4 +606,34 @@ input[type="range"] {
   color: #8aa0b5;
   font-weight: 600;
   font-size: 0.85rem;
+}
+
+.balon--uyari {
+  background: #fff4d6 !important;
+  border: 0.2rem solid #ef7814 !important;
+  color: #6b3700 !important;
+  font-weight: 800 !important;
+  box-shadow: 0 0.4rem 1.4rem rgba(239, 120, 20, 0.25) !important;
+  animation: balonSallan 0.4s ease-in-out infinite alternate;
+}
+@keyframes balonSallan {
+  from { transform: rotate(-1.2deg) scale(1.02); }
+  to { transform: rotate(1.2deg) scale(1.02); }
+}
+
+.ust-cikis {
+  margin-right: 0.6rem;
+  padding: 0.35rem 0.8rem;
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+  border: 0.1rem solid rgba(255, 255, 255, 0.3);
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: inherit;
+}
+.ust-cikis:hover {
+  background: rgba(255, 255, 255, 0.32);
 }
