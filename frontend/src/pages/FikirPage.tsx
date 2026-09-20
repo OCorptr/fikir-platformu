@@ -1,6 +1,6 @@
-// /fikir â€” AÅŸama 3 frontend.
-// Oturum yoksa AuthModal aÃ§Ä±lÄ±r (kapatÄ±lamaz); giriÅŸ/kayÄ±t sonrasÄ± forma ulaÅŸÄ±lÄ±r.
-// Kategori + fikir metni yeterli â€” Ã¶ÄŸrenci bilgileri (il/okul/sÄ±nÄ±f) backend profilinden alÄ±nÄ±r.
+// /fikir — Aşama 3 frontend.
+// Oturum yoksa AuthModal açılır (kapatılamaz); giriş/kayıt sonrası forma ulaşılır.
+// Kategori + fikir metni yeterli — öğrenci bilgileri (il/okul/sınıf) backend profilinden alınır.
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +25,7 @@ import {
 const MAX_KARAKTER = 1500;
 
 export default function FikirPage() {
-  // oturum (Ã¶ÄŸrenci context'i)
+  // oturum (öğrenci context'i)
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
@@ -49,14 +49,14 @@ export default function FikirPage() {
   const [calisiyor, setCalisiyor] = useState<"taslak" | "gonder" | "sil" | "taslakYukle" | null>(null);
   const [gonderildiEkran, setGonderildiEkran] = useState<StudentIdeaDto | null>(null);
 
-  // 1) sayfa aÃ§Ä±lÄ±r â€” Ã¶ÄŸrenci oturumu kontrol et
+  // 1) sayfa açılır — öğrenci oturumu kontrol et
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
       .then((cevap) => {
         const s = sessionForContext(cevap, "student");
         setBen(s);
-        if (!s) setAuthAcik(true); // /me 200 dÃ¶nse bile student session yoksa modal aÃ§
+        if (!s) setAuthAcik(true); // /me 200 dönse bile student session yoksa modal aç
       })
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
@@ -67,7 +67,7 @@ export default function FikirPage() {
     return () => controller.abort();
   }, []);
 
-  // 2) oturum aÃ§Ä±ldÄ±ktan sonra â€” kategoriler + taslaklar
+  // 2) oturum açıldıktan sonra — kategoriler + taslaklar
   useEffect(() => {
     if (!ben) return;
     const controller = new AbortController();
@@ -113,11 +113,11 @@ export default function FikirPage() {
   async function handleTaslak(e: FormEvent) {
     e.preventDefault();
     if (!fikir.trim()) {
-      setHata("Fikir boÅŸ olamaz.");
+      setHata("Fikir boş olamaz.");
       return;
     }
     if (!kategoriId) {
-      setHata("Tema seÃ§melisin.");
+      setHata("Tema seçmelisin.");
       return;
     }
     setCalisiyor("taslak");
@@ -126,7 +126,7 @@ export default function FikirPage() {
     try {
       if (aktifTaslakId) {
         await updateDraft(aktifTaslakId, { categoryId: kategoriId as number, content: fikir });
-        setMesaj("Taslak gÃ¼ncellendi.");
+        setMesaj("Taslak güncellendi.");
       } else {
         const yeni = await saveDraft({ categoryId: kategoriId as number, content: fikir });
         setAktifTaslakId((yeni as { id: string }).id);
@@ -144,11 +144,11 @@ export default function FikirPage() {
   async function handleGonder(e: FormEvent) {
     e.preventDefault();
     if (!fikir.trim()) {
-      setHata("Fikir boÅŸ olamaz.");
+      setHata("Fikir boş olamaz.");
       return;
     }
     if (!kategoriId) {
-      setHata("Tema seÃ§melisin.");
+      setHata("Tema seçmelisin.");
       return;
     }
     setCalisiyor("gonder");
@@ -158,7 +158,7 @@ export default function FikirPage() {
         ? await submitIdea(aktifTaslakId)
         : await submitIdea((await saveDraft({ categoryId: kategoriId as number, content: fikir })).id);
       setGonderildiEkran(gonderilen as unknown as StudentIdeaDto);
-      setMesaj("Fikrin baÅŸarÄ±yla iletildi!");
+      setMesaj("Fikrin başarıyla iletildi!");
       setAktifTaslakId(null);
       const liste = await listMyIdeas();
       setTaslaklar(liste);
@@ -170,7 +170,7 @@ export default function FikirPage() {
   }
 
   async function handleTaslakSil(id: string) {
-    if (!confirm("Bu taslaÄŸÄ± silmek istediÄŸine emin misin?")) return;
+    if (!confirm("Bu taslağı silmek istediğine emin misin?")) return;
     setCalisiyor("sil");
     setHata(null);
     try {
@@ -211,7 +211,7 @@ export default function FikirPage() {
     navigate("/", { replace: true });
   }
 
-  // YÃ¼kleniyor ekranÄ±
+  // Yükleniyor ekranı
   if (!kimlikKontrolEdildi) {
     return (
         <main className="fikir-hero fikir-hero-onplanda">
@@ -227,7 +227,7 @@ export default function FikirPage() {
     );
   }
 
-  // Kimlik yoksa FORM GÃ–STERÄ°LMEZ â€” sadece AuthModal arka planda aÃ§Ä±lÄ±r.
+  // Kimlik yoksa FORM GÖSTERİLMEZ — sadece AuthModal arka planda açılır.
   if (!ben) {
     return (
       <main className="fikir-hero">
@@ -250,14 +250,14 @@ export default function FikirPage() {
             <circle cx="26" cy="26" r="24" fill="none" stroke="#16a34a" strokeWidth="3" />
             <path d="M15 27 l7.5 7 L38 19" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
           </svg>
-          <h2 style={{ color: "#16355c", fontSize: "1.8rem" }}>Fikrin bize ulaÅŸtÄ±!</h2>
-          <p style={{ color: "#647a92" }}>{mesaj ?? "Fikrinin deÄŸerlendirme sÃ¼recini buradan takip edebilirsin."}</p>
+          <h2 style={{ color: "#16355c", fontSize: "1.8rem" }}>Fikrin bize ulaştı!</h2>
+          <p style={{ color: "#647a92" }}>{mesaj ?? "Fikrinin değerlendirme sürecini buradan takip edebilirsin."}</p>
           <div className="adimlar">
-            <span className="adim aktif">GÃ¶nderildi</span>
-            <span className="adim">Ã–n DeÄŸerlendirme</span>
-            <span className="adim">Komisyon Ä°ncelemesi</span>
+            <span className="adim aktif">Gönderildi</span>
+            <span className="adim">Ön Değerlendirme</span>
+            <span className="adim">Komisyon İncelemesi</span>
             <span className="adim">Planlama</span>
-            <span className="adim">Hayata GeÃ§irildi</span>
+            <span className="adim">Hayata Geçirildi</span>
           </div>
           <button type="button" className="btn-ikincil" onClick={formuTemizle}>
             Yeni Fikir Yaz
@@ -277,15 +277,6 @@ export default function FikirPage() {
             </div>
           )}
 
-          <div className="balon-kapsa" style={{ marginBottom: "1rem" }}>
-            <div className={`balon ${hata ? "balon--uyari" : ""}`}>
-              {hata
-                ? <><span aria-hidden="true">âš ï¸</span> {hata}</>
-                : aktifTaslakId
-                  ? "TaslaÄŸÄ±nÄ± dÃ¼zenliyorsun. BittiÄŸinde GÃ¶nder butonuna bas!"
-                  : <>Merhaba, ben Fikri! Ã–nce bir <b>tema</b> seÃ§, sonra fikrini anlat. SÄ±ra sende!</>}
-            </div>
-          </div>
 
           <form onSubmit={handleGonder} className="fikir-form">
             <div className="alan">
@@ -296,7 +287,7 @@ export default function FikirPage() {
                 onChange={(e) => setKategoriId(e.target.value === "" ? "" : Number(e.target.value))}
                 required
               >
-                <option value="">Tema seÃ§â€¦</option>
+                <option value="">Tema seç…</option>
                 {kategoriler.map((k) => (
                   <option key={k.id} value={k.id}>{k.name}</option>
                 ))}
@@ -309,7 +300,7 @@ export default function FikirPage() {
                 className="fikir-metni"
                 value={fikir}
                 onChange={(e) => setFikir(e.target.value)}
-                placeholder="Fikrini buraya yazâ€¦"
+                placeholder="Fikrini buraya yaz…"
                 maxLength={MAX_KARAKTER}
                 rows={8}
                 required
@@ -323,32 +314,43 @@ export default function FikirPage() {
                 onClick={handleTaslak}
                 disabled={calisiyor === "taslak" || calisiyor === "gonder"}
               >
-                {calisiyor === "taslak" ? "Kaydediliyorâ€¦" : aktifTaslakId ? "TaslaÄŸÄ± GÃ¼ncelle" : "Taslak Kaydet"}
+                {calisiyor === "taslak" ? "Kaydediliyor…" : aktifTaslakId ? "Taslağı Güncelle" : "Taslak Kaydet"}
               </button>
               <button
                 type="submit"
                 className="btn-ana btn-tam"
                 disabled={calisiyor === "taslak" || calisiyor === "gonder"}
               >
-                {calisiyor === "gonder" ? "GÃ¶nderiliyorâ€¦" : aktifTaslakId ? "TaslaÄŸÄ± GÃ¶nder" : "GÃ¶nder"}
+                {calisiyor === "gonder" ? "Gönderiliyor…" : aktifTaslakId ? "Taslağı Gönder" : "Gönder"}
               </button>
             </div>
           </form>
 
+          <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "0.1rem solid #e3ecf4" }}>
+            <button
+              type="button"
+              className="btn-ikincil"
+              onClick={handleCikis}
+              style={{ width: "100%" }}
+            >
+              🚪 Çıkış Yap
+            </button>
+          </div>
+
           {taslaklar.length > 0 && (
             <div className="taslak-listesi">
-              <div className="bolum-basligi turkuaz">TaslaklarÄ±m & GeÃ§miÅŸ Fikirlerim</div>
+              <div className="bolum-basligi turkuaz">Taslaklarım & Geçmiş Fikirlerim</div>
               <ul>
                 {taslaklar.map((t) => (
                   <li key={t.id} className={t.status === "Draft" ? "taslak-oge" : "fikir-oge"}>
                     <div className="taslak-sol">
                       <span className={`durum taslak-durum taslak-durum--${t.status}`}>{durumEtiketi(t.status)}</span>
-                      <span className="taslak-icerik">{t.content.slice(0, 80)}{t.content.length > 80 ? "â€¦" : ""}</span>
+                      <span className="taslak-icerik">{t.content.slice(0, 80)}{t.content.length > 80 ? "…" : ""}</span>
                     </div>
                     <div className="taslak-sag">
                       {t.status === "Draft" && (
                         <>
-                          <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>DÃ¼zenle</button>
+                          <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>Düzenle</button>
                           <button type="button" className="taslak-islem tehlikeli" onClick={() => handleTaslakSil(t.id)}>Sil</button>
                         </>
                       )}
@@ -384,14 +386,14 @@ export default function FikirPage() {
 function durumEtiketi(durum: StudentIdeaDto["status"]): string {
   switch (durum) {
     case "Draft": return "Taslak";
-    case "Submitted": return "GÃ¶nderildi";
-    case "InEvaluation": return "DeÄŸerlendirmede";
-    case "EvaluationCompleted": return "DeÄŸerlendirildi";
+    case "Submitted": return "Gönderildi";
+    case "InEvaluation": return "Değerlendirmede";
+    case "EvaluationCompleted": return "Değerlendirildi";
     case "Locked": return "Kilitli";
-    case "Planned": return "PlanlandÄ±";
+    case "Planned": return "Planlandı";
     case "ImplementationInProgress": return "Uygulamada";
-    case "ImplementationCompleted": return "UygulandÄ±";
-    case "ImplementationFailed": return "BaÅŸarÄ±sÄ±z";
+    case "ImplementationCompleted": return "Uygulandı";
+    case "ImplementationFailed": return "Başarısız";
     case "Deleted": return "Silindi";
   }
 }
@@ -399,7 +401,7 @@ function durumEtiketi(durum: StudentIdeaDto["status"]): string {
 function mesajCikar(e: unknown): string {
   if (e instanceof ApiHttpError) return e.message;
   if (e instanceof Error) return e.message;
-  return "Beklenmeyen bir hata oluÅŸtu.";
+  return "Beklenmeyen bir hata oluştu.";
 }
 
 
