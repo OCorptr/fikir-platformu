@@ -7,7 +7,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getInbox } from "../services/province";
-import { type InboxEntry, type MeSession, sessionForContext } from "../types";
+import { type InboxEntry, type MeSession, SONUC_DURUM_IKON, sonucDurumu, sessionForContext } from "../types";
 
 const TEMA_EMOJI: Record<string, string> = {
   "Kültür ve Sanat": "🎨",
@@ -121,9 +121,6 @@ export function ProvinceInboxPage() {
           </div>
 
           <section className="tablo-kart">
-            <div className="tablo-araclar">
-              <span className="tablo-notu">Fikirler tarihe göre sıralanır · En yeni üstte</span>
-            </div>
 
             {hata && (
               <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
@@ -190,6 +187,7 @@ export function ProvinceInboxPage() {
                         </select>
                       </th>
                       <th>Tarih</th>
+                      <th>Sonuç</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -233,6 +231,27 @@ export function ProvinceInboxPage() {
                           <span className="meta">
                             {new Date(i.submittedAt).toLocaleDateString("tr-TR")}
                           </span>
+                        </td>
+                        <td>
+                          {(() => {
+                            const d = sonucDurumu(i);
+                            const m = SONUC_DURUM_IKON[d];
+                            return (
+                              <span className={`durum ${m.sinif}`}>
+                                {m.ikon} {m.etiket}
+                                {d === "aday" && i.averageScore != null && (
+                                  <span className="meta" style={{ marginLeft: "0.4rem", color: "inherit", fontWeight: 700 }}>
+                                    {i.averageScore.toFixed(2)}
+                                  </span>
+                                )}
+                                {d === "yetersiz" && i.averageScore != null && (
+                                  <span className="meta" style={{ marginLeft: "0.4rem", color: "inherit", fontWeight: 700 }}>
+                                    {i.averageScore.toFixed(2)}
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}

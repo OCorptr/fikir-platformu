@@ -8,7 +8,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getInbox } from "../services/province";
-import { type InboxEntry, type MeSession, sessionForContext } from "../types";
+import { type InboxEntry, type MeSession, SONUC_DURUM_IKON, sonucDurumu, sessionForContext } from "../types";
 
 const TEMA_EMOJI: Record<string, string> = {
   "Kültür ve Sanat": "🎨",
@@ -107,17 +107,22 @@ export function ProvinceReportPage() {
   }, [filtreli]);
 
   function csvIndir() {
-    const basliklar = ["ID", "Öğrenci", "Tema", "İçerik", "Tarih", "Değerlendirme Sayısı", "Son Değerlendirme", "Okundu mu"];
-    const satirlar = filtreli.map((i) => [
-      i.ideaId,
-      `${i.studentFirstName} ${i.studentLastName}`,
-      i.categoryName,
-      (i.content || "").replace(/\s+/g, " ").trim(),
-      new Date(i.submittedAt).toLocaleDateString("tr-TR"),
-      String(i.evaluationCount),
-      i.lastEvaluatedAt ? new Date(i.lastEvaluatedAt).toLocaleDateString("tr-TR") : "",
-      i.isReadByMe ? "Evet" : "Hayır",
-    ]);
+    const basliklar = ["ID", "Öğrenci", "Tema", "İçerik", "Tarih", "Değerlendirme Sayısı", "Ortalama Puan", "Sonuç", "Son Değerlendirme", "Okundu mu"];
+    const satirlar = filtreli.map((i) => {
+      const durum = SONUC_DURUM_IKON[sonucDurumu(i)];
+      return [
+        i.ideaId,
+        `${i.studentFirstName} ${i.studentLastName}`,
+        i.categoryName,
+        (i.content || "").replace(/\s+/g, " ").trim(),
+        new Date(i.submittedAt).toLocaleDateString("tr-TR"),
+        String(i.evaluationCount),
+        i.averageScore != null ? i.averageScore.toFixed(2) : "",
+        durum.etiket,
+        i.lastEvaluatedAt ? new Date(i.lastEvaluatedAt).toLocaleDateString("tr-TR") : "",
+        i.isReadByMe ? "Evet" : "Hayır",
+      ];
+    });
     const csv = [basliklar, ...satirlar]
       .map((r) => r.map((h) => `"${String(h).replace(/"/g, '""')}"`).join(","))
       .join("\n");
@@ -231,6 +236,7 @@ export function ProvinceReportPage() {
                         <th>Tarih</th>
                         <th>Değerlendirme</th>
                         <th>Durum</th>
+                        <th>Sonuç</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -257,6 +263,22 @@ export function ProvinceReportPage() {
                             {i.isReadByMe
                               ? <span className="durum yesil">✓ Okundu</span>
                               : <span className="durum turuncu">● Yeni</span>}
+                          </td>
+                          <td>
+                            {(() => {
+                              const d = sonucDurumu(i);
+                              const m = SONUC_DURUM_IKON[d];
+                              return (
+                                <span className={`durum ${m.sinif}`}>
+                                  {m.ikon} {m.etiket}
+                                  {(d === "aday" || d === "yetersiz") && i.averageScore != null && (
+                                    <span className="meta" style={{ marginLeft: "0.4rem", color: "inherit", fontWeight: 700 }}>
+                                      {i.averageScore.toFixed(2)}
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })()}
                           </td>
                         </tr>
                       ))}

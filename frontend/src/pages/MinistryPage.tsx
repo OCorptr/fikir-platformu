@@ -235,11 +235,11 @@ export function MinistryPage() {
                               <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
                               <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
                               {i.isSelected ? (
-                                <span className="durum altin">⭐ Bu Dönemin Fikri</span>
+                                <span className="durum altin">👑 Ayın Fikri</span>
                               ) : g.selected ? (
                                 <span className="meta">kategori seçildi</span>
                               ) : (
-                                <span className="durum yesil">✓ Aday</span>
+                                <span className="durum yesil">🌟 Aday</span>
                               )}
                               {!g.selected && (
                                 <button

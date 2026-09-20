@@ -1,11 +1,15 @@
 using FikirPlatformu.Application.Provinces;
 using FikirPlatformu.Domain.Ideas;
+using FikirPlatformu.Domain.Ministry;
 using Microsoft.EntityFrameworkCore;
 
 namespace FikirPlatformu.Infrastructure.Persistence;
 
 public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IProvinceInboxQueryService
 {
+    // Aday havuzu eşiği (plan §26): ortalama puan bu eşiği geçen fikirler bakanlığa aday olur.
+    private const double AdayEsik = 3.5;
+
     public async Task<IReadOnlyList<InboxEntry>> ListAsync(
         int provinceId,
         string currentUserId,
@@ -58,18 +62,39 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             .Select(r => new { r.IdeaId, r.ReadAt })
             .ToListAsync(cancellationToken);
 
+        // Ortalama puan + değerlendirme sayısı + son tarih tek sorguda.
         var evaluations = await db.Evaluations
             .AsNoTracking()
             .Where(e => ideaIds.Contains(e.IdeaId))
             .GroupBy(e => e.IdeaId)
-            .Select(g => new { IdeaId = g.Key, Count = g.Count(), LastAt = g.Max(e => (DateTimeOffset?)e.EvaluatedAt) })
+            .Select(g => new
+            {
+                IdeaId = g.Key,
+                Count = g.Count(),
+                LastAt = g.Max(e => (DateTimeOffset?)e.EvaluatedAt),
+                Avg = g.Average(e => (double?)e.Score),
+            })
             .ToListAsync(cancellationToken);
+
+        // Aktif dönemde bakanlık tarafından seçilmiş fikirler (Ayın Fikri rozeti).
+        var aktifDonemId = await db.Periods.AsNoTracking()
+            .Where(p => p.Status == PeriodStatus.Open)
+            .OrderByDescending(p => p.StartAt)
+            .Select(p => (Guid?)p.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+        var secilmisIdeaIds = aktifDonemId.HasValue
+            ? await db.PeriodSelections.AsNoTracking()
+                .Where(s => s.PeriodId == aktifDonemId.Value)
+                .Select(s => s.IdeaId)
+                .ToListAsync(cancellationToken)
+            : new List<Guid>();
 
         var assignmentMap = assignments
             .GroupBy(a => a.IdeaId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(a => a.EvaluatorUserId).ToList());
         var readMap = reads.ToDictionary(r => r.IdeaId, r => r.ReadAt);
         var evalMap = evaluations.ToDictionary(e => e.IdeaId);
+        var secilmisSet = secilmisIdeaIds.ToHashSet();
 
         return raw.Select(r => new InboxEntry(
             r.Id,
@@ -88,6 +113,8 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             readMap.ContainsKey(r.Id),
             readMap.TryGetValue(r.Id, out var readAt) ? readAt : null,
             evalMap.TryGetValue(r.Id, out var ev) ? ev.Count : 0,
-            evalMap.TryGetValue(r.Id, out var ev2) ? ev2.LastAt : null)).ToList();
+            evalMap.TryGetValue(r.Id, out var ev2) ? ev2.LastAt : null,
+            evalMap.TryGetValue(r.Id, out var ev3) && ev3.Avg.HasValue ? Math.Round(ev3.Avg.Value, 2) : (double?)null,
+            secilmisSet.Contains(r.Id))).ToList();
     }
 }

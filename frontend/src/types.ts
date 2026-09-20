@@ -154,7 +154,29 @@ export interface InboxEntry {
   readAtByMe: string | null;
   evaluationCount: number;
   lastEvaluatedAt: string | null;
+  averageScore: number | null;
+  isMinistrySelected: boolean;
 }
+
+// Aday eşiği — plan §26: ortalama puan eşiği geçen fikirler bakanlığa aday olur.
+export const ADAY_ESIK = 3.5;
+
+export type SonucDurumu = "ayinFikri" | "aday" | "yetersiz" | "beklemede";
+
+export function sonucDurumu(e: Pick<InboxEntry, "isMinistrySelected" | "averageScore" | "evaluationCount">): SonucDurumu {
+  if (e.isMinistrySelected) return "ayinFikri";
+  if (e.evaluationCount === 0 || e.averageScore == null) return "beklemede";
+  if (e.averageScore >= ADAY_ESIK) return "aday";
+  return "yetersiz";
+}
+
+// Aday ⭐, Ayın Fikri 👑 — iki ayrı ikon, ayırt edilebilir.
+export const SONUC_DURUM_IKON: Record<SonucDurumu, { ikon: string; etiket: string; sinif: "altin" | "yesil" | "turuncu" | "mavi" }> = {
+  ayinFikri: { ikon: "👑", etiket: "Ayın Fikri", sinif: "altin" },
+  aday: { ikon: "🌟", etiket: "Aday", sinif: "yesil" },
+  yetersiz: { ikon: "⚠️", etiket: "Yetersiz Puan", sinif: "turuncu" },
+  beklemede: { ikon: "⏳", etiket: "Beklemede", sinif: "mavi" },
+};
 
 // /api/province/ideas/{id} — başvuru detayı
 export interface IdeaDetailStudentProfile {

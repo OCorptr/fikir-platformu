@@ -17,7 +17,9 @@ public sealed record InboxEntry(
     bool IsReadByMe,
     DateTimeOffset? ReadAtByMe,
     int EvaluationCount,
-    DateTimeOffset? LastEvaluatedAt);
+    DateTimeOffset? LastEvaluatedAt,
+    double? AverageScore,
+    bool IsMinistrySelected);
 
 public interface IProvinceInboxQueryService
 {
