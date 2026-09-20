@@ -57,7 +57,6 @@ export default function App() {
         </Route>
         <Route element={<ProtectedRoute context="ministry" />}>
           <Route path="/bakanlik" element={<MinistryPage />} />
-          <Route path="/bakanlik/uygulamalar" element={<MinistryPage />} />
           <Route path="/bakanlik/:periodId" element={<MinistryPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

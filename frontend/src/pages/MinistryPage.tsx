@@ -39,8 +39,7 @@ const KATEGORI_EMOJI: Record<string, string> = {
 };
 
 export function MinistryPage() {
-  const { periodId, "*": kuyruk } = useParams<{ periodId?: string; "*": string }>();
-  const sadeceUygulamalar = kuyruk === "uygulamalar";
+  const { periodId } = useParams<{ periodId?: string }>();
   const navigate = useNavigate();
 
   const [ben, setBen] = useState<MeSession | null>(null);
@@ -75,7 +74,7 @@ export function MinistryPage() {
     listPeriods(controller.signal)
       .then((liste) => {
         setPeriods(liste);
-        if (!periodId && !sadeceUygulamalar && liste.length > 0) {
+        if (!periodId && liste.length > 0) {
           const ilk = liste.find((p) => p.status === "Open") ?? liste[0];
           navigate(`/bakanlik/${ilk.id}`, { replace: true });
         }
@@ -88,24 +87,13 @@ export function MinistryPage() {
   };
 
   useEffect(() => {
-    if (!ben || sadeceUygulamalar) return;
+    if (!ben) return;
     return periodlariYenile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ben, sadeceUygulamalar]);
+  }, [ben]);
 
   useEffect(() => {
     if (!ben) return;
-    if (sadeceUygulamalar) {
-      const controller = new AbortController();
-      setYukleniyor(true);
-      getImplementationSummary(controller.signal)
-        .then(setUygulamalar)
-        .catch((e) => {
-          if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
-        })
-        .finally(() => setYukleniyor(false));
-      return () => controller.abort();
-    }
     if (!periodId) {
       setAktif(null);
       setAdaylar(null);
@@ -129,7 +117,7 @@ export function MinistryPage() {
       })
       .finally(() => setYukleniyor(false));
     return () => controller.abort();
-  }, [ben, periodId, sadeceUygulamalar]);
+  }, [ben, periodId]);
 
   async function secimYap(categoryId: number, ideaId: string) {
     if (!aktif) return;
@@ -145,10 +133,8 @@ export function MinistryPage() {
     } catch (e) { setHata(mesajCikar(e)); }
   }
 
-  const baslik = sadeceUygulamalar ? "Uygulama Takibi" : "Dönemler & Aday Havuzu";
-  const aciklama = sadeceUygulamalar
-    ? "Tüm dönemlerde uygulamaya alınan fikirlerin durum özeti"
-    : "Her üç aylık dönemde, tüm kategorilerden birer il onaylı fikir seçilir (plan §26)";
+  const baslik = "Dönemler & Aday Havuzu";
+  const aciklama = "Her üç aylık dönemde, tüm kategorilerden birer il onaylı fikir seçilir (plan §26)";
 
   return (
     <AdminLayout
@@ -161,7 +147,7 @@ export function MinistryPage() {
         <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
       )}
 
-      {kimlikKontrolEdildi && ben && !sadeceUygulamalar && (
+      {kimlikKontrolEdildi && ben && (
         <>
           <div className="istatistikler" style={{ marginBottom: "1rem" }}>
             <div className="istat">
@@ -330,57 +316,6 @@ export function MinistryPage() {
             </section>
           )}
         </>
-      )}
-
-      {kimlikKontrolEdildi && ben && sadeceUygulamalar && (
-        <section className="tablo-kart">
-          <div className="bolum-basligi turuncu" style={{ marginBottom: "0.6rem" }}>
-            🚀 Tüm Uygulamalar ({uygulamalar.length})
-          </div>
-          <span className="tablo-notu" style={{ display: "block", marginBottom: "0.8rem" }}>
-            Bakanlık tarafından seçilen ve uygulamaya alınan fikirler · durum güncel
-          </span>
-
-          {hata && (
-            <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
-              <span className="status-banner__icon">!</span><span>{hata}</span>
-            </div>
-          )}
-
-          {yukleniyor && <div className="status-banner status-banner--info"><span className="status-banner__icon">i</span><span>Yükleniyor…</span></div>}
-
-          {!yukleniyor && uygulamalar.length === 0 && (
-            <div className="il-panel-bos"><p>📭 Henüz uygulamaya alınmış fikir yok.</p></div>
-          )}
-
-          {!yukleniyor && uygulamalar.length > 0 && (
-            <div className="tablo-sarmal">
-              <table className="tablo">
-                <thead>
-                  <tr><th>Dönem</th><th>Durum</th><th>Kategori</th><th>İl</th><th>İçerik</th></tr>
-                </thead>
-                <tbody>
-                  {uygulamalar.map((u) => {
-                    const status = u.status.Status as keyof typeof IMPLEMENTATION_LABELS;
-                    const cls = u.status.Status === "Completed" ? "yesil"
-                      : u.status.Status === "Failed" ? "turuncu"
-                      : u.status.Status === "InProgress" ? "mavi"
-                      : "altin";
-                    return (
-                      <tr key={u.ideaId}>
-                        <td><span className="meta">{u.status.PeriodLabel}</span></td>
-                        <td><span className={`durum ${cls}`}>{IMPLEMENTATION_LABELS[status] ?? u.status.Status}</span></td>
-                        <td><strong>{u.categoryName}</strong></td>
-                        <td>{u.provinceName}</td>
-                        <td className="fikir-hucre"><div className="icerik-ozet">{u.content || <i>(boş)</i>}</div></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
       )}
     </AdminLayout>
   );
