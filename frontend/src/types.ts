@@ -12,6 +12,19 @@ export type IdeaStatus =
   | "ImplementationFailed"
   | "Deleted";
 
+export const IDEA_STATUS_LABELS: Record<IdeaStatus, string> = {
+  Draft: "Taslak",
+  Submitted: "Gönderildi",
+  InEvaluation: "Değerlendirmede",
+  EvaluationCompleted: "Değerlendirildi",
+  Locked: "Kilitli",
+  Planned: "Planlandı",
+  ImplementationInProgress: "Uygulamada",
+  ImplementationCompleted: "Uygulandı",
+  ImplementationFailed: "Başarısız",
+  Deleted: "Silindi",
+};
+
 export interface CategoryRef {
   id: number;
   name: string;
@@ -260,6 +273,12 @@ export interface ApproveResponse {
 // Aşama 6 — Bakanlık
 
 export type PeriodStatus = "Open" | "SelectionComplete" | "Archived";
+
+export const PERIOD_STATUS_LABELS: Record<PeriodStatus, string> = {
+  Open: "Açık",
+  SelectionComplete: "Seçim Tamamlandı",
+  Archived: "Arşivlendi",
+};
 
 export interface Period {
   id: string;

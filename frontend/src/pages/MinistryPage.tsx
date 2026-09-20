@@ -18,6 +18,7 @@ import {
   IMPLEMENTATION_LABELS,
   type ImplementationSummary,
   type MeSession,
+  PERIOD_STATUS_LABELS,
   type Period,
   type PeriodCandidatesResponse,
   type PeriodSelectedResponse,
@@ -181,7 +182,7 @@ export function MinistryPage() {
                   <option value="">Dönem seç…</option>
                   {periods.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.label} ({new Date(p.startAt).toLocaleDateString("tr-TR")} – {new Date(p.endAt).toLocaleDateString("tr-TR")}) [{p.status}]
+                      {p.label} ({new Date(p.startAt).toLocaleDateString("tr-TR")} – {new Date(p.endAt).toLocaleDateString("tr-TR")}) [{PERIOD_STATUS_LABELS[p.status]}]
                     </option>
                   ))}
                 </select>
@@ -203,7 +204,7 @@ export function MinistryPage() {
               <div style={{ marginBottom: "0.4rem", fontWeight: 800, color: "var(--lacivert)", fontSize: "1.05rem" }}>
                 {aktif.label}
                 <span className="meta" style={{ marginLeft: "0.6rem" }}>
-                  {new Date(aktif.startAt).toLocaleDateString("tr-TR")} – {new Date(aktif.endAt).toLocaleDateString("tr-TR")} · {aktif.status}
+                  {new Date(aktif.startAt).toLocaleDateString("tr-TR")} – {new Date(aktif.endAt).toLocaleDateString("tr-TR")} · {PERIOD_STATUS_LABELS[aktif.status]}
                 </span>
               </div>
             )}

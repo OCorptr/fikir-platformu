@@ -23,6 +23,7 @@ import {
 import {
   CRITERION_LABELS,
   EVALUATION_CRITERIA,
+  IDEA_STATUS_LABELS,
   IMPLEMENTATION_LABELS,
   IMPLEMENTATION_STATUSES,
   type EvaluationEntry,
@@ -229,7 +230,7 @@ export function ApplicationDetailPage() {
                   <span style={{ color: "#647a92", fontSize: "1rem", fontWeight: 600 }}> · {detay.idea.provinceName}</span>
                 </h2>
                 <span className={`durum ${detay.idea.status === "Locked" ? "mavi" : detay.idea.status === "EvaluationCompleted" ? "yesil" : "turuncu"}`}>
-                  {detay.idea.status}
+                  {IDEA_STATUS_LABELS[detay.idea.status]}
                 </span>
               </div>
 
