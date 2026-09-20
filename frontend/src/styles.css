@@ -635,19 +635,26 @@ input[type="range"] {
   from { transform: rotate(-1.2deg) scale(1.02); }
   to { transform: rotate(1.2deg) scale(1.02); }
 }
-/* === Fikir sayfasi: kimlik yokken AuthModal yan yana, maskot+balon ile ayni z-index === */
-/* Orijinal .fikir-sol / .balon-kapsa / .balon / .maskot-fikir stilleri stil.css'te tanımlı. */
-/* AuthModal lightbox stilini sıfırla → fikir-hero grid'inin sağ kolonuna normal block olarak oturur */
+/* === Fikir sayfasi: kimlik yokken AuthModal lightbox SAG YARI, maskot+balon SOL YARI (yan yana) === */
+/* .af-lightbox orijinali korunuyor (stil.css:1105: position:fixed; inset:0; z-index:96). */
+/* 'arkadaMi' prop'u true olan AuthModal sadece sag yariyi kaplar; maskot+balon solda normal akar. */
 .af-lightbox-arkada {
-  position: static !important;
-  inset: auto !important;
-  z-index: auto !important;
-  background: transparent !important;
-  display: block !important;
-  padding: 0 !important;
-  margin: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 50% !important;
+  z-index: 50 !important;
+  background: rgba(15, 35, 70, 0.68);
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
   animation: none !important;
 }
+/* maskot+balon: lightbox'in ustunde, solda normal gorunur */
+.fikir-hero > .fikir-sol { z-index: 100; }
+.fikir-hero { z-index: 100; position: relative; }
 
 .ust-cikis {
   margin-right: 0.6rem;
