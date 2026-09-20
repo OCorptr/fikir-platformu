@@ -94,14 +94,6 @@ export function ProvinceReportPage() {
       .sort((a, b) => b.adet - a.adet);
   }, [filtreli]);
 
-  // Durum dağılımı: değerlendirildi / değerlendirilmedi
-  const durumDagilimi = useMemo(() => {
-    const toplam = filtreli.length || 1;
-    const evet = filtreli.filter((i) => i.evaluationCount > 0).length;
-    const hayir = toplam - evet;
-    return { evet, hayir, evetYuzde: Math.round((evet / toplam) * 100), hayirYuzde: Math.round((hayir / toplam) * 100) };
-  }, [filtreli]);
-
   function csvIndir() {
     const basliklar = ["ID", "Öğrenci", "Tema", "İçerik", "Tarih", "Değerlendirme Sayısı", "Ortalama Puan", "Sonuç", "Son Değerlendirme", "Okundu mu"];
     const satirlar = filtreli.map((i) => {
@@ -164,8 +156,6 @@ export function ProvinceReportPage() {
               <option value="beklemede">{SONUC_DURUM_IKON.beklemede.ikon} {SONUC_DURUM_IKON.beklemede.etiket}</option>
             </select>
             <span style={{ flex: 1 }} />
-            <button type="button" className="btn-ikincil btn-kucul" onClick={csvIndir}>⬇ Excel'e Aktar</button>
-            <button type="button" className="btn-ikincil btn-kucul" onClick={() => window.print()}>🖨 Yazdır</button>
           </div>
 
           {hata && (
@@ -197,21 +187,13 @@ export function ProvinceReportPage() {
                 </div>
               )}
 
-              <div className="bolum-basligi turkuaz" style={{ marginTop: "1.4rem" }}>🎯 Değerlendirme Durumu</div>
-              <div className="tema-mini">
-                <div className="tm-kart">
-                  <span className="tm-ad">✅ Değerlendirildi</span>
-                  <span className="tm-deger">{durumDagilimi.evet}</span>
-                  <i className="tm-bar yesil" style={{ width: `${Math.max(8, durumDagilimi.evetYuzde)}%` }} />
-                </div>
-                <div className="tm-kart">
-                  <span className="tm-ad">⏳ Değerlendirilmedi</span>
-                  <span className="tm-deger">{durumDagilimi.hayir}</span>
-                  <i className="tm-bar turuncu" style={{ width: `${Math.max(8, durumDagilimi.hayirYuzde)}%` }} />
+              <div className="bolum-satir-baslik">
+                <div className="bolum-basligi kirmizi">📋 Fikir Kayıtları ({filtreli.length})</div>
+                <div className="bolum-satir-butonlar">
+                  <button type="button" className="btn-ikincil btn-kucul" onClick={csvIndir}>⬇ Excel'e Aktar</button>
+                  <button type="button" className="btn-ikincil btn-kucul" onClick={() => window.print()}>🖨 Yazdır</button>
                 </div>
               </div>
-
-              <div className="bolum-basligi kirmizi" style={{ marginTop: "1.4rem" }}>📋 Fikir Kayıtları ({filtreli.length})</div>
               {filtreli.length === 0 ? (
                 <div className="il-panel-bos"><p>Filtreye uyan fikir bulunmuyor.</p></div>
               ) : (

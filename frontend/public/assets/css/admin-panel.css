@@ -124,6 +124,9 @@
 }
 .filtre-secici:focus { border-color: #1E88C9; }
 .filtre-secici:hover { border-color: #1E88C9; }
+.bolum-satir-baslik { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; margin: 1.4rem 0 0.5rem; flex-wrap: wrap; }
+.bolum-satir-baslik .bolum-basligi { margin: 0; }
+.bolum-satir-butonlar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .tablo-sarmal { overflow-x: auto; }
 .meta { color: #647A92; font-size: 0.88rem; font-weight: 700; }
 .icerik-ozet { font-family: 'Nunito', sans-serif; font-weight: 600; color: var(--metin); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
