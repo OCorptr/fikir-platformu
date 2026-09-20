@@ -231,7 +231,7 @@ export default function FikirPage() {
             </div>
           </div>
         </main>
-        <AuthModal acik={authAcik} onAuthed={authGuncelle} />
+        <AuthModal acik={authAcik} onAuthed={authGuncelle} arkadaMi />
       </>
     );
   }

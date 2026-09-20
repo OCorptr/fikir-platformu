@@ -19,9 +19,11 @@ interface Props {
   sadeceGiris?: boolean;
   /** Hangi panele giriş yapıldığı (plan §49). Login backend'e iletilir. */
   context?: LoginContext;
+  /** true → lightbox arka planda kalır (maskot + .maskot-ust-yazi önde). */
+  arkadaMi?: boolean;
 }
 
-export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contextProp }: Props) {
+export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contextProp, arkadaMi = false }: Props) {
   // Path'ten context algıla (prop verilmediyse).
   const yol = useLocation().pathname;
   const context: LoginContext | undefined = contextProp ?? contextFromPath(yol);
@@ -136,7 +138,7 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
 
   return (
     <div
-      className="af-lightbox"
+      className={`af-lightbox ${arkadaMi ? "af-lightbox-arkada" : ""}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-baslik"
