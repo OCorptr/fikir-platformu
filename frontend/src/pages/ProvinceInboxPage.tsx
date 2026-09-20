@@ -17,6 +17,9 @@ export function ProvinceInboxPage() {
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
   const [arama, setArama] = useState("");
+  const [temaFiltresi, setTemaFiltresi] = useState("");
+  const [degerlendirmeFiltresi, setDegerlendirmeFiltresi] = useState<"hepsi" | "degis" | "degmemis">("hepsi");
+  const [okunduFiltresi, setOkunduFiltresi] = useState<"hepsi" | "okundu" | "okunmamis">("hepsi");
 
   const navigate = useNavigate();
 
@@ -50,14 +53,23 @@ export function ProvinceInboxPage() {
     return <Navigate to="/" replace />;
   }
 
-  const filtreli = arama.trim()
-    ? inbox.filter((i) =>
-        [i.content, i.studentFirstName, i.studentLastName, i.categoryName, i.studentSchool ?? ""]
-          .join(" ")
-          .toLocaleLowerCase("tr-TR")
-          .includes(arama.trim().toLocaleLowerCase("tr-TR")),
-      )
-    : inbox;
+  const temalar = Array.from(new Set(inbox.map((i) => i.categoryName))).sort((a, b) =>
+    a.localeCompare(b, "tr"),
+  );
+  const filtreli = inbox.filter((i) => {
+    if (arama.trim()) {
+      const hedef = [i.content, i.studentFirstName, i.studentLastName, i.categoryName, i.studentSchool ?? ""]
+        .join(" ")
+        .toLocaleLowerCase("tr-TR");
+      if (!hedef.includes(arama.trim().toLocaleLowerCase("tr-TR"))) return false;
+    }
+    if (temaFiltresi && i.categoryName !== temaFiltresi) return false;
+    if (degerlendirmeFiltresi === "degis" && i.evaluationCount === 0) return false;
+    if (degerlendirmeFiltresi === "degmemis" && i.evaluationCount > 0) return false;
+    if (okunduFiltresi === "okundu" && !i.isReadByMe) return false;
+    if (okunduFiltresi === "okunmamis" && i.isReadByMe) return false;
+    return true;
+  });
   const okunmamis = inbox.filter((i) => !i.isReadByMe).length;
 
   return (
@@ -73,30 +85,32 @@ export function ProvinceInboxPage() {
 
       {kimlikKontrolEdildi && ben && (
         <>
-          <div className="istatistikler" style={{ marginBottom: "1rem" }}>
-            <div className="istat">
-              <span className="ikon turkuaz">📥</span>
-              <div><div className="sayi">{inbox.length}</div><div className="istat-etiket">Toplam Başvuru</div></div>
+          <div className="ust-satir">
+            <div className="istatistikler">
+              <div className="istat">
+                <span className="ikon turkuaz">📥</span>
+                <div><div className="sayi">{inbox.length}</div><div className="istat-etiket">Toplam Başvuru</div></div>
+              </div>
+              <div className="istat">
+                <span className="ikon turuncu">●</span>
+                <div><div className="sayi">{okunmamis}</div><div className="istat-etiket">Okunmamış</div></div>
+              </div>
+              <div className="istat">
+                <span className="ikon sari">🧑‍⚖️</span>
+                <div><div className="sayi">{inbox.filter((i) => i.assignedEvaluatorUserIds.length > 0).length}</div><div className="istat-etiket">Atanmış</div></div>
+              </div>
             </div>
-            <div className="istat">
-              <span className="ikon turuncu">●</span>
-              <div><div className="sayi">{okunmamis}</div><div className="istat-etiket">Okunmamış</div></div>
-            </div>
-            <div className="istat">
-              <span className="ikon sari">🧑‍⚖️</span>
-              <div><div className="sayi">{inbox.filter((i) => i.assignedEvaluatorUserIds.length > 0).length}</div><div className="istat-etiket">Atanmış</div></div>
-            </div>
+            <input
+              className="arama-kutu arama-kutu--yan"
+              type="text"
+              placeholder="Öğrenci, fikir veya okul ara..."
+              value={arama}
+              onChange={(e) => setArama(e.target.value)}
+            />
           </div>
 
           <section className="tablo-kart">
             <div className="tablo-araclar">
-              <input
-                className="arama-kutu"
-                type="text"
-                placeholder="Öğrenci, fikir veya okul ara..."
-                value={arama}
-                onChange={(e) => setArama(e.target.value)}
-              />
               <span className="tablo-notu">Fikirler tarihe göre sıralanır · En yeni üstte</span>
             </div>
 
@@ -125,11 +139,45 @@ export function ProvinceInboxPage() {
                 <table className="tablo">
                   <thead>
                     <tr>
-                      <th></th>
-                      <th>Tema</th>
+                      <th>
+                        <select
+                          className="filtre-secici"
+                          value={okunduFiltresi}
+                          onChange={(e) => setOkunduFiltresi(e.target.value as typeof okunduFiltresi)}
+                          aria-label="Okundu filtresi"
+                        >
+                          <option value="hepsi">Tümü</option>
+                          <option value="okunmamis">Okunmamış</option>
+                          <option value="okundu">Okundu</option>
+                        </select>
+                      </th>
+                      <th>
+                        <select
+                          className="filtre-secici"
+                          value={temaFiltresi}
+                          onChange={(e) => setTemaFiltresi(e.target.value)}
+                          aria-label="Tema filtresi"
+                        >
+                          <option value="">Tüm Temalar</option>
+                          {temalar.map((t) => (
+                            <option key={t} value={t}>{t}</option>
+                          ))}
+                        </select>
+                      </th>
                       <th>Öğrenci</th>
                       <th>İçerik</th>
-                      <th>Değerlendirildi</th>
+                      <th>
+                        <select
+                          className="filtre-secici"
+                          value={degerlendirmeFiltresi}
+                          onChange={(e) => setDegerlendirmeFiltresi(e.target.value as typeof degerlendirmeFiltresi)}
+                          aria-label="Değerlendirme filtresi"
+                        >
+                          <option value="hepsi">Tümü</option>
+                          <option value="degmemis">Değerlendirilmedi</option>
+                          <option value="degis">Değerlendirildi</option>
+                        </select>
+                      </th>
                       <th>Tarih</th>
                     </tr>
                   </thead>

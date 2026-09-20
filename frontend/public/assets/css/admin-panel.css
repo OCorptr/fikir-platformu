@@ -112,7 +112,18 @@
   padding: 0.55rem 1.15rem; font-family: 'Nunito', sans-serif; font-weight: 600; font-size: 1rem; color: var(--metin); outline: none;
 }
 .arama-kutu:focus { border-color: #1E88C9; }
+.arama-kutu--yan { width: 18rem; }
+.ust-satir { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0 1.9rem 1rem; flex-wrap: wrap; }
+.ust-satir .istatistikler { padding: 0; flex: 1 1 auto; }
 .tablo-notu { color: #8AA0B5; font-weight: 700; font-size: 0.9rem; }
+.filtre-secici {
+  width: 100%; min-width: 7rem; max-width: 13rem;
+  border: 0.13rem solid #C9D8E6; border-radius: 0.55rem; background: #FBFDFF;
+  padding: 0.32rem 0.6rem; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.82rem;
+  color: var(--metin); outline: none; cursor: pointer; text-transform: none;
+}
+.filtre-secici:focus { border-color: #1E88C9; }
+.filtre-secici:hover { border-color: #1E88C9; }
 .tablo-sarmal { overflow-x: auto; }
 table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .tablo th {
@@ -197,7 +208,7 @@ html.koyu-mod .ustbar p, html.koyu-mod .istat .istat-etiket, html.koyu-mod .tabl
 html.koyu-mod .tablo th { color: #93A9C4; border-bottom-color: #31486B; }
 html.koyu-mod .tablo td { color: #C9D6E8; border-bottom-color: #2A3E5F; }
 html.koyu-mod .tablo tbody tr:hover td { background: #223757; }
-html.koyu-mod .arama-kutu, html.koyu-mod .secim-kutu { background: #16283F; border-color: #31486B; color: #DCE7F5; }
+html.koyu-mod .arama-kutu, html.koyu-mod .secim-kutu, html.koyu-mod .filtre-secici { background: #16283F; border-color: #31486B; color: #DCE7F5; }
 html.koyu-mod .tema-mini .tm-kart { background: #223757; border-color: #31486B; }
 html.koyu-mod .tema-mini .tm-ad { color: #C9D6E8; }
 html.koyu-mod .tema-mini .tm-deger { color: #DCE7F5; }
