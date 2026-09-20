@@ -29,6 +29,14 @@ export default function FikirPage() {
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
+  // AuthModal sekmesi (giris / kayit / dogrulamaBekleniyor) - maskot balonu buna gore guncellenir
+  const [authMod, setAuthMod] = useState<"giris" | "kayit" | "dogrulamaBekleniyor">("giris");
+  function balonYazisi(m: "giris" | "kayit" | "dogrulamaBekleniyor") {
+    if (m === "giris") return <>Merhaba! Fikrini yazmadan önce <b>hesabınla giriş yap</b> ya da yeni bir hesap oluştur. Sıra sende! 🖐</>;
+    if (m === "kayit") return <>Yeni misin? <b>Hesap oluştur</b>, e-postanı doğrula, sonra fikrini yaz. Birkaş saniye sürer! 🚀</>;
+    return <>E-posta kutunu kontrol et! 🎉 Doğrulama bağlantısına tıkladıktan sonra <b>giriş yapabilirsin</b>.</>;
+  }
+
 
   // form
   const [kategoriler, setKategoriler] = useState<CategoryRef[]>([]);
@@ -225,13 +233,11 @@ export default function FikirPage() {
       <main className="fikir-hero">
         <div className="fikir-sol">
           <div className="balon-kapsa">
-            <div className="balon">
-              Merhaba! Fikrini yazmadan önce <b>hesabınla giriş yap</b> ya da yeni bir hesap oluştur. Sıra sende! 🖐
-            </div>
+            <div className="balon">{balonYazisi(authMod)}</div>
           </div>
           <img className="maskot-fikir" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu" />
         </div>
-        <AuthModal acik={authAcik} onAuthed={authGuncelle} arkadaMi />
+        <AuthModal acik={authAcik} onAuthed={authGuncelle} arkadaMi onModChange={setAuthMod} />
       </main>
     );
   }

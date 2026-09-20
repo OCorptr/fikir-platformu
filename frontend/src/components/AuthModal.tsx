@@ -21,9 +21,11 @@ interface Props {
   context?: LoginContext;
   /** true → lightbox arka planda kalır (maskot + .maskot-ust-yazi önde). */
   arkadaMi?: boolean;
+  /** sekme değiştiğinde çağrılır — FikirPage maskot balonunu buna göre günceller */
+  onModChange?: (mod: Mod) => void;
 }
 
-export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contextProp, arkadaMi = false }: Props) {
+export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contextProp, arkadaMi = false, onModChange }: Props) {
   // Path'ten context algıla (prop verilmediyse).
   const yol = useLocation().pathname;
   const context: LoginContext | undefined = contextProp ?? contextFromPath(yol);
@@ -47,6 +49,11 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
 
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
+
+  // Mod değiştiğinde dışarıya bildir (FikirPage maskot balonunu buna göre günceller)
+  useEffect(() => {
+    onModChange?.(mod);
+  }, [mod, onModChange]);
 
   // Modal her açılışında illeri yükle (kapandığında sıfırla ki her seferinde fresh gelsin)
   useEffect(() => {
