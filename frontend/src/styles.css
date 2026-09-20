@@ -635,29 +635,9 @@ input[type="range"] {
   from { transform: rotate(-1.2deg) scale(1.02); }
   to { transform: rotate(1.2deg) scale(1.02); }
 }
-/* === Fikir sayfasi: kimlik yokken durum yazisi maskotun uzerinde === */
-.fikir-sol { position: relative; }
-.maskot-ust-yazi {
-  position: absolute;
-  z-index: 110;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  color: #16355C;
-  font-family: 'Baloo 2', sans-serif;
-  font-weight: 800;
-  font-size: clamp(1.05rem, 2.2vw, 1.4rem);
-  padding: 1rem;
-  pointer-events: none;
-  text-shadow: 0 0.5rem 1rem rgba(255, 255, 255, 0.9);
-}
-.maskot-ust-yazi b { color: #ef7814; }
-
-/* AuthModal lightbox: kimlik yokken arka planda kalsin, maskot ve yazi onde */
+/* === Fikir sayfasi: kimlik yokken AuthModal arka planda, maskot+balon onde === */
+/* Orijinal .fikir-sol / .balon-kapsa / .balon / .maskot-fikir stilleri stil.css'te tanımlı. */
 .af-lightbox-arkada { z-index: 50 !important; }
-/* fikir-hero (maskot container) lightbox'in ustunde */
-.fikir-hero { z-index: 100; }
 
 .ust-cikis {
   margin-right: 0.6rem;
@@ -676,3 +656,75 @@ input[type="range"] {
   background: rgba(255, 255, 255, 0.32);
 }
 
+
+/* ============================================================
+   Yetkili Giriş Modalı — anasayfada açılan admin temalı modal
+   ============================================================ */
+.yg-lightbox {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(8, 20, 45, 0.65);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+  animation: ygFade 0.18s ease-out;
+}
+@keyframes ygFade { from { opacity: 0; } to { opacity: 1; } }
+.yg-kart {
+  position: relative;
+  background: linear-gradient(160deg, #0c2348 0%, #14366b 50%, #1a4180 100%);
+  color: #f1f5fb;
+  border-radius: 1.4rem;
+  padding: 2.2rem 1.8rem 1.6rem;
+  width: min(28rem, calc(100% - 2rem));
+  max-height: calc(100svh - 2rem);
+  overflow-y: auto;
+  box-shadow: 0 2rem 4rem rgba(0, 0, 0, 0.45);
+  animation: ygPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes ygPop { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.yg-kapat {
+  position: absolute; top: 0.7rem; right: 0.7rem;
+  background: rgba(255,255,255,0.12); border: 0; color: #fff;
+  width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  font-size: 1.1rem; cursor: pointer;
+  display: grid; place-items: center;
+}
+.yg-kapat:hover { background: rgba(255,255,255,0.22); }
+.yg-marka {
+  display: flex; align-items: center; gap: 0.8rem;
+  border-bottom: 0.1rem solid rgba(255,255,255,0.18);
+  padding-bottom: 0.9rem; margin-bottom: 1rem;
+}
+.yg-marka img { width: 2.6rem; height: 2.6rem; border-radius: 0.5rem; }
+.yg-marka b { display: block; color: #fff; font-weight: 900; font-size: 1.05rem; letter-spacing: 0.02em; }
+.yg-marka small { color: #a9c4e8; font-weight: 700; font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.yg-baslik { color: #fff; font-size: 1.45rem; margin: 0.4rem 0 0.3rem; font-weight: 800; }
+.yg-alt { color: #b9cce8; font-size: 0.92rem; margin: 0 0 1.1rem; line-height: 1.4; }
+.yg-form { display: flex; flex-direction: column; gap: 0.8rem; }
+.yg-alan { display: flex; flex-direction: column; gap: 0.3rem; }
+.yg-alan > span { color: #b9cce8; font-weight: 700; font-size: 0.85rem; }
+.yg-alan input {
+  background: rgba(255,255,255,0.08);
+  border: 0.12rem solid rgba(255,255,255,0.22);
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  color: #fff;
+  font: inherit;
+  outline: none;
+}
+.yg-alan input::placeholder { color: rgba(255,255,255,0.45); }
+.yg-alan input:focus { border-color: #f6b40e; background: rgba(255,255,255,0.14); }
+.yg-giris {
+  background: #f6b40e; color: #16355c; border: 0;
+  border-radius: 0.6rem; padding: 0.85rem 1rem;
+  font-weight: 900; font-size: 1rem; cursor: pointer;
+  margin-top: 0.4rem;
+  transition: filter 0.15s;
+}
+.yg-giris:hover:not(:disabled) { filter: brightness(1.08); }
+.yg-giris:disabled { opacity: 0.65; cursor: wait; }
+.yg-not {
+  margin-top: 1rem; padding-top: 0.9rem;
+  border-top: 0.1rem solid rgba(255,255,255,0.14);
+  font-size: 0.82rem; color: #a9c4e8; line-height: 1.45;
+}
+.yg-not b { color: #f6b40e; }
