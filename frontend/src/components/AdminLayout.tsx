@@ -88,10 +88,19 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
   ];
 
   const aktifMenu = ministryMi ? ministryMenu : ilMenu;
-  const baslikMetni = ilPaneli ? "İl Ar-Ge Paneli" : ministryMi ? "Bakanlık Paneli" : "Yönetim Paneli";
+  // Kenar-marka alt basligi: panel turu yerine kisinin adi yazsin.
+  const baslikMetni = ben
+    ? `${ben.firstName} ${ben.lastName}`
+    : ilPaneli ? "İl AR-GE Paneli" : ministryMi ? "Bakanlık Paneli" : "Yönetim Paneli";
 
   const kullaniciAdi = ben ? `${ben.firstName} ${ben.lastName}` : "Kullanıcı";
-  const rolAdi = ben?.roles.join(" · ") ?? "";
+  // Rol etiketleri Türkçe
+  const rolAdi = ben?.roles
+    .map((r) => r === "ProvinceManager" ? "İl AR-GE Yönetici"
+      : r === "ProvinceEvaluator" ? "İl AR-GE Değerlendirici"
+      : r === "MinistryOfficial" ? "Bakanlık Yetkilisi"
+      : r)
+    .join(" · ") ?? "";
   const avatarBasHarf = kullaniciAdi
     .split(/\s+/)
     .filter(Boolean)
@@ -144,7 +153,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
             <span className="k-avatar">{avatarBasHarf}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <b>{kullaniciAdi}</b>
-              <small style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{rolAdi}</small>
+              <small style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#9FB4CC", fontWeight: 700, fontSize: "0.75rem" }}>{rolAdi}</small>
             </div>
           </div>
           <button type="button" className="btn-ikincil" onClick={cikis} style={{ marginTop: "0.6rem", width: "100%", justifyContent: "center" }}>
