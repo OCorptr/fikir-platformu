@@ -56,12 +56,6 @@ const ikon = {
       <path d="M5 20V10" /><path d="M12 20V4" /><path d="M19 20v-7" /><path d="M3 20h18" />
     </svg>
   ),
-  ev: (
-    <svg {...svgProps}>
-      <path d="M3 10.5 12 3l9 7.5" />
-      <path d="M5 10v10h14V10" />
-    </svg>
-  ),
 };
 
 export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: AdminLayoutProps) {
@@ -125,7 +119,8 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
         </div>
         <nav className="kenar-menu">
           {aktifMenu.map((m) => {
-            const aktif = yol === m.hedef || (m.hedef !== "/" && yol.startsWith(m.hedef + "/")) || (m.hedef === "/bakanlik" && yol === "/bakanlik");
+            // Exact match: "/il-panel" ve "/il-panel/adaylar" ayni anda aktif olmasin
+            const aktif = yol === m.hedef;
             return (
               <button
                 key={m.hedef}
@@ -144,10 +139,6 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
           })}
         </nav>
         <div className="kenar-alt">
-          <a href="/" onClick={(e) => { e.preventDefault(); window.history.pushState({}, "", "/"); window.dispatchEvent(new PopStateEvent("popstate")); }}>
-            {ikon.ev}
-            <span className="km-yazi">Ana Sayfa</span>
-          </a>
           <div className="kullanici-kutu">
             <span className="k-avatar">{avatarBasHarf}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
