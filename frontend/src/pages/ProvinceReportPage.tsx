@@ -8,7 +8,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getInbox } from "../services/province";
-import { type InboxEntry, type MeSession, SONUC_DURUM_IKON, sonucDurumu, sessionForContext } from "../types";
+import { type InboxEntry, type MeSession, SONUC_DURUM_IKON, type SonucDurumu, sonucDurumu, sessionForContext } from "../types";
 
 const TEMA_EMOJI: Record<string, string> = {
   "Kültür ve Sanat": "🎨",
@@ -40,8 +40,7 @@ export function ProvinceReportPage() {
   const [hata, setHata] = useState<string | null>(null);
 
   const [temaFiltresi, setTemaFiltresi] = useState("");
-  const [degerlendirmeFiltresi, setDegerlendirmeFiltresi] = useState<"hepsi" | "degis" | "degmemis">("hepsi");
-  const [okunduFiltresi, setOkunduFiltresi] = useState<"hepsi" | "okundu" | "okunmamis">("hepsi");
+  const [sonucFiltresi, setSonucFiltresi] = useState<"hepsi" | SonucDurumu>("hepsi");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -79,13 +78,10 @@ export function ProvinceReportPage() {
     () =>
       inbox.filter((i) => {
         if (temaFiltresi && i.categoryName !== temaFiltresi) return false;
-        if (degerlendirmeFiltresi === "degis" && i.evaluationCount === 0) return false;
-        if (degerlendirmeFiltresi === "degmemis" && i.evaluationCount > 0) return false;
-        if (okunduFiltresi === "okundu" && !i.isReadByMe) return false;
-        if (okunduFiltresi === "okunmamis" && i.isReadByMe) return false;
+        if (sonucFiltresi !== "hepsi" && sonucDurumu(i) !== sonucFiltresi) return false;
         return true;
       }),
-    [inbox, temaFiltresi, degerlendirmeFiltresi, okunduFiltresi],
+    [inbox, temaFiltresi, sonucFiltresi],
   );
 
   // Tema dağılımı: kategori başına adet + yüzde
@@ -158,21 +154,14 @@ export function ProvinceReportPage() {
             </select>
             <select
               className="secim-kutu"
-              value={degerlendirmeFiltresi}
-              onChange={(e) => setDegerlendirmeFiltresi(e.target.value as typeof degerlendirmeFiltresi)}
+              value={sonucFiltresi}
+              onChange={(e) => setSonucFiltresi(e.target.value as typeof sonucFiltresi)}
             >
-              <option value="hepsi">Durum: Tümü</option>
-              <option value="degmemis">Değerlendirilmedi</option>
-              <option value="degis">Değerlendirildi</option>
-            </select>
-            <select
-              className="secim-kutu"
-              value={okunduFiltresi}
-              onChange={(e) => setOkunduFiltresi(e.target.value as typeof okunduFiltresi)}
-            >
-              <option value="hepsi">Okundu: Tümü</option>
-              <option value="okunmamis">Okunmamış</option>
-              <option value="okundu">Okundu</option>
+              <option value="hepsi">Sonuç: Tümü</option>
+              <option value="ayinFikri">{SONUC_DURUM_IKON.ayinFikri.ikon} {SONUC_DURUM_IKON.ayinFikri.etiket}</option>
+              <option value="aday">{SONUC_DURUM_IKON.aday.ikon} {SONUC_DURUM_IKON.aday.etiket}</option>
+              <option value="yetersiz">{SONUC_DURUM_IKON.yetersiz.ikon} {SONUC_DURUM_IKON.yetersiz.etiket}</option>
+              <option value="beklemede">{SONUC_DURUM_IKON.beklemede.ikon} {SONUC_DURUM_IKON.beklemede.etiket}</option>
             </select>
             <span style={{ flex: 1 }} />
             <button type="button" className="btn-ikincil btn-kucul" onClick={csvIndir}>⬇ Excel'e Aktar</button>
