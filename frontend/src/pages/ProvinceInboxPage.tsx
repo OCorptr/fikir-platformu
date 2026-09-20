@@ -9,6 +9,18 @@ import { me } from "../services/auth";
 import { getInbox } from "../services/province";
 import { type InboxEntry, type MeSession, sessionForContext } from "../types";
 
+const TEMA_EMOJI: Record<string, string> = {
+  "Kültür ve Sanat": "🎨",
+  "Spor ve Sağlıklı Yaşam": "⚽",
+  "Bilim ve Teknoloji": "🔬",
+  "Çevre ve Sürdürülebilirlik": "🌱",
+  "Yapay Zekâ": "🤖",
+  "Girişimcilik": "💡",
+  "Değerler Eğitimi": "📖",
+  "Sosyal Sorumluluk": "🤝",
+};
+const temaEmoji = (k: string) => TEMA_EMOJI[k] ?? "💡";
+
 export function ProvinceInboxPage() {
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
@@ -75,8 +87,7 @@ export function ProvinceInboxPage() {
   return (
     <AdminLayout
       ben={ben}
-      baslik="Gelen Fikirler"
-      aciklama={`${ben ? `${ben.firstName} ${ben.lastName} · ` : ""}${inbox.length} başvuru, ${okunmamis} okunmamış · tarihe göre sıralanır`}
+      baslik={`Gelen Fikirler · ${inbox.length}`}
       donemRozet="📅 2026-2027 · Eylül"
     >
       {!kimlikKontrolEdildi && (
@@ -160,7 +171,7 @@ export function ProvinceInboxPage() {
                         >
                           <option value="">Tüm Temalar</option>
                           {temalar.map((t) => (
-                            <option key={t} value={t}>{t}</option>
+                            <option key={t} value={t}>{temaEmoji(t)} {t}</option>
                           ))}
                         </select>
                       </th>
@@ -193,7 +204,7 @@ export function ProvinceInboxPage() {
                             ? <span className="durum yesil">✓ Okundu</span>
                             : <span className="durum turuncu">● Yeni</span>}
                         </td>
-                        <td><strong>{i.categoryName}</strong></td>
+                        <td><strong>{temaEmoji(i.categoryName)} {i.categoryName}</strong></td>
                         <td>
                           <strong>{i.studentFirstName} {i.studentLastName}</strong>
                           <div className="meta">

@@ -10,6 +10,7 @@ import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { CandidatesPage } from "./pages/CandidatesPage";
 import { EkipPage } from "./pages/EkipPage";
 import { MinistryPage } from "./pages/MinistryPage";
+import { ProvinceReportPage } from "./pages/ProvinceReportPage";
 
 /* her rotada govde sinifi degisir:
    - /il-panel*, /bakanlik*  → sayfa-admin (sidebar + govde düzeni admin.css'ten)
@@ -53,6 +54,7 @@ export default function App() {
           <Route path="/il-panel" element={<ProvinceInboxPage />} />
           <Route path="/il-panel/adaylar" element={<CandidatesPage />} />
           <Route path="/il-panel/ekip" element={<EkipPage />} />
+          <Route path="/il-panel/rapor" element={<ProvinceReportPage />} />
           <Route path="/il-panel/fikir/:id" element={<ApplicationDetailPage />} />
         </Route>
         <Route element={<ProtectedRoute context="ministry" />}>

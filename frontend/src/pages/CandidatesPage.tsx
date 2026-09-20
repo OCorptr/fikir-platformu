@@ -117,7 +117,7 @@ export function CandidatesPage() {
                     <h3>{kat}</h3>
                     <div className="okul">Puan: <strong style={{ color: "var(--turuncu-baslik)" }}>{a.averageScore.toFixed(2)}</strong> / 5</div>
                     <div className="fikir-alinti">"{a.content || "(boş)"}"</div>
-                    <span className="durum">✓ Değerlendirme tamam</span>
+                    <span className="durum yesil">✓ Aday</span>
                     <button type="button" className="btn-ana btn-aday" onClick={() => navigate(`/il-panel/fikir/${a.ideaId}`)}>
                       📂 Detayı Aç
                     </button>

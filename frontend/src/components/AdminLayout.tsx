@@ -51,9 +51,10 @@ const ikon = {
       <path d="M16 3v4M8 3v4M3 11h18" />
     </svg>
   ),
-  uygulama: (
+  rapor: (
     <svg {...svgProps}>
-      <path d="M5 20V10" /><path d="M12 20V4" /><path d="M19 20v-7" /><path d="M3 20h18" />
+      <path d="M3 3v18h18" />
+      <path d="M7 14l4-4 4 4 5-5" />
     </svg>
   ),
 };
@@ -78,6 +79,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
 
   const ilMenu: MenuItem[] = [
     { hedef: "/il-panel", baslik: "Gelen Fikirler", svg: ikon.gelen },
+    { hedef: "/il-panel/rapor", baslik: "Raporlama", svg: ikon.rapor },
     ...(managerMi ? [{ hedef: "/il-panel/adaylar", baslik: "Aday Havuzu", svg: ikon.aday } as MenuItem] : []),
     ...(managerMi ? [{ hedef: "/il-panel/ekip", baslik: "Ekip", svg: ikon.aday } as MenuItem] : []),
   ];
