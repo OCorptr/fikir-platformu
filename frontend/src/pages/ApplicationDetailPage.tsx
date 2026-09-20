@@ -299,7 +299,16 @@ export function ApplicationDetailPage() {
 
               <div className="fikir-butonlar" style={{ marginTop: "1rem" }}>
                 {detay.idea.status !== "Locked" && (
-                  <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(true)}>
+                  <button type="button" className="btn-ikincil" onClick={() => {
+                    // Daha önce değerlendirilmişse uyar + onay iste
+                    const mevcutDegerlendirme = evaluations?.evaluations ?? [];
+                    if (mevcutDegerlendirme.length > 0) {
+                      const sonTarih = new Date(mevcutDegerlendirme[mevcutDegerlendirme.length - 1].evaluatedAt).toLocaleString("tr-TR");
+                      const mesaj = `⚠️ Bu fikir daha önce ${mevcutDegerlendirme.length} kez değerlendirildi.\nSon değerlendirme: ${sonTarih}\n\nTekrar değerlendirmek istediğinize emin misiniz?`;
+                      if (!confirm(mesaj)) return;
+                    }
+                    setPuanlamaAcik(true);
+                  }}>
                     ✏️ Puanla / Yorumla
                   </button>
                 )}

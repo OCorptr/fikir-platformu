@@ -152,6 +152,8 @@ export interface InboxEntry {
   assignedEvaluatorUserIds: string[];
   isReadByMe: boolean;
   readAtByMe: string | null;
+  evaluationCount: number;
+  lastEvaluatedAt: string | null;
 }
 
 // /api/province/ideas/{id} — başvuru detayı

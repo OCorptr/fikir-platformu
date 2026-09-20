@@ -58,10 +58,18 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             .Select(r => new { r.IdeaId, r.ReadAt })
             .ToListAsync(cancellationToken);
 
+        var evaluations = await db.Evaluations
+            .AsNoTracking()
+            .Where(e => ideaIds.Contains(e.IdeaId))
+            .GroupBy(e => e.IdeaId)
+            .Select(g => new { IdeaId = g.Key, Count = g.Count(), LastAt = g.Max(e => (DateTimeOffset?)e.EvaluatedAt) })
+            .ToListAsync(cancellationToken);
+
         var assignmentMap = assignments
             .GroupBy(a => a.IdeaId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<string>)g.Select(a => a.EvaluatorUserId).ToList());
         var readMap = reads.ToDictionary(r => r.IdeaId, r => r.ReadAt);
+        var evalMap = evaluations.ToDictionary(e => e.IdeaId);
 
         return raw.Select(r => new InboxEntry(
             r.Id,
@@ -78,6 +86,8 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             r.StudentNumber,
             assignmentMap.TryGetValue(r.Id, out var evals) ? evals : Array.Empty<string>(),
             readMap.ContainsKey(r.Id),
-            readMap.TryGetValue(r.Id, out var readAt) ? readAt : null)).ToList();
+            readMap.TryGetValue(r.Id, out var readAt) ? readAt : null,
+            evalMap.TryGetValue(r.Id, out var ev) ? ev.Count : 0,
+            evalMap.TryGetValue(r.Id, out var ev2) ? ev2.LastAt : null)).ToList();
     }
 }

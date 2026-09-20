@@ -15,7 +15,9 @@ public sealed record InboxEntry(
     string? StudentNumber,
     IReadOnlyList<string> AssignedEvaluatorUserIds,
     bool IsReadByMe,
-    DateTimeOffset? ReadAtByMe);
+    DateTimeOffset? ReadAtByMe,
+    int EvaluationCount,
+    DateTimeOffset? LastEvaluatedAt);
 
 public interface IProvinceInboxQueryService
 {

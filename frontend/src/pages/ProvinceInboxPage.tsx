@@ -129,7 +129,7 @@ export function ProvinceInboxPage() {
                       <th>Tema</th>
                       <th>Öğrenci</th>
                       <th>İçerik</th>
-                      <th>Atanan</th>
+                      <th>Değerlendirildi</th>
                       <th>Tarih</th>
                     </tr>
                   </thead>
@@ -157,9 +157,18 @@ export function ProvinceInboxPage() {
                           <div className="icerik-ozet">{i.content || <i>(boş)</i>}</div>
                         </td>
                         <td>
-                          {i.assignedEvaluatorUserIds.length === 0
-                            ? <span className="meta">atanmamış</span>
-                            : <span className="meta">{i.assignedEvaluatorUserIds.length} kişi</span>}
+                          {i.evaluationCount === 0
+                            ? <span className="meta">—</span>
+                            : (
+                              <>
+                                <b>{i.evaluationCount}</b>{" "}kez
+                                {i.lastEvaluatedAt && (
+                                  <div className="meta">
+                                    {new Date(i.lastEvaluatedAt).toLocaleDateString("tr-TR")}
+                                  </div>
+                                )}
+                              </>
+                            )}
                         </td>
                         <td>
                           <span className="meta">
