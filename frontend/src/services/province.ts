@@ -34,13 +34,17 @@ export async function listEvaluators(signal?: AbortSignal): Promise<ProvinceEval
   return apiRequest<ProvinceEvaluatorRef[]>("/api/province/evaluators", { signal });
 }
 
-// Sprint 6: manager kendi iline evaluator atar (province_user_assignments)
-export async function assignEvaluatorToProvince(
-  userId: string,
-): Promise<{ userId: string; provinceId: number }> {
+// Sprint 6: manager yeni evaluator olusturur (email + sifre + ad) → otomatik
+// ProvinceEvaluator rolu + il atamasi alir. Eski davranis (UserId ile atama) kaldirildi.
+export async function createEvaluatorOnProvince(input: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+}): Promise<{ userId: string; email: string; provinceId: number }> {
   return apiRequest("/api/province/evaluators", {
     method: "POST",
-    body: { userId },
+    body: input,
   });
 }
 

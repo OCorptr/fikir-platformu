@@ -333,11 +333,15 @@ public static class ProvinceEndpoints
             return Results.Ok(liste);
         }).RequireAuthorization("ProvinceOnly");
 
-        // POST /api/province/evaluators — yeni evaluator ata (sadece ProvinceManager)
+        // POST /api/province/evaluators — yeni evaluator oluştur + kendi iline ata (sadece ProvinceManager)
+        // Sprint 6 düzeltme: önceden UserId ile atama yapılıyordu (her fikre tek tek saçma);
+        // artık manager email+şifre+ad ile yeni kullanıcı oluşturur, otomatik ProvinceEvaluator
+        // rolü + il ataması alır.
         grup.MapPost("/evaluators", async (
-            EvaluatorAtaIstegi istek,
+            YeniEvaluatorIstegi istek,
             HttpContext http,
             FikirPlatformuDbContext db,
+            UserManager<ApplicationUser> userManager,
             IClock clock,
             CancellationToken cancellationToken) =>
         {
@@ -350,22 +354,47 @@ public static class ProvinceEndpoints
                 .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
             if (!managerMi) return Results.Forbid();
 
-            var hedefRoller = await db.UserRoles
-                .Where(ur => ur.UserId == istek.UserId)
-                .Join(db.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
-                .ToListAsync(cancellationToken);
-            if (!hedefRoller.Contains("ProvinceEvaluator"))
-                return Results.BadRequest(new { message = "Kullanıcı ProvinceEvaluator rolünde değil." });
+            // Email zaten kayıtlı mı?
+            var mevcutKullanici = await userManager.FindByEmailAsync(istek.Email);
+            if (mevcutKullanici is not null)
+                return Results.BadRequest(new { message = "Bu e-posta zaten kayıtlı." });
 
-            var mevcut = await db.ProvinceUserAssignments
-                .FirstOrDefaultAsync(a => a.UserId == istek.UserId && a.Role == "ProvinceEvaluator", cancellationToken);
-            if (mevcut is not null) db.ProvinceUserAssignments.Remove(mevcut);
+            // Yeni kullanıcı oluştur
+            var yeniKullanici = new ApplicationUser
+            {
+                UserName = istek.Email,
+                Email = istek.Email,
+                FirstName = istek.FirstName,
+                LastName = istek.LastName,
+                EmailConfirmed = true,
+            };
+            var createResult = await userManager.CreateAsync(yeniKullanici, istek.Password);
+            if (!createResult.Succeeded)
+                return Results.BadRequest(new
+                {
+                    message = string.Join("; ", createResult.Errors.Select(e => e.Description))
+                });
 
+            // ProvinceEvaluator rolü ekle
+            var roleResult = await userManager.AddToRoleAsync(yeniKullanici, "ProvinceEvaluator");
+            if (!roleResult.Succeeded)
+                return Results.BadRequest(new
+                {
+                    message = string.Join("; ", roleResult.Errors.Select(e => e.Description))
+                });
+
+            // İl ataması
             var atama = FikirPlatformu.Domain.Identity.ProvinceUserAssignment.Create(
-                istek.UserId, ilId, "ProvinceEvaluator", currentUserId, clock.UtcNow);
+                yeniKullanici.Id, ilId, "ProvinceEvaluator", currentUserId, clock.UtcNow);
             db.ProvinceUserAssignments.Add(atama);
             await db.SaveChangesAsync(cancellationToken);
-            return Results.Ok(new { userId = istek.UserId, provinceId = ilId });
+
+            return Results.Ok(new
+            {
+                userId = yeniKullanici.Id,
+                email = yeniKullanici.Email,
+                provinceId = ilId
+            });
         }).RequireAuthorization("ProvinceOnly");
 
         // DELETE /api/province/evaluators/{userId} — evaluator atamasını kaldır (sadece ProvinceManager)
@@ -397,6 +426,7 @@ public static class ProvinceEndpoints
 
     public sealed record EvaluatorAtamaDto(string UserId, string Email, string FirstName, string LastName, DateTimeOffset AssignedAt);
     public sealed record EvaluatorAtaIstegi(string UserId);
+    public sealed record YeniEvaluatorIstegi(string Email, string Password, string FirstName, string LastName);
 
     public sealed record UygulamaRaporuIstegi(ImplementationStatus Status, string? Note);
 }

@@ -5,7 +5,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { AdminLayout } from "../components/AdminLayout";
 import {
-  assignEvaluatorToProvince,
+  createEvaluatorOnProvince,
   listEvaluators,
   removeEvaluatorFromProvince,
 } from "../services/province";
@@ -26,7 +26,10 @@ export function EkipPage() {
   const [ekip, setEkip] = useState<AtamaSatir[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
-  const [atanacakId, setAtanacakId] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [ad, setAd] = useState("");
+  const [soyad, setSoyad] = useState("");
   const [calisiyor, setCalisiyor] = useState(false);
 
   // /me → manager rolü kontrolü
@@ -40,16 +43,19 @@ export function EkipPage() {
   }, []);
 
   // Ekip listesi (sadece manager kendi ilindekini görebilir)
-  useEffect(() => {
-    if (!ben) return;
-    const controller = new AbortController();
-    listEvaluators(controller.signal)
+  const ekipYukle = (controller?: AbortController) =>
+    listEvaluators(controller?.signal)
       .then((liste) => setEkip(liste as AtamaSatir[]))
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           setHata(e instanceof ApiHttpError ? e.message : "Ekip listesi yüklenemedi.");
         }
       });
+
+  useEffect(() => {
+    if (!ben) return;
+    const controller = new AbortController();
+    ekipYukle(controller);
     return () => controller.abort();
   }, [ben]);
 
@@ -57,17 +63,25 @@ export function EkipPage() {
 
   async function ataOlayi(e: FormEvent) {
     e.preventDefault();
-    if (!atanacakId.trim()) {
-      setHata("Kullanıcı ID boş olamaz.");
+    if (!email.trim() || !password || !ad.trim() || !soyad.trim()) {
+      setHata("E-posta, şifre, ad ve soyad zorunludur.");
+      return;
+    }
+    if (password.length < 5) {
+      setHata("Şifre en az 5 karakter olmalı.");
       return;
     }
     setCalisiyor(true);
     setHata(null);
     try {
-      await assignEvaluatorToProvince(atanacakId.trim());
-      setAtanacakId("");
-      const liste = await listEvaluators();
-      setEkip(liste as AtamaSatir[]);
+      await createEvaluatorOnProvince({
+        email: email.trim(),
+        password,
+        firstName: ad.trim(),
+        lastName: soyad.trim(),
+      });
+      setEmail(""); setPassword(""); setAd(""); setSoyad("");
+      await ekipYukle();
     } catch (err) {
       setHata(err instanceof ApiHttpError ? err.message : "Atama başarısız.");
     } finally {
@@ -80,8 +94,7 @@ export function EkipPage() {
     setHata(null);
     try {
       await removeEvaluatorFromProvince(id);
-      const liste = await listEvaluators();
-      setEkip(liste as AtamaSatir[]);
+      await ekipYukle();
     } catch (err) {
       setHata(err instanceof ApiHttpError ? err.message : "Kaldırma başarısız.");
     }
@@ -91,7 +104,7 @@ export function EkipPage() {
     <AdminLayout
       ben={ben}
       baslik="Ekip Yönetimi"
-      aciklama="Kendi iline değerlendirici ata veya atamasını kaldır."
+      aciklama="Kendi iline yeni değerlendirici oluştur (e-posta + şifre). Atanan kişi tüm panele erişir, sadece yeni atama yapamaz."
     >
       <section className="tablo-kart">
         {hata && (
@@ -103,21 +116,30 @@ export function EkipPage() {
 
         {managerMi ? (
           <>
-            <form onSubmit={ataOlayi} className="tablo-araclar" style={{ marginBottom: "1rem" }}>
-              <input
-                className="arama-kutu"
-                placeholder="Değerlendirici Kullanıcı ID (örn: 3a2ed34d-...)"
-                value={atanacakId}
-                onChange={(e) => setAtanacakId(e.target.value)}
-                style={{ minWidth: "20rem" }}
-              />
-              <button type="submit" className="btn-ana" disabled={calisiyor}>
-                {calisiyor ? "Atanıyor…" : "➕ Değerlendirici Ata"}
+            <form onSubmit={ataOlayi} className="ekip-ekle-form" style={{ marginBottom: "1rem", display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr auto", gap: "0.5rem", alignItems: "end" }}>
+              <label>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Ad</span>
+                <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Ayşe" />
+              </label>
+              <label>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Soyad</span>
+                <input className="arama-kutu" value={soyad} onChange={(e) => setSoyad(e.target.value)} placeholder="Yılmaz" />
+              </label>
+              <label>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>E-posta</span>
+                <input className="arama-kutu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="degerlendirici@ilarge.gov.tr" />
+              </label>
+              <label>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Şifre (en az 5)</span>
+                <input className="arama-kutu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="•••••" />
+              </label>
+              <button type="submit" className="btn-ana" disabled={calisiyor} style={{ height: "2.4rem" }}>
+                {calisiyor ? "Oluşturuluyor…" : "➕ Ekle"}
               </button>
-              <span className="tablo-notu">
-                Kullanıcının <b>ProvinceEvaluator</b> rolünde olması gerekir.
-              </span>
             </form>
+            <p className="tablo-notu" style={{ marginBottom: "0.8rem" }}>
+              Eklenen kişiye sadece giriş bilgilerini (e-posta + şifre) iletin. Tüm il panellerine erişir, atama yapamaz.
+            </p>
 
             {yukleniyor ? (
               <div className="status-banner status-banner--info">
@@ -126,7 +148,7 @@ export function EkipPage() {
               </div>
             ) : ekip.length === 0 ? (
               <div className="il-panel-bos">
-                <p>Henüz atanmış değerlendirici yok. Yukarıdaki alana kullanıcı ID girip "Ata" de.</p>
+                <p>Henüz atanmış değerlendirici yok.</p>
               </div>
             ) : (
               <table className="veri-tablo">

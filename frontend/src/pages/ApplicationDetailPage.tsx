@@ -298,11 +298,6 @@ export function ApplicationDetailPage() {
               )}
 
               <div className="fikir-butonlar" style={{ marginTop: "1rem" }}>
-                {managerMi && detay.idea.status !== "Locked" && (
-                  <button type="button" className="btn-ana" onClick={ataModalAc}>
-                    🧑‍⚖️ Değerlendiriciye Ata
-                  </button>
-                )}
                 {detay.idea.status !== "Locked" && (
                   <button type="button" className="btn-ikincil" onClick={() => setPuanlamaAcik(true)}>
                     ✏️ Puanla / Yorumla
