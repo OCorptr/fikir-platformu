@@ -6,6 +6,10 @@ export type IdeaStatus =
   | "InEvaluation"
   | "EvaluationCompleted"
   | "Locked"
+  | "Planned"
+  | "ImplementationInProgress"
+  | "ImplementationCompleted"
+  | "ImplementationFailed"
   | "Deleted";
 
 export interface CategoryRef {
@@ -287,4 +291,51 @@ export interface SelectedIdea {
 export interface PeriodSelectedResponse {
   period: Period;
   selections: SelectedIdea[];
+}
+
+// Aşama 8 — Hayata geçirme
+
+export type ImplementationStatus =
+  | "NotStarted"
+  | "InProgress"
+  | "Completed"
+  | "Failed";
+
+export const IMPLEMENTATION_STATUSES: ImplementationStatus[] = [
+  "NotStarted",
+  "InProgress",
+  "Completed",
+  "Failed",
+];
+
+export const IMPLEMENTATION_LABELS: Record<ImplementationStatus, string> = {
+  NotStarted: "Başlamadı",
+  InProgress: "Uygulamada",
+  Completed: "Tamamlandı",
+  Failed: "Başarısız",
+};
+
+export interface ImplementationReport {
+  id: string;
+  ideaId: string;
+  status: ImplementationStatus;
+  note: string;
+  reportedByUserId: string;
+  reportedAt: string;
+}
+
+export interface ImplementationSummary {
+  ideaId: string;
+  categoryId: number;
+  categoryName: string;
+  provinceId: number;
+  provinceName: string;
+  content: string;
+  status: { Status: string; PeriodLabel: string };
+  updatedAt: string;
+}
+
+export interface SubmitImplementationRequest {
+  status: ImplementationStatus;
+  note?: string;
 }

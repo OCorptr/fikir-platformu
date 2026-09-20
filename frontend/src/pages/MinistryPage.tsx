@@ -12,11 +12,14 @@ import {
   listPeriods,
   selectForPeriod,
 } from "../services/ministry";
-import type {
-  MeAuthenticated,
-  Period,
-  PeriodCandidatesResponse,
-  PeriodSelectedResponse,
+import { getImplementationSummary } from "../services/implementations";
+import {
+  IMPLEMENTATION_LABELS,
+  type ImplementationSummary,
+  type MeAuthenticated,
+  type Period,
+  type PeriodCandidatesResponse,
+  type PeriodSelectedResponse,
 } from "../types";
 
 export function MinistryPage() {
@@ -29,6 +32,8 @@ export function MinistryPage() {
   const [aktif, setAktif] = useState<Period | null>(null);
   const [adaylar, setAdaylar] = useState<PeriodCandidatesResponse | null>(null);
   const [secilmis, setSecilmis] = useState<PeriodSelectedResponse | null>(null);
+  const [uygulamalar, setUygulamalar] = useState<ImplementationSummary[]>([]);
+  const [sekme, setSekme] = useState<"donemler" | "uygulamalar">("donemler");
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -85,6 +90,7 @@ export function MinistryPage() {
       }),
       getPeriodCandidates(periodId, controller.signal).then(setAdaylar),
       getPeriodSelected(periodId, controller.signal).then(setSecilmis),
+      getImplementationSummary(controller.signal).then(setUygulamalar),
     ])
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
@@ -263,6 +269,43 @@ export function MinistryPage() {
                     </td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </>
+        )}
+
+        {uygulamalar.length > 0 && (
+          <>
+            <div className="bolum-basligi turuncu" style={{ marginTop: "1.4rem" }}>Uygulama Takibi (tüm dönemler)</div>
+            <table className="il-panel-tablo">
+              <thead>
+                <tr>
+                  <th>Dönem</th>
+                  <th>Durum</th>
+                  <th>Kategori</th>
+                  <th>İl</th>
+                  <th>İçerik</th>
+                </tr>
+              </thead>
+              <tbody>
+                {uygulamalar.map((u) => {
+                  const status = u.status.Status as keyof typeof IMPLEMENTATION_LABELS;
+                  return (
+                    <tr key={u.ideaId}>
+                      <td><span className="meta">{u.status.PeriodLabel}</span></td>
+                      <td>
+                        <span className={`taslak-durum taslak-durum--${u.status.Status}`}>
+                          {IMPLEMENTATION_LABELS[status] ?? u.status.Status}
+                        </span>
+                      </td>
+                      <td><strong>{u.categoryName}</strong></td>
+                      <td>{u.provinceName}</td>
+                      <td className="icerik-hucre">
+                        <div className="icerik-ozet">{u.content || <i>(boş)</i>}</div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </>

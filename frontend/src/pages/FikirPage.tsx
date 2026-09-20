@@ -416,6 +416,10 @@ function durumEtiketi(durum: StudentIdeaDto["status"]): string {
     case "InEvaluation": return "Değerlendirmede";
     case "EvaluationCompleted": return "Değerlendirildi";
     case "Locked": return "Kilitli";
+    case "Planned": return "Planlandı";
+    case "ImplementationInProgress": return "Uygulamada";
+    case "ImplementationCompleted": return "Uygulandı";
+    case "ImplementationFailed": return "Başarısız";
     case "Deleted": return "Silindi";
   }
 }

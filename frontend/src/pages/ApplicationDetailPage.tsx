@@ -16,11 +16,19 @@ import {
   submitEvaluations,
 } from "../services/province";
 import {
+  getImplementationReports,
+  submitImplementationReport,
+} from "../services/implementations";
+import {
   CRITERION_LABELS,
   EVALUATION_CRITERIA,
+  IMPLEMENTATION_LABELS,
+  IMPLEMENTATION_STATUSES,
   type EvaluationEntry,
   type IdeaDetailResponse,
   type IdeaEvaluationsResponse,
+  type ImplementationReport,
+  type ImplementationStatus,
   type MeAuthenticated,
   type ProvinceEvaluatorRef,
   type SubmitEvaluationItem,
@@ -59,6 +67,12 @@ export function ApplicationDetailPage() {
   // onay
   const [onayCalisiyor, setOnayCalisiyor] = useState(false);
 
+  // uygulama raporları
+  const [raporlar, setRaporlar] = useState<ImplementationReport[]>([]);
+  const [yeniDurum, setYeniDurum] = useState<ImplementationStatus>("InProgress");
+  const [yeniNot, setYeniNot] = useState("");
+  const [uygulamaCalisiyor, setUygulamaCalisiyor] = useState(false);
+
   // /me
   useEffect(() => {
     const controller = new AbortController();
@@ -89,6 +103,12 @@ export function ApplicationDetailPage() {
         }
         const ev = await getEvaluations(id, controller.signal);
         setEvaluations(ev);
+        try {
+          const r = await getImplementationReports(id, controller.signal);
+          setRaporlar(r);
+        } catch {
+          // yoksay — başka ile ait olabilir (Evaluator ise 403)
+        }
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           setHata(mesajCikar(e));
@@ -177,6 +197,24 @@ export function ApplicationDetailPage() {
       setHata(mesajCikar(e));
     } finally {
       setOnayCalisiyor(false);
+    }
+  }
+
+  async function uygulamaRaporGonder() {
+    if (!id) return;
+    setUygulamaCalisiyor(true);
+    setHata(null);
+    try {
+      await submitImplementationReport(id, { status: yeniDurum, note: yeniNot.trim() });
+      const r = await getImplementationReports(id);
+      setRaporlar(r);
+      const d = await getProvinceIdea(id);
+      setDetay(d);
+      setYeniNot("");
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setUygulamaCalisiyor(false);
     }
   }
 
@@ -302,6 +340,61 @@ export function ApplicationDetailPage() {
                 <span className="meta">🔒 İl onayı verildi; fikir kilitli.</span>
               )}
             </div>
+
+            {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed") && (
+              <>
+                <div className="bolum-basligi turkuaz">Uygulama Raporu</div>
+                <div className="detay-uygulama-form">
+                  <div className="auth-iki-sutun">
+                    <div className="alan">
+                      <span>Durum</span>
+                      <select
+                        className="tema-secim"
+                        value={yeniDurum}
+                        onChange={(e) => setYeniDurum(e.target.value as ImplementationStatus)}
+                      >
+                        {IMPLEMENTATION_STATUSES.map((s) => (
+                          <option key={s} value={s}>{IMPLEMENTATION_LABELS[s]}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="alan">
+                    <span>Not (opsiyonel)</span>
+                    <input
+                      className="tema-input"
+                      value={yeniNot}
+                      onChange={(e) => setYeniNot(e.target.value)}
+                      placeholder="Uygulama hakkında kısa bilgi"
+                      maxLength={500}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-ana"
+                    onClick={uygulamaRaporGonder}
+                    disabled={uygulamaCalisiyor}
+                  >
+                    {uygulamaCalisiyor ? "Kaydediliyor…" : "📝 Raporu Kaydet"}
+                  </button>
+                </div>
+
+                {raporlar.length > 0 && (
+                  <details className="degerlendirici-detay" open>
+                    <summary>Rapor geçmişi ({raporlar.length})</summary>
+                    <ul className="puanlama-liste">
+                      {raporlar.map((r) => (
+                        <li key={r.id}>
+                          <strong>{IMPLEMENTATION_LABELS[r.status]}</strong> ·{" "}
+                          {new Date(r.reportedAt).toLocaleString("tr-TR")}
+                          {r.note ? <div className="meta">"{r.note}"</div> : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </>
+            )}
           </>
         )}
       </section>
