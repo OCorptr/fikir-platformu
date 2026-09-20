@@ -115,17 +115,6 @@ export function MinistryPage() {
     return () => controller.abort();
   }, [ben, periodId, sadeceUygulamalar]);
 
-  async function yeniDonem() {
-    setHata(null);
-    try {
-      const period = await createPeriod();
-      setPeriods((p) => [period, ...p]);
-      setAktif(period);
-      window.history.pushState({}, "", `/bakanlik/${period.id}`);
-      window.dispatchEvent(new PopStateEvent("popstate"));
-    } catch (e) { setHata(mesajCikar(e)); }
-  }
-
   async function secimYap(categoryId: number, ideaId: string) {
     if (!aktif) return;
     setHata(null);
@@ -179,9 +168,6 @@ export function MinistryPage() {
 
           <section className="tablo-kart" style={{ marginBottom: "1.2rem" }}>
             <div className="tablo-araclar" style={{ flexWrap: "wrap" }}>
-              <button type="button" className="btn-ana" onClick={yeniDonem} disabled={yukleniyor}>
-                📅 Yeni Dönem Oluştur
-              </button>
               {periods.length > 0 && (
                 <select
                   className="secim-kutu"
@@ -200,7 +186,7 @@ export function MinistryPage() {
                   ))}
                 </select>
               )}
-              <span className="tablo-notu">Açık dönem: fikir seçilebilir · Kapalı: salt okunur</span>
+              <span className="tablo-notu">Açık dönem: fikir seçilebilir · Kapalı: salt okunur · Dönemler 3 ayda bir otomatik oluşturulur</span>
             </div>
 
             {hata && (
@@ -210,7 +196,7 @@ export function MinistryPage() {
             )}
 
             {!aktif && (
-              <div className="il-panel-bos"><p>Henüz dönem yok. "Yeni Dönem Oluştur" ile başla.</p></div>
+              <div className="il-panel-bos"><p>Henüz aktif dönem yok. Dönemler 3 ayda bir otomatik oluşturulur.</p></div>
             )}
 
             {aktif && (
