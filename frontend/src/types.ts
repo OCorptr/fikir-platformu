@@ -23,8 +23,9 @@ export interface ProvinceRef {
 }
 
 // /api/auth/me — kimlik doğrulamasız da çağrılabilir
-export interface MeAuthenticated {
-  authenticated: true;
+// plan §49: aynı tarayıcıda öğrenci + il + bakanlık oturumu aynı anda bulunabilir.
+export interface MeSession {
+  context: "student" | "province" | "ministry" | "unknown";
   email: string;
   firstName: string;
   lastName: string;
@@ -33,11 +34,22 @@ export interface MeAuthenticated {
   profile: StudentProfileDto | null;
 }
 
+export interface MeAuthenticated {
+  authenticated: true;
+  sessions: MeSession[];
+}
+
 export interface MeAnonymous {
   authenticated: false;
 }
 
 export type MeResponse = MeAuthenticated | MeAnonymous;
+
+// Eski tekil erişim için yardımcı (sayfa kendi context'ini seçer)
+export function sessionForContext(me: MeResponse, ctx: MeSession["context"]): MeSession | null {
+  if (!me.authenticated) return null;
+  return me.sessions.find((s) => s.context === ctx) ?? null;
+}
 
 export interface StudentProfileDto {
   id: string;

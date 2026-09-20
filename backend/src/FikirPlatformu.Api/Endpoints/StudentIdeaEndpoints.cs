@@ -13,7 +13,7 @@ public static class StudentIdeaEndpoints
     public static IEndpointRouteBuilder MapStudentIdeaEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/student/ideas")
-            .RequireAuthorization(policy => policy.RequireRole("Student"))
+            .RequireAuthorization("StudentOnly")
             .WithTags("Öğrenci Fikirleri");
 
         group.MapGet("/", async (

@@ -2,13 +2,13 @@
 // Ortalama puanı eşik (3.5) üstü olan ve değerlendirmesi tamamlanan fikirler.
 
 import { useEffect, useMemo, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getCandidates } from "../services/province";
-import type { CandidateSummary, MeAuthenticated } from "../types";
+import type { CandidateSummary, MeSession, sessionForContext } from "../types";
 
 const EMOJI: Record<string, string> = {
   "Kültür ve Sanat": "🎨",
@@ -22,7 +22,7 @@ const EMOJI: Record<string, string> = {
 };
 
 export function CandidatesPage() {
-  const [ben, setBen] = useState<MeAuthenticated | null>(null);
+  const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
 
@@ -35,7 +35,7 @@ export function CandidatesPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { if (c.authenticated) setBen(c); else setAuthAcik(true); })
+      .then((c) => { const s = sessionForContext(c, "province"); if (s) setBen(s); else setAuthAcik(true); })
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -60,14 +60,13 @@ export function CandidatesPage() {
     setKimlikKontrolEdildi(false);
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => setBen(c.authenticated ? c : null))
+      .then((c) => setBen(sessionForContext(c, "province")))
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
   }
 
   const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
-  if (ben && !managerMi) return <Navigate to="/il-panel" replace />;
 
   // kategoriye göre grupla (yoksa tek grup)
   const gruplar = useMemo(() => {

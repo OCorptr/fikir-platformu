@@ -2,16 +2,16 @@
 // ProvinceEvaluator veya ProvinceManager rolü olmadan /fikir'e yönlendirir.
 
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getInbox } from "../services/province";
-import type { InboxEntry, MeAuthenticated } from "../types";
+import type { InboxEntry, MeSession, sessionForContext } from "../types";
 
 export function ProvinceInboxPage() {
-  const [ben, setBen] = useState<MeAuthenticated | null>(null);
+  const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
 
@@ -25,7 +25,7 @@ export function ProvinceInboxPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { if (c.authenticated) setBen(c); else setAuthAcik(true); })
+      .then((c) => { const s = sessionForContext(c, "province"); if (s) setBen(s); else setAuthAcik(true); })
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -50,16 +50,15 @@ export function ProvinceInboxPage() {
     setKimlikKontrolEdildi(false);
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => setBen(c.authenticated ? c : null))
+      .then((c) => setBen(sessionForContext(c, "province")))
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
   }
 
-  const yetkili =
-    ben !== null &&
-    ben.roles.some((r) => r === "ProvinceEvaluator" || r === "ProvinceManager");
-  if (ben && !yetkili) return <Navigate to="/fikir" replace />;
+  // sessionForContext zaten doğru scheme ile authenticate olmuş session'ı döner;
+  // yanlış hesapla (örn. öğrenci / bakanlık) bu sayfaya gelenlerde ben=null kalır ve
+  // AuthModal açılır — ayrı bir yönlendirme gerekmez.
 
   const filtreli = arama.trim()
     ? inbox.filter((i) =>

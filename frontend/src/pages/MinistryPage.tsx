@@ -3,7 +3,7 @@
 // /bakanlik/uygulamalar                → Uygulama Takibi
 
 import { useEffect, useState } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
@@ -19,8 +19,9 @@ import { getImplementationSummary } from "../services/implementations";
 import {
   IMPLEMENTATION_LABELS,
   type ImplementationSummary,
-  type MeAuthenticated,
+  type MeSession,
   type Period,
+  type sessionForContext,
   type PeriodCandidatesResponse,
   type PeriodSelectedResponse,
 } from "../types";
@@ -29,7 +30,7 @@ export function MinistryPage() {
   const { periodId, "*": kuyruk } = useParams<{ periodId?: string; "*": string }>();
   const sadeceUygulamalar = kuyruk === "uygulamalar";
 
-  const [ben, setBen] = useState<MeAuthenticated | null>(null);
+  const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
 
@@ -44,7 +45,7 @@ export function MinistryPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { if (c.authenticated) setBen(c); else setAuthAcik(true); })
+      .then((c) => { const s = sessionForContext(c, "ministry"); if (s) setBen(s); else setAuthAcik(true); })
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -117,7 +118,7 @@ export function MinistryPage() {
     setKimlikKontrolEdildi(false);
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => setBen(c.authenticated ? c : null))
+      .then((c) => setBen(sessionForContext(c, "ministry")))
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -147,9 +148,6 @@ export function MinistryPage() {
       setSecilmis(s);
     } catch (e) { setHata(mesajCikar(e)); }
   }
-
-  const ministryMi = ben?.roles.includes("MinistryOfficial") ?? false;
-  if (ben && !ministryMi) return <Navigate to="/" replace />;
 
   // başlık + açıklama moduna göre
   const baslik = sadeceUygulamalar ? "Uygulama Takibi" : "Dönemler & Aday Havuzu";

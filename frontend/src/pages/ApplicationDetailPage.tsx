@@ -2,7 +2,7 @@
 // Açılır açılmaz otomatik olarak okundu işaretler; ProvinceManager ise atama modalı açabilir.
 
 import { useEffect, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
@@ -30,8 +30,9 @@ import {
   type IdeaEvaluationsResponse,
   type ImplementationReport,
   type ImplementationStatus,
-  type MeAuthenticated,
+  type MeSession,
   type ProvinceEvaluatorRef,
+  type sessionForContext,
   type SubmitEvaluationItem,
 } from "../types";
 
@@ -39,7 +40,7 @@ export function ApplicationDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [ben, setBen] = useState<MeAuthenticated | null>(null);
+  const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
 
@@ -70,7 +71,7 @@ export function ApplicationDetailPage() {
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => { if (c.authenticated) setBen(c); else setAuthAcik(true); })
+      .then((c) => { const s = sessionForContext(c, "province"); if (s) setBen(s); else setAuthAcik(true); })
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -113,7 +114,7 @@ export function ApplicationDetailPage() {
     setKimlikKontrolEdildi(false);
     const controller = new AbortController();
     me(controller.signal)
-      .then((c) => setBen(c.authenticated ? c : null))
+      .then((c) => setBen(sessionForContext(c, "province")))
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -190,11 +191,6 @@ export function ApplicationDetailPage() {
     } catch (e) { setHata(mesajCikar(e)); }
     finally { setUygulamaCalisiyor(false); }
   }
-
-  const yetkili =
-    ben !== null &&
-    ben.roles.some((r) => r === "ProvinceEvaluator" || r === "ProvinceManager");
-  if (ben && !yetkili) return <Navigate to="/fikir" replace />;
 
   const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
 

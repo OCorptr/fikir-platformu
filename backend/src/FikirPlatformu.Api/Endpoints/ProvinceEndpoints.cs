@@ -1,9 +1,11 @@
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
+using FikirPlatformu.Application.Implementations;
 using FikirPlatformu.Application.Provinces;
 using FikirPlatformu.Domain.Evaluations;
 using FikirPlatformu.Domain.Ideas;
+using FikirPlatformu.Domain.Implementations;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
@@ -39,7 +41,7 @@ public static class ProvinceEndpoints
             var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
             var liste = await inboxService.ListAsync(ilId, userId, cancellationToken);
             return Results.Ok(liste);
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // POST /api/province/ideas/{id}/read — kullanıcı bazlı okundu işaretle
         grup.MapPost("/ideas/{id:guid}/read", async (
@@ -54,7 +56,7 @@ public static class ProvinceEndpoints
             await receipts.MarkReadAsync(id, userId, clock.UtcNow, cancellationToken);
             await receipts.SaveChangesAsync(cancellationToken);
             return Results.Ok(new { ideaId = id, readAt = clock.UtcNow });
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // POST /api/province/ideas/{id}/assign — değerlendirici atama (sadece ProvinceManager)
         grup.MapPost("/ideas/{id:guid}/assign", async (
@@ -88,7 +90,7 @@ public static class ProvinceEndpoints
                 AssignEvaluatorResult.NotFound => Results.NotFound(new { message = "Fikir bulunamadı veya başka ile ait." }),
                 _ => Results.StatusCode(500),
             };
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // GET /api/province/evaluators — bu ildeki ProvinceEvaluator listesi (sadece ProvinceManager)
         grup.MapGet("/evaluators", async (
@@ -121,7 +123,7 @@ public static class ProvinceEndpoints
                 .ToListAsync();
 
             return Results.Ok(users);
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // GET /api/province/ideas/{id} — başvuru detayı
         grup.MapGet("/ideas/{id:guid}", async (
@@ -183,7 +185,7 @@ public static class ProvinceEndpoints
                 readAt,
                 assignedEvaluatorIds = evaluatorIds,
             });
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // POST /api/province/ideas/{id}/evaluations — puanlama gönder (Evaluator veya Manager)
         grup.MapPost("/ideas/{id:guid}/evaluations", async (
@@ -215,7 +217,7 @@ public static class ProvinceEndpoints
                 SubmitEvaluationResult.InvalidScore => Results.ValidationProblem(new Dictionary<string, string[]> { ["scores"] = ["Puanlar 1-5 arasında olmalıdır."] }),
                 _ => Results.StatusCode(500),
             };
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // GET /api/province/ideas/{id}/evaluations — fikrin tüm puanları
         grup.MapGet("/ideas/{id:guid}/evaluations", async (
@@ -240,7 +242,7 @@ public static class ProvinceEndpoints
                 averages = ortalamalar,
                 threshold = SubmitEvaluationService.CandidateThreshold,
             });
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceEvaluator", "ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // GET /api/province/candidates — otomatik aday havuzu
         grup.MapGet("/candidates", async (
@@ -254,7 +256,7 @@ public static class ProvinceEndpoints
             var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
             var liste = await service.ListAsync(ilId, cancellationToken);
             return Results.Ok(liste);
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
 
         // POST /api/province/ideas/{id}/approve — Manager onayı
         grup.MapPost("/ideas/{id:guid}/approve", async (
@@ -274,10 +276,56 @@ public static class ProvinceEndpoints
                 ApproveIdeaResult.NotFound => Results.NotFound(new { message = "Fikir bulunamadı veya başka ile ait." }),
                 _ => Results.StatusCode(500),
             };
-        }).RequireAuthorization(policy => policy.RequireRole("ProvinceManager"));
+        }).RequireAuthorization("ProvinceOnly");
+
+        // POST /api/province/ideas/{id}/implementations — uygulama raporu (ProvinceManager)
+        grup.MapPost("/ideas/{id:guid}/implementations", async (
+            Guid id,
+            UygulamaRaporuIstegi istek,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            SubmitImplementationReportService service,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+
+            var sonuc = await service.SubmitAsync(
+                new SubmitImplementationReportCommand(id, ilId, istek.Status, istek.Note ?? "", userId),
+                cancellationToken);
+
+            return sonuc switch
+            {
+                SubmitImplementationReportResult.Ok ok => Results.Ok(new { ideaId = id, reportId = ok.ReportId, reportedAt = ok.ReportedAt }),
+                SubmitImplementationReportResult.NotFound => Results.NotFound(new { message = "Fikir bulunamadı veya başka ile ait." }),
+                _ => Results.StatusCode(500),
+            };
+        }).RequireAuthorization("ProvinceOnly");
+
+        // GET /api/province/ideas/{id}/implementations — uygulama raporları geçmişi
+        grup.MapGet("/ideas/{id:guid}/implementations", async (
+            Guid id,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            IImplementationReportRepository repo,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+
+            var fikirMi = await db.Ideas.AnyAsync(i => i.Id == id && i.ProvinceId == ilId, cancellationToken);
+            if (!fikirMi) return Results.NotFound();
+
+            var liste = await repo.GetForIdeaAsync(id, cancellationToken);
+            return Results.Ok(liste);
+        }).RequireAuthorization("ProvinceOnly");
 
         return app;
     }
+
+    public sealed record UygulamaRaporuIstegi(ImplementationStatus Status, string? Note);
 }
 
 public sealed record AssignEvaluatorIstegi(string EvaluatorUserId);

@@ -3,8 +3,9 @@
 // Kapatılamaz — kullanıcı yalnız giriş veya kayıt yoluyla forma ulaşır.
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useLocation } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { login, register } from "../services/auth";
+import { contextFromPath, login, register, type LoginContext } from "../services/auth";
 import { getProvinces } from "../services/references";
 import type { ProvinceRef } from "../types";
 
@@ -16,9 +17,14 @@ interface Props {
   onAuthed: () => void;
   /** true → yalnız Giriş Yap sekmesi gösterilir (Kayıt Ol gizlenir); il personeli için. */
   sadeceGiris?: boolean;
+  /** Hangi panele giriş yapıldığı (plan §49). Login backend'e iletilir. */
+  context?: LoginContext;
 }
 
-export function AuthModal({ acik, onAuthed, sadeceGiris = false }: Props) {
+export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contextProp }: Props) {
+  // Path'ten context algıla (prop verilmediyse).
+  const yol = useLocation().pathname;
+  const context: LoginContext | undefined = contextProp ?? contextFromPath(yol);
   const [mod, setMod] = useState<Mod>("giris");
   const [iller, setIller] = useState<ProvinceRef[]>([]);
   const [illerYukleniyor, setIllerYukleniyor] = useState(false);
@@ -84,7 +90,7 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false }: Props) {
     setCalisiyor(true);
     setHata(null);
     try {
-      await login({ email: girisEposta.trim(), password: girisSifre });
+      await login({ email: girisEposta.trim(), password: girisSifre, context });
       onAuthed();
     } catch (e) {
       setHata(mesajCikar(e));

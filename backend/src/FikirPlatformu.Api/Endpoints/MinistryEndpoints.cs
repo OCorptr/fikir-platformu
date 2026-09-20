@@ -1,6 +1,7 @@
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
+using FikirPlatformu.Application.Implementations;
 using FikirPlatformu.Application.Ministry;
 using FikirPlatformu.Domain.Ideas;
 using FikirPlatformu.Infrastructure.Persistence;
@@ -21,7 +22,7 @@ public static class MinistryEndpoints
         {
             var liste = await repo.ListAsync(cancellationToken);
             return Results.Ok(liste);
-        }).RequireAuthorization(policy => policy.RequireRole("MinistryOfficial"));
+        }).RequireAuthorization("MinistryOnly");
 
         // POST /api/ministry/periods — yeni dönem (otomatik 3 aylık)
         grup.MapPost("/periods", async (
@@ -34,7 +35,7 @@ public static class MinistryEndpoints
             var etiket = istek.Label ?? $"Dönem {baslangic:yyyy-MM-dd}";
             var period = await service.CreateAsync(new CreatePeriodCommand(etiket, baslangic), cancellationToken);
             return Results.Created($"/api/ministry/periods/{period.Id}", period);
-        }).RequireAuthorization(policy => policy.RequireRole("MinistryOfficial"));
+        }).RequireAuthorization("MinistryOnly");
 
         // GET /api/ministry/periods/{id}/candidates — dönem içindeki aday havuzu (kategori gruplu)
         // Bu uçta plan §26'nın "aday havuzu" kavramı kullanılır: il onaylı (Locked) fikirler.
@@ -97,7 +98,7 @@ public static class MinistryEndpoints
                 period,
                 categories = gruplar,
             });
-        }).RequireAuthorization(policy => policy.RequireRole("MinistryOfficial"));
+        }).RequireAuthorization("MinistryOnly");
 
         // POST /api/ministry/periods/{id}/select — dönem/kategori için fikir seçimi
         grup.MapPost("/periods/{id:guid}/select", async (
@@ -122,7 +123,7 @@ public static class MinistryEndpoints
                 SelectForPeriodResult.CategoryMismatch => Results.ValidationProblem(new Dictionary<string, string[]> { ["categoryId"] = ["Fikir seçilen kategoriye ait değil."] }),
                 _ => Results.StatusCode(500),
             };
-        }).RequireAuthorization(policy => policy.RequireRole("MinistryOfficial"));
+        }).RequireAuthorization("MinistryOnly");
 
         // GET /api/ministry/periods/{id}/selected — seçilen 10 fikir (özet)
         grup.MapGet("/periods/{id:guid}/selected", async (
@@ -164,7 +165,16 @@ public static class MinistryEndpoints
             });
 
             return Results.Ok(new { period, selections = sonuc });
-        }).RequireAuthorization(policy => policy.RequireRole("MinistryOfficial"));
+        }).RequireAuthorization("MinistryOnly");
+
+        // GET /api/ministry/implementations — tüm Planned+Implementation fikirler (özet ekranı, plan §30)
+        grup.MapGet("/implementations", async (
+            IImplementationSummaryQueryService service,
+            CancellationToken cancellationToken) =>
+        {
+            var liste = await service.ListAllAsync(cancellationToken);
+            return Results.Ok(liste);
+        }).RequireAuthorization("MinistryOnly");
 
         return app;
     }

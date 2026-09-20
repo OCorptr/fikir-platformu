@@ -16,15 +16,16 @@ import {
 import { logout, me } from "../services/auth";
 import type {
   CategoryRef,
-  MeAuthenticated,
+  MeSession,
   StudentIdeaDto,
+  sessionForContext,
 } from "../types";
 
 const MAX_KARAKTER = 1500;
 
 export default function FikirPage() {
-  // oturum
-  const [ben, setBen] = useState<MeAuthenticated | null>(null);
+  // oturum (öğrenci context'i)
+  const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
 
@@ -39,17 +40,11 @@ export default function FikirPage() {
   const [calisiyor, setCalisiyor] = useState<"taslak" | "gonder" | "sil" | "taslakYukle" | null>(null);
   const [gonderildiEkran, setGonderildiEkran] = useState<StudentIdeaDto | null>(null);
 
-  // 1) sayfa açılır — oturum kontrolü
+  // 1) sayfa açılır — öğrenci oturumu kontrol et
   useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
-      .then((cevap) => {
-        if (cevap.authenticated) {
-          setBen(cevap);
-        } else {
-          setAuthAcik(true);
-        }
-      })
+      .then((cevap) => setBen(sessionForContext(cevap, "student")))
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           setAuthAcik(true);
@@ -84,10 +79,7 @@ export default function FikirPage() {
     setKimlikKontrolEdildi(false);
     const controller = new AbortController();
     me(controller.signal)
-      .then((cevap) => {
-        if (cevap.authenticated) setBen(cevap);
-        else setAuthAcik(true);
-      })
+      .then((cevap) => setBen(sessionForContext(cevap, "student")))
       .catch(() => setAuthAcik(true))
       .finally(() => setKimlikKontrolEdildi(true));
     return () => controller.abort();
@@ -118,11 +110,9 @@ export default function FikirPage() {
     try {
       if (aktifTaslakId) {
         await updateDraft(aktifTaslakId, { categoryId: kategoriId, content: fikir });
-        setMesaj("Taslak güncellendi.");
       } else {
         const sonuc = await saveDraft({ categoryId: kategoriId, content: fikir });
         setAktifTaslakId(sonuc.id);
-        setMesaj("Taslak kaydedildi.");
       }
       await taslaklariYenile();
     } catch (e) {
@@ -217,7 +207,7 @@ export default function FikirPage() {
 
   async function handleCikis() {
     try {
-      await logout();
+      await logout("student");
     } catch {
       // yoksay — yine de arayüzü sıfırla
     }
@@ -271,18 +261,6 @@ export default function FikirPage() {
             <span style={{ color: "#ef7814" }}>Anlat!</span>
           </h1>
 
-          {hata && (
-            <div className="status-banner status-banner--error" role="alert">
-              <span className="status-banner__icon">!</span>
-              <span>{hata}</span>
-            </div>
-          )}
-          {mesaj && !hata && (
-            <div className="status-banner status-banner--info">
-              <span className="status-banner__icon">i</span>
-              <span>{mesaj}</span>
-            </div>
-          )}
 
           <div className="bolum-basligi turkuaz">1 · Temanı Seç</div>
           <select
@@ -375,14 +353,16 @@ export default function FikirPage() {
       <main className="fikir-hero">
         <div className="fikir-sol">
           <div className="balon-kapsa">
-            <div className="balon">
-              {!girisYapildi
-                ? <>Merhaba! 🖐 Fikrini yazmadan önce <b>giriş yap</b> ya da <b>kayıt ol</b>.</>
-                : gonderildiEkran
-                  ? "Fikrin bize ulaştı, teşekkür ederiz! 🎉"
-                  : aktifTaslakId
-                    ? "Taslağını düzenliyorsun. Bittiğinde Gönder butonuna bas! 💪"
-                    : <>Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra fikrini anlat. Sıra sende!</>}
+            <div className={`balon ${hata ? "balon--uyari" : ""}`}>
+              {hata
+                ? <><span aria-hidden="true">⚠️</span> {hata}</>
+                : !girisYapildi
+                  ? <>Merhaba! 🖐 Fikrini yazmadan önce <b>giriş yap</b> ya da <b>kayıt ol</b>.</>
+                  : gonderildiEkran
+                    ? "Fikrin bize ulaştı, teşekkür ederiz! 🎉"
+                    : aktifTaslakId
+                      ? "Taslağını düzenliyorsun. Bittiğinde Gönder butonuna bas! 💪"
+                      : <>Merhaba, ben Fikri! 🖐 Önce bir <b>tema</b> seç, sonra fikrini anlat. Sıra sende!</>}
             </div>
           </div>
           <img className="maskot-fikir" src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE maskotu" />

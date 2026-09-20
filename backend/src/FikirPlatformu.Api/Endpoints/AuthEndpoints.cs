@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -110,6 +112,7 @@ public static class AuthEndpoints
 
         grup.MapPost("/login", async (
             GirisIstegi istek,
+            [FromQuery] string? role,
             SignInManager<ApplicationUser> girisYoneticisi) =>
         {
             var kullanici = await girisYoneticisi.UserManager.FindByEmailAsync(istek.Email);
@@ -140,76 +143,108 @@ public static class AuthEndpoints
             }
 
             var roller = await girisYoneticisi.UserManager.GetRolesAsync(kullanici);
+            var scheme = GirisIcinSchemeSec(roller, role);
+
+            // İstenen role ile hesabın rolleri uyuşmazsa, girişi reddet — başka hesaba karışma.
+            if (scheme is null)
+            {
+                await girisYoneticisi.SignOutAsync();
+                var beklenen = role switch
+                {
+                    "student" => "öğrenci",
+                    "province" => "il personeli",
+                    "ministry" => "bakanlık",
+                    _ => "bilinmeyen"
+                };
+                return Results.Json(new
+                {
+                    message = $"Bu hesap '{beklenen}' rolü için yetkili değil."
+                }, statusCode: 403);
+            }
+
+            // Doğru scheme ile yeniden SignIn — ilk PasswordSignIn default scheme kullandı.
+            // Identity.Application (öğrenci) cookie'sini Province/Ministry scheme'i ile değiştiriyoruz.
+            if (scheme != IdentityConstants.ApplicationScheme)
+            {
+                await girisYoneticisi.SignOutAsync();
+                await girisYoneticisi.SignInAsync(kullanici, istek.RememberMe, scheme);
+            }
+
             return Results.Ok(new
             {
                 kullanici.Email,
                 kullanici.FirstName,
                 kullanici.LastName,
-                roles = roller
+                roles = roller,
+                context = scheme switch
+                {
+                    "ProvinceScheme" => "province",
+                    "MinistryScheme" => "ministry",
+                    _ => "student"
+                }
             });
         });
 
-        grup.MapPost("/logout", async (SignInManager<ApplicationUser> girisYoneticisi) =>
+        grup.MapPost("/logout", async (
+            [FromQuery] string? role,
+            HttpContext http) =>
         {
-            await girisYoneticisi.SignOutAsync();
-            return Results.Ok(new { message = "Çıkış yapıldı." });
+            // role belirtilmişse sadece o scheme'in cookie'sini sil;
+            // belirtilmemişse tümünü sil (tüm sekmelerden çıkış).
+            if (!string.IsNullOrEmpty(role))
+            {
+                var scheme = CikisIcinSchemeSec(role);
+                if (scheme is not null)
+                {
+                    await http.SignOutAsync(scheme);
+                    return Results.Ok(new { message = "Çıkış yapıldı.", context = role });
+                }
+            }
+            await http.SignOutAsync(IdentityConstants.ApplicationScheme);
+            await http.SignOutAsync("ProvinceScheme");
+            await http.SignOutAsync("MinistryScheme");
+            return Results.Ok(new { message = "Çıkış yapıldı.", context = "all" });
         });
 
-        // /me kimlik doğrulamasız da çağrılabilir; authenticated=false döner
+        // /me: 3 cookie'nin hepsini kontrol et, aktif oturumları döndür (aynı tarayıcıda
+        // öğrenci + il + bakanlık oturumu aynı anda bulunabilir, plan §49).
         grup.MapGet("/me", async (
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani) =>
         {
-            // AllowAnonymous: cookie auth pipeline üzerinden oturum varsa User dolu olur
-            if (http.User?.Identity?.IsAuthenticated != true)
+            var oturumlar = new List<object>();
+
+            // Öğrenci
+            var ogrenciSonuc = await http.AuthenticateAsync(IdentityConstants.ApplicationScheme);
+            if (ogrenciSonuc.Succeeded && ogrenciSonuc.Principal is not null)
+            {
+                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ogrenciSonuc.Principal, http.RequestAborted);
+                if (k is not null) oturumlar.Add(k);
+            }
+
+            // İl personeli
+            var ilSonuc = await http.AuthenticateAsync("ProvinceScheme");
+            if (ilSonuc.Succeeded && ilSonuc.Principal is not null)
+            {
+                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ilSonuc.Principal, http.RequestAborted);
+                if (k is not null) oturumlar.Add(k);
+            }
+
+            // Bakanlık
+            var bakanlikSonuc = await http.AuthenticateAsync("MinistryScheme");
+            if (bakanlikSonuc.Succeeded && bakanlikSonuc.Principal is not null)
+            {
+                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, bakanlikSonuc.Principal, http.RequestAborted);
+                if (k is not null) oturumlar.Add(k);
+            }
+
+            if (oturumlar.Count == 0)
             {
                 return Results.Ok(new { authenticated = false });
             }
 
-            var kullaniciId = kullaniciYoneticisi.GetUserId(http.User);
-            if (kullaniciId is null)
-            {
-                return Results.Ok(new { authenticated = false });
-            }
-
-            var kullanici = await kullaniciYoneticisi.FindByIdAsync(kullaniciId);
-            if (kullanici is null)
-            {
-                return Results.Ok(new { authenticated = false });
-            }
-
-            var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
-
-            var profil = await veritabani.StudentProfiles
-                .AsNoTracking()
-                .Where(p => p.ApplicationUserId == kullaniciId)
-                .Join(
-                    veritabani.Provinces,
-                    p => p.ProvinceId,
-                    il => il.Id,
-                    (p, il) => new
-                    {
-                        p.Id,
-                        p.ProvinceId,
-                        ProvinceName = il.Name,
-                        p.District,
-                        p.School,
-                        p.Grade,
-                        p.StudentNumber
-                    })
-                .FirstOrDefaultAsync(http.RequestAborted);
-
-            return Results.Ok(new
-            {
-                authenticated = true,
-                email = kullanici.Email,
-                firstName = kullanici.FirstName,
-                lastName = kullanici.LastName,
-                emailConfirmed = kullanici.EmailConfirmed,
-                roles = roller,
-                profile = profil
-            });
+            return Results.Ok(new { authenticated = true, sessions = oturumlar });
         }).AllowAnonymous();
 
         grup.MapPost("/forgot-password", async (
@@ -263,6 +298,96 @@ public static class AuthEndpoints
 
     private static string FrontendAdresi(IConfiguration yapilandirma) =>
         (yapilandirma["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+
+    /// <summary>Hesabın rolleri ile istenen giriş context'ine göre cookie scheme seçer.</summary>
+    private static string? GirisIcinSchemeSec(IList<string> roller, string? istenenContext)
+    {
+        // Kullanıcının sahip olduğu context'ler
+        bool ogrenci = roller.Contains("Student");
+        bool ilPersoneli = roller.Contains("ProvinceManager") || roller.Contains("ProvinceEvaluator");
+        bool bakanlik = roller.Contains("MinistryOfficial");
+
+        // İstenen context açıkça verilmemişse, hesabın sahip olduğu ilk context'i kullan.
+        if (string.IsNullOrEmpty(istenenContext))
+        {
+            if (ogrenci) return IdentityConstants.ApplicationScheme;
+            if (ilPersoneli) return "ProvinceScheme";
+            if (bakanlik) return "MinistryScheme";
+            return null;
+        }
+
+        return istenenContext switch
+        {
+            "student" => ogrenci ? IdentityConstants.ApplicationScheme : null,
+            "province" => ilPersoneli ? "ProvinceScheme" : null,
+            "ministry" => bakanlik ? "MinistryScheme" : null,
+            _ => null
+        };
+    }
+
+    /// <summary>Çıkış için query'den gelen role string'ini scheme adına çevirir.</summary>
+    private static string? CikisIcinSchemeSec(string context) => context switch
+    {
+        "student" => IdentityConstants.ApplicationScheme,
+        "province" => "ProvinceScheme",
+        "ministry" => "MinistryScheme",
+        _ => null
+    };
+
+    /// <summary>Authenticated principal'dan frontend'in ihtiyacı olan kullanıcı bilgisini üretir.</summary>
+    private static async Task<object?> KullaniciBilgisiGetir(
+        UserManager<ApplicationUser> kullaniciYoneticisi,
+        FikirPlatformuDbContext veritabani,
+        ClaimsPrincipal principal,
+        CancellationToken cancellationToken)
+    {
+        var kullaniciId = kullaniciYoneticisi.GetUserId(principal);
+        if (string.IsNullOrEmpty(kullaniciId)) return null;
+        var kullanici = await kullaniciYoneticisi.FindByIdAsync(kullaniciId);
+        if (kullanici is null) return null;
+        var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
+
+        // Context'i şemadan çıkaramayız ama rollerden çıkarabiliriz
+        var context = roller.Contains("Student") ? "student"
+            : (roller.Contains("ProvinceManager") || roller.Contains("ProvinceEvaluator")) ? "province"
+            : roller.Contains("MinistryOfficial") ? "ministry"
+            : "unknown";
+
+        // Profil sadece öğrenci için var
+        object? profil = null;
+        if (context == "student")
+        {
+            profil = await veritabani.StudentProfiles
+                .AsNoTracking()
+                .Where(p => p.ApplicationUserId == kullaniciId)
+                .Join(
+                    veritabani.Provinces,
+                    p => p.ProvinceId,
+                    il => il.Id,
+                    (p, il) => new
+                    {
+                        p.Id,
+                        p.ProvinceId,
+                        ProvinceName = il.Name,
+                        p.District,
+                        p.School,
+                        p.Grade,
+                        p.StudentNumber
+                    })
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        return new
+        {
+            context,
+            email = kullanici.Email,
+            firstName = kullanici.FirstName,
+            lastName = kullanici.LastName,
+            emailConfirmed = kullanici.EmailConfirmed,
+            roles = roller,
+            profile = profil
+        };
+    }
 
     public sealed record KayitIstegi(
         string FirstName,

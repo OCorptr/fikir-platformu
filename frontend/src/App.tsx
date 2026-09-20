@@ -8,7 +8,7 @@ import { ProvinceInboxPage } from "./pages/ProvinceInboxPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { CandidatesPage } from "./pages/CandidatesPage";
 import { MinistryPage } from "./pages/MinistryPage";
-import { me } from "./services/auth";
+import { logout, me } from "./services/auth";
 import type { MeResponse } from "./types";
 
 /* her rotada govde sinifi degisir:
@@ -30,13 +30,15 @@ function GovdeSinifi() {
   return null;
 }
 
-export default function App() {
-  // Üst bar'daki rol bazlı link için tek bir /me çağrısı — sayfalar kendi içlerinde de /me yapar (state bağımsız).
-  const [meState, setMeState] = useState<MeResponse | null>(null);
+/* Router context'i içinde çalışan iç bileşen — useLocation burada güvenli. */
+function AppIcerik() {
   const yol = useLocation().pathname;
   const adminRota = yol.startsWith("/il-panel") || yol.startsWith("/bakanlik");
 
-  const meYenile = () => {
+  // Üst bar'daki rol bazlı link için tek bir /me çağrısı — sayfalar kendi içlerinde de /me yapar (state bağımsız).
+  const [meState, setMeState] = useState<MeResponse | null>(null);
+
+  useEffect(() => {
     const controller = new AbortController();
     me(controller.signal)
       .then(setMeState)
@@ -46,23 +48,22 @@ export default function App() {
         }
       });
     return () => controller.abort();
-  };
-
-  useEffect(meYenile, []);
+  }, []);
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      // ÜstBar yalnız öğrenci sayfalarında (/fikir) görünür — öğrenci context'ini kapat.
+      await logout("student");
     } catch {
       // yoksay
     }
-    setMeState({ authenticated: false });
+    setMeState({ authenticated: false, sessions: [] });
     window.history.pushState({}, "", "/");
     window.dispatchEvent(new PopStateEvent("popstate"));
   };
 
   return (
-    <BrowserRouter>
+    <>
       <GovdeSinifi />
       {!adminRota && <UstBar me={meState} onLogout={handleLogout} />}
       <AccessibilityPanel />
@@ -77,6 +78,14 @@ export default function App() {
         <Route path="/bakanlik/:periodId" element={<MinistryPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppIcerik />
     </BrowserRouter>
   );
 }

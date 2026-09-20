@@ -3,10 +3,11 @@
 
 import { useEffect, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import type { MeAuthenticated } from "../types";
+import { logout, type LoginContext } from "../services/auth";
+import type { MeSession } from "../types";
 
 interface AdminLayoutProps {
-  ben: MeAuthenticated | null;
+  ben: MeSession | null;
   baslik: string;
   aciklama?: string;
   donemRozet?: string;       // sağ üst dönem rozeti (opsiyonel)
@@ -104,8 +105,9 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
     .join("") || "?";
 
   async function cikis() {
+    const ctx: LoginContext = ministryMi ? "ministry" : "province";
     try {
-      await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
+      await logout(ctx);
     } catch { /* yoksay */ }
     window.history.pushState({}, "", "/");
     window.dispatchEvent(new PopStateEvent("popstate"));
