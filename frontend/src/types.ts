@@ -303,7 +303,7 @@ export type PeriodStatus = "Open" | "SelectionComplete" | "Archived";
 export const PERIOD_STATUS_LABELS: Record<PeriodStatus, string> = {
   Open: "Açık",
   SelectionComplete: "Seçim Tamamlandı",
-  Archived: "Arşivlendi",
+  Archived: "Kapalı",
 };
 
 // 3 aylık dönem etiketi: "2026 III. Dönem (Temmuz-Eylül)"

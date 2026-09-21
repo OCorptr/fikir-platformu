@@ -225,8 +225,8 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                 <section className="tablo-kart" style={{ marginBottom: "1.2rem" }}>
                   <div style={{ marginBottom: "0.6rem", fontWeight: 800, color: "var(--lacivert)", fontSize: "1.05rem" }}>
                     {donemEtiketi(aktifDonem)}
-                    <span className="durum yesil" style={{ marginLeft: "0.6rem" }}>
-                      {aktifDonem.status === "Open" ? "🟢 Açık" : PERIOD_STATUS_LABELS[aktifDonem.status]}
+                    <span className={`durum ${aktifDonem.status === "Open" ? "yesil" : "turuncu"}`} style={{ marginLeft: "0.6rem" }}>
+                      {aktifDonem.status === "Open" ? "🟢 Açık" : `🔒 ${PERIOD_STATUS_LABELS[aktifDonem.status]}`}
                     </span>
                   </div>
                   {yukleniyor && !adaylar && (
@@ -266,8 +266,8 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                   return (
                     <div style={{ marginBottom: "0.4rem", fontWeight: 800, color: "var(--lacivert)", fontSize: "1.05rem" }}>
                       {donemEtiketi(p)}
-                      <span className="durum yesil" style={{ marginLeft: "0.6rem" }}>
-                        {p.status === "Open" ? "🟢 Açık" : PERIOD_STATUS_LABELS[p.status]}
+                      <span className={`durum ${p.status === "Open" ? "yesil" : "turuncu"}`} style={{ marginLeft: "0.6rem" }}>
+                        {p.status === "Open" ? "🟢 Açık" : `🔒 ${PERIOD_STATUS_LABELS[p.status]}`}
                       </span>
                     </div>
                   );
