@@ -1,7 +1,6 @@
-// /bakanlik — Bakanlık paneli (admin temalı).
-// 2 sekmeli yapı: "Aktif Adaylar" (üstte, varsayılan) + "Dönemler" (altta).
-// Aktif Adaylar sekmesinde dönem seçici yoktur; ilk Open dönem otomatik yüklenir.
-// Dönemler sekmesinde dönem seçici + seçilenler + uygulama takibi yer alır.
+// /bakanlik, /bakanlik/donemler — Bakanlık paneli (admin temalı).
+// Sidebar'dan 2 ayrı menü öğesi ile erişilir: "Aktif Adaylar" + "Dönemler".
+// gorunum prop'u route'tan gelir; sekme state yoktur.
 // Ministry session yoksa anasayfaya yönlendirir.
 
 import { useEffect, useState } from "react";
@@ -39,14 +38,19 @@ const KATEGORI_EMOJI: Record<string, string> = {
   "Değerler Eğitimi": "📖",
   "Sosyal Sorumluluk": "🤝",
 };
-type Sekme = "adaylar" | "donemler";
 
-export function MinistryPage() {
+export type MinistryGorunum = "adaylar" | "donemler";
+
+interface MinistryPageProps {
+  gorunum: MinistryGorunum;
+}
+
+export function MinistryPage({ gorunum }: MinistryPageProps) {
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
 
   const [periods, setPeriods] = useState<Period[]>([]);
-  // Aktif Adaylar sekmesinde otomatik seçilen Open dönem
+  // Aktif Adaylar için otomatik seçilen Open dönem
   const [aktifDonem, setAktifDonem] = useState<Period | null>(null);
   const [adaylar, setAdaylar] = useState<PeriodCandidatesResponse | null>(null);
 
@@ -55,7 +59,6 @@ export function MinistryPage() {
   const [secilmis, setSecilmis] = useState<PeriodSelectedResponse | null>(null);
   const [uygulamalar, setUygulamalar] = useState<ImplementationSummary[]>([]);
 
-  const [sekme, setSekme] = useState<Sekme>("adaylar");
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -68,7 +71,7 @@ export function MinistryPage() {
     return () => controller.abort();
   }, []);
 
-  // Dönem listesi + ilk Open dönem (Aktif Adaylar için)
+  // Dönem listesi + ilk Open dönem
   useEffect(() => {
     if (!ben) return;
     const controller = new AbortController();
@@ -78,7 +81,6 @@ export function MinistryPage() {
         setPeriods(liste);
         const ilk = liste.find((p) => p.status === "Open") ?? liste[0] ?? null;
         setAktifDonem(ilk);
-        // Dönemler sekmesi ilk açılışta ilk Open dönem seçili olsun
         setSeciliPeriodId((prev) => prev ?? ilk?.id ?? null);
       })
       .catch((e) => {
@@ -88,9 +90,9 @@ export function MinistryPage() {
     return () => controller.abort();
   }, [ben]);
 
-  // Aktif Adaylar sekmesi: aktif dönem adaylarını çek
+  // Aktif Adaylar görünümü: aktif dönem adaylarını çek
   useEffect(() => {
-    if (!ben || !aktifDonem) return;
+    if (!ben || gorunum !== "adaylar" || !aktifDonem) return;
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
@@ -101,11 +103,11 @@ export function MinistryPage() {
       })
       .finally(() => setYukleniyor(false));
     return () => controller.abort();
-  }, [ben, aktifDonem]);
+  }, [ben, gorunum, aktifDonem]);
 
-  // Dönemler sekmesi: seçilen dönem için aday + seçilen + uygulamalar
+  // Dönemler görünümü: seçilen dönem için aday + seçilen + uygulamalar
   useEffect(() => {
-    if (!ben || !seciliPeriodId) return;
+    if (!ben || gorunum !== "donemler" || !seciliPeriodId) return;
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
@@ -119,14 +121,16 @@ export function MinistryPage() {
       })
       .finally(() => setYukleniyor(false));
     return () => controller.abort();
-  }, [ben, seciliPeriodId]);
+  }, [ben, gorunum, seciliPeriodId]);
 
   if (kimlikKontrolEdildi && !ben) {
     return <Navigate to="/" replace />;
   }
 
   async function secimYap(categoryId: number, ideaId: string) {
-    const hedef = sekme === "adaylar" ? aktifDonem : periods.find((p) => p.id === seciliPeriodId) ?? null;
+    const hedef = gorunum === "adaylar"
+      ? aktifDonem
+      : periods.find((p) => p.id === seciliPeriodId) ?? null;
     if (!hedef) return;
     setHata(null);
     try {
@@ -140,47 +144,82 @@ export function MinistryPage() {
     } catch (e) { setHata(mesajCikar(e)); }
   }
 
-  const baslik = sekme === "adaylar" ? "Aktif Adaylar" : "Dönemler";
-  const donemRozetStr = (() => {
-    const p = sekme === "adaylar" ? aktifDonem : periods.find((x) => x.id === seciliPeriodId) ?? null;
-    return p ? `📅 ${donemRozet(p)}` : undefined;
-  })();
+  const baslik = gorunum === "adaylar" ? "Aktif Adaylar" : "Dönemler";
+  const rozetDonem = gorunum === "adaylar"
+    ? aktifDonem
+    : periods.find((x) => x.id === seciliPeriodId) ?? null;
+
+  // Ortak: aday kartları bloğu (kategori başına)
+  const adayKartlari = (kilitli: boolean) => {
+    if (!adaylar) return null;
+    return adaylar.categories.map((g) => {
+      const emoji = KATEGORI_EMOJI[g.categoryName] ?? "💡";
+      const hedef = rozetDonem;
+      return (
+        <div key={g.categoryId} style={{ marginBottom: "1.4rem" }}>
+          <div className="bolum-basligi turuncu">
+            {emoji} {g.categoryName} · {g.ideas.length} aday{g.selected ? " · kategori seçildi" : ""}
+          </div>
+          {g.ideas.length === 0 ? (
+            <div className="il-panel-bos" style={{ marginTop: "0.5rem" }}>
+              <p>📭 Bu kategoride aday fikir bulunmuyor.</p>
+              {gorunum === "adaylar" && (
+                <p className="meta">Eşiği (3.5) geçen fikirler otomatik aday olur.</p>
+              )}
+            </div>
+          ) : (
+            <div className="adaylar">
+              {g.ideas.map((i) => (
+                <div
+                  key={i.id}
+                  className={`aday-kart ${i.isSelected ? "secili" : ""} ${g.selected && !i.isSelected ? "soluk" : ""}`}
+                >
+                  <div className="aday-emoji">{emoji}</div>
+                  <h3>{i.provinceName}</h3>
+                  <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
+                  <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
+                  {i.isSelected ? (
+                    <span className="durum altin">👑 Ayın Fikri</span>
+                  ) : g.selected ? (
+                    <span className="meta">kategori seçildi</span>
+                  ) : (
+                    <span className="durum yesil">🌟 Aday</span>
+                  )}
+                  {!g.selected && (
+                    <button
+                      type="button"
+                      className="btn-ana btn-aday"
+                      onClick={() => secimYap(g.categoryId, i.id)}
+                      disabled={!hedef || hedef.status !== "Open"}
+                    >
+                      👑 Ayın Fikri Seç
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    });
+  };
 
   return (
-    <AdminLayout ben={ben} baslik={baslik} donemRozet={donemRozetStr}>
+    <AdminLayout ben={ben} baslik={baslik} donemRozet={rozetDonem ? `📅 ${donemRozet(rozetDonem)}` : undefined}>
       {!kimlikKontrolEdildi && (
         <div className="yukleme-ekrani"><div className="yukleme-carki" aria-hidden="true" /><span>Yükleniyor…</span></div>
       )}
 
       {kimlikKontrolEdildi && ben && (
         <>
-          <div className="sekme-nav" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              className={`sekme-buton ${sekme === "adaylar" ? "aktif" : ""}`}
-              onClick={() => setSekme("adaylar")}
-            >
-              🌟 Aktif Adaylar
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className={`sekme-buton ${sekme === "donemler" ? "aktif" : ""}`}
-              onClick={() => setSekme("donemler")}
-            >
-              📅 Dönemler
-            </button>
-          </div>
-
           {hata && (
             <div className="status-banner status-banner--error" role="alert" style={{ marginBottom: "0.8rem" }}>
               <span className="status-banner__icon">!</span><span>{hata}</span>
             </div>
           )}
 
-          {/* ===== AKTİF ADAYLAR SEKMESİ ===== */}
-          {sekme === "adaylar" && (
+          {/* ===== AKTİF ADAYLAR GÖRÜNÜMÜ ===== */}
+          {gorunum === "adaylar" && (
             <>
               {!aktifDonem ? (
                 <div className="il-panel-bos"><p>Henüz aktif dönem yok.</p></div>
@@ -192,61 +231,19 @@ export function MinistryPage() {
                       {aktifDonem.status === "Open" ? "🟢 Açık" : PERIOD_STATUS_LABELS[aktifDonem.status]}
                     </span>
                   </div>
-
-                  {adaylar?.categories.map((g) => {
-                    const emoji = KATEGORI_EMOJI[g.categoryName] ?? "💡";
-                    return (
-                      <div key={g.categoryId} style={{ marginBottom: "1.4rem" }}>
-                        <div className="bolum-basligi turuncu">
-                          {emoji} {g.categoryName} · {g.ideas.length} aday{g.selected ? " · kategori seçildi" : ""}
-                        </div>
-                        {g.ideas.length === 0 ? (
-                          <div className="il-panel-bos" style={{ marginTop: "0.5rem" }}>
-                            <p>📭 Bu kategoride aday fikir bulunmuyor.</p>
-                            <p className="meta">Eşiği (3.5) geçen fikirler otomatik aday olur.</p>
-                          </div>
-                        ) : (
-                          <div className="adaylar">
-                            {g.ideas.map((i) => (
-                              <div
-                                key={i.id}
-                                className={`aday-kart ${i.isSelected ? "secili" : ""} ${g.selected && !i.isSelected ? "soluk" : ""}`}
-                              >
-                                <div className="aday-emoji">{emoji}</div>
-                                <h3>{i.provinceName}</h3>
-                                <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
-                                <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
-                                {i.isSelected ? (
-                                  <span className="durum altin">👑 Ayın Fikri</span>
-                                ) : g.selected ? (
-                                  <span className="meta">kategori seçildi</span>
-                                ) : (
-                                  <span className="durum yesil">🌟 Aday</span>
-                                )}
-                                {!g.selected && (
-                                  <button
-                                    type="button"
-                                    className="btn-ana btn-aday"
-                                    onClick={() => secimYap(g.categoryId, i.id)}
-                                    disabled={aktifDonem.status !== "Open"}
-                                  >
-                                    👑 Ayın Fikri Seç
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {yukleniyor && !adaylar && (
+                    <div className="status-banner status-banner--info">
+                      <span className="status-banner__icon">i</span><span>Adaylar yükleniyor…</span>
+                    </div>
+                  )}
+                  {adaylar && adayKartlari(false)}
                 </section>
               )}
             </>
           )}
 
-          {/* ===== DÖNEMLER SEKMESİ ===== */}
-          {sekme === "donemler" && (
+          {/* ===== DÖNEMLER GÖRÜNÜMÜ ===== */}
+          {gorunum === "donemler" && (
             <>
               <section className="tablo-kart" style={{ marginBottom: "1.2rem" }}>
                 <div className="tablo-araclar" style={{ flexWrap: "wrap" }}>
@@ -278,55 +275,7 @@ export function MinistryPage() {
                   );
                 })()}
 
-                {adaylar?.categories.map((g) => {
-                  const emoji = KATEGORI_EMOJI[g.categoryName] ?? "💡";
-                  return (
-                    <div key={g.categoryId} style={{ marginBottom: "1.2rem" }}>
-                      <div className="bolum-basligi turuncu">
-                        {emoji} {g.categoryName} · {g.ideas.length} aday{g.selected ? " · kategori seçildi" : ""}
-                      </div>
-                      {g.ideas.length === 0 ? (
-                        <div className="il-panel-bos" style={{ marginTop: "0.5rem" }}>
-                          <p>📭 Bu kategoride aday fikir bulunmuyor.</p>
-                        </div>
-                      ) : (
-                        <div className="adaylar">
-                          {g.ideas.map((i) => (
-                            <div
-                              key={i.id}
-                              className={`aday-kart ${i.isSelected ? "secili" : ""} ${g.selected && !i.isSelected ? "soluk" : ""}`}
-                            >
-                              <div className="aday-emoji">{emoji}</div>
-                              <h3>{i.provinceName}</h3>
-                              <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
-                              <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
-                              {i.isSelected ? (
-                                <span className="durum altin">👑 Ayın Fikri</span>
-                              ) : g.selected ? (
-                                <span className="meta">kategori seçildi</span>
-                              ) : (
-                                <span className="durum yesil">🌟 Aday</span>
-                              )}
-                              {!g.selected && (
-                                <button
-                                  type="button"
-                                  className="btn-ana btn-aday"
-                                  onClick={() => secimYap(g.categoryId, i.id)}
-                                  disabled={(() => {
-                                    const p = periods.find((x) => x.id === seciliPeriodId);
-                                    return !p || p.status !== "Open";
-                                  })()}
-                                >
-                                  👑 Ayın Fikri Seç
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                {adaylar && adayKartlari(true)}
               </section>
 
               {secilmis && secilmis.selections.length > 0 && (

@@ -85,7 +85,8 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
   ];
 
   const ministryMenu: MenuItem[] = [
-    { hedef: "/bakanlik", baslik: "Dönemler & Adaylar", svg: ikon.donem },
+    { hedef: "/bakanlik", baslik: "Aktif Adaylar", svg: ikon.aday },
+    { hedef: "/bakanlik/donemler", baslik: "Dönemler", svg: ikon.donem },
   ];
 
   const aktifMenu = ministryMi ? ministryMenu : ilMenu;

@@ -58,7 +58,8 @@ export default function App() {
           <Route path="/il-panel/fikir/:id" element={<ApplicationDetailPage />} />
         </Route>
         <Route element={<ProtectedRoute context="ministry" />}>
-          <Route path="/bakanlik" element={<MinistryPage />} />
+          <Route path="/bakanlik" element={<MinistryPage gorunum="adaylar" />} />
+          <Route path="/bakanlik/donemler" element={<MinistryPage gorunum="donemler" />} />
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
