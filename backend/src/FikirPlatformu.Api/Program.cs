@@ -17,6 +17,13 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Minimal API: enum'ları string olarak serialize et (örn PeriodStatus "Open").
+// Frontend TypeScript tarafında "Open" | "SelectionComplete" | "Archived" bekliyor.
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+});
+
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddProblemDetails();
 
