@@ -48,10 +48,13 @@ public static class MinistryEndpoints
             var period = await repo.GetAsync(id, cancellationToken);
             if (period is null) return Results.NotFound();
 
-            // Dönem içinde tüm il onaylı (Locked) fikirler.
+            // Dönem içinde tüm il onaylı (Locked) fikirler (tarih filtresi ile — sadece bu dönemdeki).
             var adaylar = await (
                 from f in db.Ideas.AsNoTracking()
                 where f.Status == IdeaSubmissionStatus.Locked
+                    && f.SubmittedAt != null
+                    && f.SubmittedAt >= period.StartAt
+                    && f.SubmittedAt < period.EndAt
                 join k in db.IdeaCategories.AsNoTracking() on f.CategoryId equals k.Id
                 join il in db.Provinces.AsNoTracking() on f.ProvinceId equals il.Id
                 orderby f.CategoryId, il.Name
