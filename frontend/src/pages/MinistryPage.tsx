@@ -187,23 +187,15 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
             <h3>{i.provinceName}</h3>
             <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
             <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
-            {i.isSelected ? (
-              <span className="durum altin">👑 Ayın Fikri</span>
-            ) : g.selected ? (
-              <span className="meta">kategori seçildi</span>
-            ) : (
-              <span className="durum yesil">🌟 Aday</span>
-            )}
-            {!g.selected && (
-              <button
-                type="button"
-                className="btn-ana btn-aday"
-                onClick={() => secimYap(g.categoryId, i.id)}
-                disabled={!hedef || hedef.status !== "Open"}
-              >
-                👑 Ayın Fikri Seç
-              </button>
-            )}
+            <span className="durum yesil">🌟 Aday</span>
+            <button
+              type="button"
+              className={`btn-ana btn-aday ${i.isSelected ? "secildi" : ""}`}
+              onClick={() => secimYap(g.categoryId, i.id)}
+              disabled={!hedef || hedef.status !== "Open" || g.selected || i.isSelected}
+            >
+              {i.isSelected ? "✅ Ayın Fikri Seçildi" : g.selected ? "🔒 Kategori Seçildi" : "👑 Ayın Fikri Seç"}
+            </button>
           </div>
         ))}
       </div>
