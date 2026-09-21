@@ -129,6 +129,15 @@
 .bolum-satir-filtreler { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
 .bolum-satir-butonlar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .tablo-sarmal { overflow-x: auto; }
+.sekme-nav { display: flex; gap: 0.4rem; margin-bottom: 1.2rem; padding: 0.4rem; background: #EEF4FB; border-radius: 1rem; }
+.sekme-buton {
+  flex: 1; cursor: pointer; background: transparent; border: none;
+  font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 1rem;
+  color: #647A92; padding: 0.7rem 1rem; border-radius: 0.7rem;
+  transition: background 0.15s, color 0.15s;
+}
+.sekme-buton:hover:not(.aktif) { color: #16355C; }
+.sekme-buton.aktif { background: #fff; color: #16355C; box-shadow: 0 0.18rem 0.5rem rgba(30, 60, 120, 0.12); }
 .meta { color: #647A92; font-size: 0.88rem; font-weight: 700; }
 .icerik-ozet { font-family: 'Nunito', sans-serif; font-weight: 600; color: var(--metin); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .il-panel-bos { background: #F6FAFD; border: 0.14rem dashed #C9D8E6; border-radius: 1.2rem; padding: 1.6rem 1.4rem; text-align: center; color: #647A92; font-weight: 700; font-size: 1rem; }
@@ -241,6 +250,9 @@ html.koyu-mod .status-banner--info { background: rgba(30, 92, 158, 0.22); color:
 /* ---- küçük ekran ---- */
 @media (max-width: 1100px) {
   .istatistikler { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 1100px) {
+  .adaylar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
   .kenar { width: 4.2rem; }
