@@ -187,6 +187,7 @@ table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .aday-kart.secili { border-color: var(--sari); background: #FFFDF4; box-shadow: 0 0.8rem 2rem rgba(246, 180, 14, 0.3); transform: translateY(-0.35rem); }
 .aday-kart.soluk { opacity: 0.5; }
 .aday-emoji { font-size: 2.7rem; }
+.aday-tema { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.92rem; color: #647A92; margin-top: 0.25rem; letter-spacing: 0.03em; }
 .aday-kart h3 { font-size: 1.35rem; color: var(--lacivert); margin-top: 0.3rem; }
 .aday-kart .okul { font-size: 0.88rem; font-weight: 700; color: #8AA0B5; }
 .aday-kart .fikir-alinti { font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic; font-size: 1.02rem; line-height: 1.5; color: var(--lacivert); margin: 0.75rem 0.4rem 0.85rem; }

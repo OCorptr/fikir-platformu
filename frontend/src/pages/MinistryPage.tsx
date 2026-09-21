@@ -149,59 +149,57 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     ? aktifDonem
     : periods.find((x) => x.id === seciliPeriodId) ?? null;
 
-  // Ortak: aday kartları bloğu (kategori başına)
-  const adayKartlari = (kilitli: boolean) => {
+  // Ortak: tüm aday kartları tek grid'de (kategori başlığı yok — emoji + tema adı kartta)
+  const adayKartlari = (_kilitli: boolean) => {
     if (!adaylar) return null;
-    return adaylar.categories.map((g) => {
+    const tumKartlar = adaylar.categories.flatMap((g) => {
       const emoji = KATEGORI_EMOJI[g.categoryName] ?? "💡";
       const hedef = rozetDonem;
+      return g.ideas.map((i) => ({ g, i, emoji, hedef }));
+    });
+    if (tumKartlar.length === 0) {
       return (
-        <div key={g.categoryId} style={{ marginBottom: "1.4rem" }}>
-          <div className="bolum-basligi turuncu">
-            {emoji} {g.categoryName} · {g.ideas.length} aday{g.selected ? " · kategori seçildi" : ""}
-          </div>
-          {g.ideas.length === 0 ? (
-            <div className="il-panel-bos" style={{ marginTop: "0.5rem" }}>
-              <p>📭 Bu kategoride aday fikir bulunmuyor.</p>
-              {gorunum === "adaylar" && (
-                <p className="meta">Eşiği (3.5) geçen fikirler otomatik aday olur.</p>
-              )}
-            </div>
-          ) : (
-            <div className="adaylar">
-              {g.ideas.map((i) => (
-                <div
-                  key={i.id}
-                  className={`aday-kart ${i.isSelected ? "secili" : ""} ${g.selected && !i.isSelected ? "soluk" : ""}`}
-                >
-                  <div className="aday-emoji">{emoji}</div>
-                  <h3>{i.provinceName}</h3>
-                  <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
-                  <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
-                  {i.isSelected ? (
-                    <span className="durum altin">👑 Ayın Fikri</span>
-                  ) : g.selected ? (
-                    <span className="meta">kategori seçildi</span>
-                  ) : (
-                    <span className="durum yesil">🌟 Aday</span>
-                  )}
-                  {!g.selected && (
-                    <button
-                      type="button"
-                      className="btn-ana btn-aday"
-                      onClick={() => secimYap(g.categoryId, i.id)}
-                      disabled={!hedef || hedef.status !== "Open"}
-                    >
-                      👑 Ayın Fikri Seç
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
+        <div className="il-panel-bos">
+          <p>📭 Bu dönemde aday fikir bulunmuyor.</p>
+          {gorunum === "adaylar" && (
+            <p className="meta">Eşiği (3.5) geçen fikirler otomatik aday olur.</p>
           )}
         </div>
       );
-    });
+    }
+    return (
+      <div className="adaylar">
+        {tumKartlar.map(({ g, i, emoji, hedef }) => (
+          <div
+            key={i.id}
+            className={`aday-kart ${i.isSelected ? "secili" : ""} ${g.selected && !i.isSelected ? "soluk" : ""}`}
+          >
+            <div className="aday-emoji">{emoji}</div>
+            <div className="aday-tema">{g.categoryName}</div>
+            <h3>{i.provinceName}</h3>
+            <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
+            <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
+            {i.isSelected ? (
+              <span className="durum altin">👑 Ayın Fikri</span>
+            ) : g.selected ? (
+              <span className="meta">kategori seçildi</span>
+            ) : (
+              <span className="durum yesil">🌟 Aday</span>
+            )}
+            {!g.selected && (
+              <button
+                type="button"
+                className="btn-ana btn-aday"
+                onClick={() => secimYap(g.categoryId, i.id)}
+                disabled={!hedef || hedef.status !== "Open"}
+              >
+                👑 Ayın Fikri Seç
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   return (
