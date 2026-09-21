@@ -10,21 +10,16 @@ import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
   getPeriodCandidates,
-  getPeriodSelected,
   listPeriods,
   selectForPeriod,
 } from "../services/ministry";
-import { getImplementationSummary } from "../services/implementations";
 import {
   donemEtiketi,
   donemRozet,
-  IMPLEMENTATION_LABELS,
-  type ImplementationSummary,
   type MeSession,
   PERIOD_STATUS_LABELS,
   type Period,
   type PeriodCandidatesResponse,
-  type PeriodSelectedResponse,
   sessionForContext,
 } from "../types";
 
@@ -56,8 +51,6 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
 
   // Dönemler sekmesinde kullanıcının seçtiği dönem (URL'e yazılmaz, state'te tutulur)
   const [seciliPeriodId, setSeciliPeriodId] = useState<string | null>(null);
-  const [secilmis, setSecilmis] = useState<PeriodSelectedResponse | null>(null);
-  const [uygulamalar, setUygulamalar] = useState<ImplementationSummary[]>([]);
 
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -113,17 +106,14 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     return () => controller.abort();
   }, [ben, gorunum, aktifDonem]);
 
-  // Dönemler görünümü: seçilen dönem için aday + seçilen + uygulamalar
+  // Dönemler görünümü: seçilen dönem için adayları çek
   useEffect(() => {
     if (!ben || gorunum !== "donemler" || !seciliPeriodId) return;
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
-    Promise.all([
-      getPeriodCandidates(seciliPeriodId, controller.signal).then(setAdaylar),
-      getPeriodSelected(seciliPeriodId, controller.signal).then(setSecilmis),
-      getImplementationSummary(controller.signal).then(setUygulamalar),
-    ])
+    getPeriodCandidates(seciliPeriodId, controller.signal)
+      .then(setAdaylar)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
       })
@@ -143,12 +133,8 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     setHata(null);
     try {
       await selectForPeriod(hedef.id, categoryId, ideaId);
-      const [a, s] = await Promise.all([
-        getPeriodCandidates(hedef.id),
-        getPeriodSelected(hedef.id),
-      ]);
+      const a = await getPeriodCandidates(hedef.id);
       setAdaylar(a);
-      setSecilmis(s);
     } catch (e) { setHata(mesajCikar(e)); }
   }
 
@@ -276,59 +262,6 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                 {adaylar && adayKartlari(true)}
               </section>
 
-              {secilmis && secilmis.selections.length > 0 && (
-                <section className="tablo-kart" style={{ marginBottom: "1.2rem" }}>
-                  <div className="bolum-basligi turkuaz">📌 Bu Dönemde Seçilenler ({secilmis.selections.length})</div>
-                  <div className="tablo-sarmal">
-                    <table className="tablo">
-                      <thead>
-                        <tr><th>Kategori</th><th>İl</th><th>İçerik</th><th>Seçim Tarihi</th></tr>
-                      </thead>
-                      <tbody>
-                        {secilmis.selections.map((s) => (
-                          <tr key={s.CategoryId}>
-                            <td><strong>Kategori #{s.CategoryId}</strong></td>
-                            <td>{s.Idea?.provinceName ?? "—"}</td>
-                            <td className="fikir-hucre"><div className="icerik-ozet">{s.Idea?.content || <i>(boş)</i>}</div></td>
-                            <td><span className="meta">{new Date(s.SelectedAt).toLocaleDateString("tr-TR")}</span></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
-
-              {uygulamalar.length > 0 && (
-                <section className="tablo-kart">
-                  <div className="bolum-basligi turuncu">🚀 Uygulama Takibi (tüm dönemler · {uygulamalar.length})</div>
-                  <div className="tablo-sarmal">
-                    <table className="tablo">
-                      <thead>
-                        <tr><th>Dönem</th><th>Durum</th><th>Kategori</th><th>İl</th><th>İçerik</th></tr>
-                      </thead>
-                      <tbody>
-                        {uygulamalar.map((u) => {
-                          const status = u.status.Status as keyof typeof IMPLEMENTATION_LABELS;
-                          const cls = u.status.Status === "Completed" ? "yesil"
-                            : u.status.Status === "Failed" ? "turuncu"
-                            : u.status.Status === "InProgress" ? "mavi"
-                            : "altin";
-                          return (
-                            <tr key={u.ideaId}>
-                              <td><span className="meta">{u.status.PeriodLabel}</span></td>
-                              <td><span className={`durum ${cls}`}>{IMPLEMENTATION_LABELS[status] ?? u.status.Status}</span></td>
-                              <td><strong>{u.categoryName}</strong></td>
-                              <td>{u.provinceName}</td>
-                              <td className="fikir-hucre"><div className="icerik-ozet">{u.content || <i>(boş)</i>}</div></td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </section>
-              )}
             </>
           )}
         </>
