@@ -72,6 +72,8 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
   }, []);
 
   // Dönem listesi + ilk Open dönem
+  // Aktif dönem = StartAt <= şimdi < EndAt olan (plan §25: takvime göre aktif).
+  // Eşleşme yoksa ilk Open'a düşer.
   useEffect(() => {
     if (!ben) return;
     const controller = new AbortController();
@@ -79,7 +81,13 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     listPeriods(controller.signal)
       .then((liste) => {
         setPeriods(liste);
-        const ilk = liste.find((p) => p.status === "Open") ?? liste[0] ?? null;
+        const simdi = Date.now();
+        const aktifTarihle = liste.find((p) => {
+          const start = new Date(p.startAt).getTime();
+          const end = new Date(p.endAt).getTime();
+          return p.status === "Open" && start <= simdi && simdi < end;
+        });
+        const ilk = aktifTarihle ?? liste.find((p) => p.status === "Open") ?? liste[0] ?? null;
         setAktifDonem(ilk);
         setSeciliPeriodId((prev) => prev ?? ilk?.id ?? null);
       })
