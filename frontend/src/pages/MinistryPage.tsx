@@ -187,7 +187,7 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
             <h3>{i.provinceName}</h3>
             <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
             <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
-            <span className="durum yesil">🌟 Aday</span>
+            {!i.isSelected && <span className="durum yesil">🌟 Aday</span>}
             <button
               type="button"
               className={`btn-ana btn-aday ${i.isSelected ? "secildi" : ""}`}
