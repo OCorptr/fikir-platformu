@@ -326,13 +326,11 @@ const ROMAN: Record<number, string> = { 1: "I", 2: "II", 3: "III", 4: "IV" };
 export function donemEtiketi(p: Pick<Period, "label" | "startAt" | "endAt">): string {
   // Label'ı YOKSAY — her zaman StartAt'tan üret. DB'deki farklı formatlar
   // (örn "2026-Q4", "Dönem 2026-09-20") tutarlı görünür.
-  // Aynı çeyrekte birden çok dönem olabilir; başlangıç günü ile ayırt edilir.
+  // Standart format: "2026 III. Dönem (Temmuz-Eylül)".
   const baslangic = new Date(p.startAt);
   const yil = baslangic.getFullYear();
   const sira = ROMAN[ceyrekNo(baslangic.getMonth())] ?? "I";
-  const ay = AY_ADLARI[baslangic.getMonth()];
-  const gun = baslangic.getDate();
-  return `${yil} ${sira}. Dönem (${ceyrekAraligi(baslangic.getMonth())}) · ${gun} ${ay}`;
+  return `${yil} ${sira}. Dönem (${ceyrekAraligi(baslangic.getMonth())})`;
 }
 
 // Sağ üst rozette kullanılan kısa etiket: "IV. Dönem · 2026"
