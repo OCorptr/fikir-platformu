@@ -57,19 +57,26 @@ builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
     {
+        // Sign-in: e-posta doğrulama zorunlu (plan §2.5).
         options.SignIn.RequireConfirmedAccount = true;
         options.User.RequireUniqueEmail = true;
-        options.Password.RequiredLength = 5;
-        options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireUppercase = false;
-        options.Password.RequireLowercase = false;
-        options.Password.RequireDigit = false;
+
+        // Password policy (plan §2.1 + resim: min 8 karakter, büyük/küçük/raam/özel).
+        options.Password.RequiredLength = 8;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireDigit = true;
+        options.Password.RequireNonAlphanumeric = true;
+        options.Password.RequiredUniqueChars = 4;
+
+        // Lockout (plan §2.2 + resim): 5 başarısız deneme → 15 dk kilit.
+        options.Lockout.AllowedForNewUsers = true;
         options.Lockout.MaxFailedAccessAttempts = 5;
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<FikirPlatformuDbContext>()
-    .AddSignInManager()
+    .AddSignInManager<SignInManager<ApplicationUser>>()
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)

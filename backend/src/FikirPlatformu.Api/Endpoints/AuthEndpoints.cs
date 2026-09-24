@@ -165,6 +165,15 @@ public static class AuthEndpoints
             };
             await http.SignInAsync(scheme, principal, props);
 
+            // Şifre değişikliği zorunluluğu (plan §2.5) ve süre sonu (plan §2.4) kontrolü.
+            var simdi = DateTimeOffset.UtcNow;
+            var mustChange = kullanici.MustChangePassword;
+            var passwordExpired = kullanici.PasswordChangedAt.HasValue
+                && (simdi - kullanici.PasswordChangedAt.Value).TotalDays > 90;
+            var passwordWarn = kullanici.PasswordChangedAt.HasValue
+                && !passwordExpired
+                && (simdi - kullanici.PasswordChangedAt.Value).TotalDays > 75; // 75+ gün: uyarı
+
             return Results.Ok(new
             {
                 kullanici.Email,
@@ -176,9 +185,49 @@ public static class AuthEndpoints
                     "ProvinceScheme" => "province",
                     "MinistryScheme" => "ministry",
                     _ => "student"
-                }
+                },
+                // Şifre güvenlik işaretleri (frontend bu değerlere göre uyarı/redirect verecek).
+                mustChangePassword = mustChange || passwordExpired,
+                passwordWarn = passwordWarn && !mustChange && !passwordExpired,
             });
         });
+
+        // Şifre değiştirme (plan §2.5: ilk giriş ve 90 gün sonra zorla).
+        grup.MapPost("/change-password", async (
+            SifreDegistirIstegi istek,
+            HttpContext http,
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            SignInManager<ApplicationUser> girisYoneticisi) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
+            if (kullanici is null) return Results.Unauthorized();
+
+            // Eski şifreyi doğrula.
+            var dogrulama = await girisYoneticisi.CheckPasswordSignInAsync(
+                kullanici, istek.CurrentPassword, lockoutOnFailure: false);
+            if (!dogrulama.Succeeded)
+                return Results.Json(new { message = "Mevcut şifre yanlış." }, statusCode: 400);
+
+            // Yeni şifre = Identity policy'e uygun mu? (RequiredLength=8 + karmaşıklık).
+            // ChangePasswordAsync zaten validate ediyor; hata dönerse mesajı iletiriz.
+            var sonuc = await kullaniciYoneticisi.ChangePasswordAsync(kullanici, istek.CurrentPassword, istek.NewPassword);
+            if (!sonuc.Succeeded)
+            {
+                var mesajlar = sonuc.Errors.Select(e => e.Description).ToArray();
+                return Results.Json(new { errors = mesajlar }, statusCode: 400);
+            }
+
+            kullanici.MustChangePassword = false;
+            kullanici.PasswordChangedAt = DateTimeOffset.UtcNow;
+            await kullaniciYoneticisi.UpdateAsync(kullanici);
+
+            // Cookie'yi yeniden yaz (yeni şifre hashing sonrası SecurityStamp değişti).
+            await girisYoneticisi.RefreshSignInAsync(kullanici);
+            return Results.Ok(new { message = "Şifre güncellendi." });
+        }).RequireAuthorization();
 
         grup.MapPost("/logout", async (
             [FromQuery] string? role,
@@ -399,4 +448,5 @@ public static class AuthEndpoints
     public sealed record SifremiUnuttumIstegi(string Email);
 
     public sealed record SifreSifirlamaIstegi(string Email, string Token, string NewPassword);
+    public sealed record SifreDegistirIstegi(string CurrentPassword, string NewPassword);
 }

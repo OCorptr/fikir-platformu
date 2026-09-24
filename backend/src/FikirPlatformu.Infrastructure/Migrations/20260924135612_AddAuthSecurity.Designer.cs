@@ -4,6 +4,7 @@ using FikirPlatformu.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace FikirPlatformu.Infrastructure.Migrations
 {
     [DbContext(typeof(FikirPlatformuDbContext))]
-    partial class FikirPlatformuDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260924135612_AddAuthSecurity")]
+    partial class AddAuthSecurity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -988,7 +991,7 @@ namespace FikirPlatformu.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("varchar(256)");
 
-                    b.Property<DateTimeOffset?>("PasswordChangedAt")
+                    b.Property<DateTime?>("PasswordChangedAt")
                         .HasColumnType("datetime(6)");
 
                     b.Property<string>("PasswordHash")
