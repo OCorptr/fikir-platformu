@@ -1244,3 +1244,20 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
   .govde, .ustbar, .icerik { background: #000; color: #fff; }
   .btn-ana, .btn-ikincil { border: 2px solid #fff; }
 }
+
+/* Her sayfadan çıkış butonu (YEĞİTEK gereksinim #20 — oturum sonlandırma her sayfadan erişilebilir) */
+.kullanici-cikis {
+  position: fixed; top: 0.8rem; right: 0.8rem; z-index: 100;
+  padding: 0.4rem 0.9rem; background: rgba(255,255,255,0.95);
+  border: 1px solid rgba(0,0,0,0.12); border-radius: 999px;
+  font: inherit; font-size: 0.85rem; font-weight: 700; color: #5C4300;
+  cursor: pointer; box-shadow: 0 0.3rem 0.8rem rgba(0,0,0,0.12);
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  transition: background 0.15s ease;
+}
+.kullanici-cikis:hover { background: #fff8e6; }
+.kullanici-cikis:focus-visible { outline: 3px solid #1e6fb8; outline-offset: 2px; }
+
+@media (max-width: 720px) {
+  .kullanici-cikis { top: auto; bottom: 0.8rem; }
+}

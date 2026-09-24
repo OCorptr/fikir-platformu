@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from "react-router-dom";
+import { KullaniciCikis } from "./KullaniciCikis";
 import { UstBar } from "./UstBar";
 
 const balonMetinleri: Record<string, string> = {
@@ -15,6 +16,7 @@ export function PublicLayout() {
   return (
     <>
       <UstBar />
+      <KullaniciCikis />
       <main className="fikir-hero">
         <div className="fikir-sol">
           <div className="balon-kapsa">

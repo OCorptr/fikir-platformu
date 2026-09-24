@@ -28,6 +28,11 @@ public sealed class IdeaConfiguration : IEntityTypeConfiguration<Idea>
         builder.HasIndex(i => i.StudentId).HasDatabaseName("ix_ideas_student_id");
         builder.HasIndex(i => new { i.ProvinceId, i.Status }).HasDatabaseName("ix_ideas_province_status");
         builder.HasIndex(i => i.SubmittedAt).HasDatabaseName("ix_ideas_submitted_at");
+        // Sprint 8.4 (YEĞİTEK #5 SQL optimizasyonu): kategori + tarih composite index —
+        // Bakanlık paneli kategori bazlı listelemeler ve dönem raporu için.
+        builder.HasIndex(i => new { i.CategoryId, i.SubmittedAt }).HasDatabaseName("ix_ideas_category_submitted");
+        // Sprint 8.4: il bazlı sıralama — il paneli inbox için composite.
+        builder.HasIndex(i => new { i.ProvinceId, i.SubmittedAt }).HasDatabaseName("ix_ideas_province_submitted");
 
         builder.HasOne<StudentProfile>()
             .WithMany()
