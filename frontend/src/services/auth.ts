@@ -79,9 +79,12 @@ export async function me(signal?: AbortSignal): Promise<MeResponse> {
   return apiRequest<MeResponse>("/api/auth/me", { signal });
 }
 
-// ---- MFA (Sprint 9) ----
+// ---- MFA (Sprint 10 — method choice: TOTP veya Email) ----
 
-export interface MfaSetupResponse {
+export type MfaMethod = "Totp" | "Email" | "None";
+
+export interface MfaSetupTotpResponse {
+  method: "Totp";
   secret: string;
   otpauthUrl: string;
   digits: number;
@@ -89,13 +92,23 @@ export interface MfaSetupResponse {
   issuer: string;
 }
 
-/** MFA kurulumu başlat — server secret üretir, otpauth URL döner (PreMfaScheme authenticated). */
-export async function mfaSetupBaslat(): Promise<MfaSetupResponse> {
-  return apiRequest<MfaSetupResponse>("/api/auth/mfa/setup", { method: "POST" });
+export interface MfaSetupEmailResponse {
+  method: "Email";
+  emailHint: string; // "onu***" gibi maskeli email UI için
 }
 
-/** MFA kodu doğrula (kurulum tamamla veya login 2. adım). Body: {code} */
-export async function mfaVerifyKod(code: string): Promise<{ message: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
+export type MfaSetupResponse = MfaSetupTotpResponse | MfaSetupEmailResponse;
+
+/** MFA kurulumu başlat — method parametresi ile (Sprint 10). */
+export async function mfaSetupBaslat(method: MfaMethod): Promise<MfaSetupResponse> {
+  return apiRequest<MfaSetupResponse>("/api/auth/mfa/setup", {
+    method: "POST",
+    body: { method: method === "Totp" ? "Totp" : "Email" },
+  });
+}
+
+/** MFA kodu doğrula (kurulum tamamla). Body: {code} */
+export async function mfaVerifyKod(code: string): Promise<{ message: string; method?: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
   return apiRequest("/api/auth/mfa/verify-setup", {
     method: "POST",
     body: { code },
@@ -103,9 +116,16 @@ export async function mfaVerifyKod(code: string): Promise<{ message: string; con
 }
 
 /** Login sonrası MFA code doğrula (MFA zaten enabled). Body: {code} */
-export async function mfaLoginVerify(code: string): Promise<{ message: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
+export async function mfaLoginVerify(code: string): Promise<{ message: string; method?: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
   return apiRequest("/api/auth/mfa/verify", {
     method: "POST",
     body: { code },
   });
+}
+
+/** Email OTP için kod gönder (PreMfaScheme authenticated). Login akışında çağrılır. */
+export async function mfaSendEmailOtp(): Promise<{ message: string }> {
+  // Backend'de ayrı endpoint yok — /api/auth/mfa/setup email method'u tekrar çağrılarak yeni kod gönderilir.
+  // Daha temiz: ayrı endpoint ekle (Sprint 10.1).
+  return apiRequest("/api/auth/mfa/send-email-otp", { method: "POST" });
 }

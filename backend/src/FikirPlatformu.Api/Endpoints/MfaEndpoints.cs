@@ -1,6 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Auth;
+using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
@@ -12,14 +14,15 @@ using OtpNet;
 namespace FikirPlatformu.Api.Endpoints;
 
 /// <summary>
-/// MFA (TOTP) endpoint'leri (plan §2.7 — Sprint 6 + Sprint 9 güncellemesi).
-/// Tüm endpoint'ler PreMfaScheme ile authenticate olur:
-///   /setup: secret üretir + otpauth URL döner (authenticator app elle eklenir)
-///   /verify-setup: kodu doğrular + TwoFactorEnabled=true + normal scheme'e upgrade
-///   /verify: MFA zaten enabled, sadece kodu doğrular + normal scheme'e upgrade
-///   /disable: MFA'yı kapatır (privileged rollere yasak)
-/// Login akışı: email/şifre doğruysa ve kullanıcı MFA zorunluysa login 200 + PreMfaScheme cookie yazılır
-/// (mfaSetupRequired=true veya mfaRequired=true). Frontend /mfa/setup veya /mfa/verify'a yönlendirir.
+/// MFA (iki adımlı doğrulama) endpoint'leri (Sprint 6 + Sprint 10).
+/// Kullanıcı setup sırasında yöntem seçer:
+///   - TOTP (Authenticator app — RFC 6238) → secret üret + otpauth URL
+///   - Email OTP → e-postaya 6 hane kod gönder, kullanıcı doğrular
+/// Yöntem seçimi TwoFactorMethod kolonunda saklanır.
+/// Login akışı: email/şifre doğruysa ve kullanıcı MFA zorunluysa PreMfaScheme cookie yazılır;
+///   - TOTP ise /mfa-login'de kullanıcı kodu girer
+///   - Email ise kod otomatik gönderilir, /mfa-login'de gösterilir (veya "Tekrar gönder" butonu)
+/// MFA tamamlanınca PreMfaScheme SignOut + asıl scheme SignIn (upgrade).
 /// </summary>
 public static class MfaEndpoints
 {
@@ -27,13 +30,16 @@ public static class MfaEndpoints
     {
         var grup = app.MapGroup("/api/auth/mfa").WithTags("MFA");
 
-        // 1) MFA kurulumu başlat — secret üret, DB'ye yaz (TwoFactorEnabled=false).
+        // 1) MFA kurulumu başlat — method parametresi ile.
         grup.MapPost("/setup", async (
+            MfaSetupIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani,
             HassasVeriSifreleme sifreleme,
-            IConfiguration yapilandirma) =>
+            EmailOtpStore otpStore,
+            IEmailSender epostaGonderici,
+            CancellationToken cancellationToken) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
@@ -41,69 +47,142 @@ public static class MfaEndpoints
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null) return Results.Unauthorized();
 
-            // 20 byte (160-bit) secret — Google Authenticator standart.
-            var secretBytes = KeyGeneration.GenerateRandomKey(20);
-            var secretBase32 = Base32Encoding.ToString(secretBytes);
-
-            kullanici.TwoFactorSecret = sifreleme.Sifrele(secretBase32);
-            // Setup sırasında TwoFactorEnabled henüz false — kullanıcı verify edince açılır.
-            await kullaniciYoneticisi.UpdateAsync(kullanici);
-
-            // otpauth URL: authenticator app bu URL'yi "manuel ekle" kısmına yapıştırır.
-            var issuer = Uri.EscapeDataString("Geleceğin Fikri");
-            var label = Uri.EscapeDataString(kullanici.Email ?? kullanici.Id);
-            var otpauthUrl = $"otpauth://totp/{issuer}:{label}?secret={secretBase32}&issuer={issuer}&digits=6&period=30";
-
-            await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                AuthEventType.MfaSetupStarted, success: true, reason: null);
-
-            return Results.Ok(new
+            // Yöntem seçimi: Totp veya Email
+            if (istek.Method == TwoFactorMethod.Totp)
             {
-                secret = secretBase32,
-                otpauthUrl,
-                digits = 6,
-                period = 30,
-                issuer
-            });
+                // 20 byte (160-bit) secret — Google Authenticator standart.
+                var secretBytes = KeyGeneration.GenerateRandomKey(20);
+                var secretBase32 = Base32Encoding.ToString(secretBytes);
+                kullanici.TwoFactorSecret = sifreleme.Sifrele(secretBase32);
+                kullanici.TwoFactorMethod = TwoFactorMethod.Totp;
+                kullanici.TwoFactorEnabled = false; // Verify-setup'tan sonra açılır
+                await kullaniciYoneticisi.UpdateAsync(kullanici);
+
+                var issuer = Uri.EscapeDataString("Geleceğin Fikri");
+                var label = Uri.EscapeDataString(kullanici.Email ?? kullanici.Id);
+                var otpauthUrl = $"otpauth://totp/{issuer}:{label}?secret={secretBase32}&issuer={issuer}&digits=6&period=30";
+
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                    AuthEventType.MfaSetupStarted, success: true, reason: "method=totp");
+
+                return Results.Ok(new
+                {
+                    method = "Totp",
+                    secret = secretBase32,
+                    otpauthUrl,
+                    digits = 6,
+                    period = 30,
+                    issuer
+                });
+            }
+            else if (istek.Method == TwoFactorMethod.Email)
+            {
+                // E-posta OTP: test kodu gönder, kullanıcı doğrular.
+                var code = otpStore.IssueCode(kullanici.Id);
+                var eposta = new EmailMessage(
+                    kullanici.Email,
+                    "Geleceğin Fikri — MFA Kurulum Doğrulama",
+                    $"<p>Merhaba {kullanici.FirstName},</p><p>İki adımlı doğrulama kurulumunu tamamlamak için aşağıdaki 6 haneli kodu uygulamaya girin:</p><h2 style='font-family:monospace;letter-spacing:0.3em;'>{code}</h2><p>Bu kod 5 dakika geçerlidir.</p>");
+                await epostaGonderici.SendAsync(eposta, cancellationToken);
+
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                    AuthEventType.MfaSetupStarted, success: true, reason: "method=email");
+
+                // Secret yok — e-posta OTP her seferinde yeni kod üretir.
+                kullanici.TwoFactorMethod = TwoFactorMethod.Email;
+                kullanici.TwoFactorEnabled = false; // Verify-setup'tan sonra açılır
+                kullanici.TwoFactorSecret = null;
+                await kullaniciYoneticisi.UpdateAsync(kullanici);
+
+                return Results.Ok(new
+                {
+                    method = "Email",
+                    emailHint = kullanici.Email?.Substring(0, Math.Min(3, kullanici.Email.Length)) + "***" // UI'da gösterilecek
+                });
+            }
+            else
+            {
+                return Results.Json(new { message = "Geçersiz MFA yöntemi. 'Totp' veya 'Email' kullanın." }, statusCode: 400);
+            }
         }).RequireAuthorization("PreMfaOnly");
 
-        // 2) Kurulum doğrulama — kullanıcı authenticator'dan aldığı 6 haneli kodu gönderir.
-        //    Başarılı olursa PreMfaScheme SignOut + asıl scheme SignIn (cookie upgrade).
+        // 1.5) Email OTP kod gönder (login akışında ayrı endpoint — kullanıcı tekrar isterse).
+        // PreMfaScheme authenticated, method=Email olan kullanıcılar için.
+        grup.MapPost("/send-email-otp", async (
+            HttpContext http,
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            FikirPlatformuDbContext veritabani,
+            EmailOtpStore otpStore,
+            IEmailSender epostaGonderici,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
+            if (kullanici is null || kullanici.TwoFactorMethod != TwoFactorMethod.Email || !kullanici.TwoFactorEnabled)
+                return Results.Json(new { message = "Bu hesap için e-posta MFA yöntemi etkin değil." }, statusCode: 400);
+
+            var code = otpStore.IssueCode(kullanici.Id);
+            var eposta = new EmailMessage(
+                kullanici.Email,
+                "Geleceğin Fikri — Giriş Doğrulama Kodu",
+                $"<p>Merhaba {kullanici.FirstName},</p><p>Hesabınıza giriş yapmak için aşağıdaki 6 haneli kodu uygulamaya girin:</p><h2 style='font-family:monospace;letter-spacing:0.3em;'>{code}</h2><p>Bu kod 5 dakika geçerlidir. Talep etmediyseniz bu e-postayı yok sayabilirsiniz.</p>");
+            await epostaGonderici.SendAsync(eposta, cancellationToken);
+
+            await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                AuthEventType.MfaLoginSuccess, success: true, reason: "email_otp_gonderildi");
+
+            return Results.Ok(new { message = "Doğrulama kodu e-postanıza gönderildi." });
+        }).RequireAuthorization("PreMfaOnly");
+
+        // 2) Kurulum doğrulama — method'a göre TOTP veya Email kodu.
         grup.MapPost("/verify-setup", async (
-            MfaKodIstegi istek,
+            MfaVerifyIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             SignInManager<ApplicationUser> girisYoneticisi,
             FikirPlatformuDbContext veritabani,
-            HassasVeriSifreleme sifreleme) =>
+            HassasVeriSifreleme sifreleme,
+            EmailOtpStore otpStore) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null) return Results.Unauthorized();
-            if (string.IsNullOrEmpty(kullanici.TwoFactorSecret))
-                return Results.Json(new { message = "Önce MFA kurulumunu başlatın." }, statusCode: 400);
 
-            // DB'deki şifreli secret'i çöz (YEĞİTEK gereksinim #8).
-            var secretDuzMetin = sifreleme.Coz(kullanici.TwoFactorSecret);
-            if (string.IsNullOrEmpty(secretDuzMetin))
-                return Results.Json(new { message = "MFA secret okunamadı. Lütfen kurulumu yeniden başlatın." }, statusCode: 400);
+            bool basarili = false;
 
-            if (!TotpGecerliMi(secretDuzMetin, istek.Code))
-                return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
+            if (kullanici.TwoFactorMethod == TwoFactorMethod.Totp)
+            {
+                if (string.IsNullOrEmpty(kullanici.TwoFactorSecret))
+                    return Results.Json(new { message = "Önce MFA kurulumunu başlatın." }, statusCode: 400);
+                var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret);
+                if (string.IsNullOrEmpty(secretDuz))
+                    return Results.Json(new { message = "MFA secret okunamadı." }, statusCode: 400);
+                basarili = TotpGecerliMi(secretDuz, istek.Code);
+            }
+            else if (kullanici.TwoFactorMethod == TwoFactorMethod.Email)
+            {
+                basarili = otpStore.Verify(kullanici.Id, istek.Code);
+            }
+
+            if (!basarili)
+                return Results.Json(new { message = "Doğrulama kodu geçersiz veya süresi dolmuş." }, statusCode: 400);
 
             kullanici.TwoFactorEnabled = true;
             await kullaniciYoneticisi.UpdateAsync(kullanici);
 
-            // Scheme upgrade: PreMfaScheme SignOut + asıl scheme SignIn.
             var (hedefScheme, context) = await SchemeUpgradeYap(kullanici, kullaniciYoneticisi, girisYoneticisi, http);
 
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                AuthEventType.MfaEnabled, success: true, reason: $"scheme={hedefScheme}");
+                AuthEventType.MfaEnabled, success: true, reason: $"method={kullanici.TwoFactorMethod}");
+
             return Results.Ok(new
             {
                 message = "İki adımlı doğrulama etkinleştirildi.",
+                method = kullanici.TwoFactorMethod.ToString(),
                 email = kullanici.Email,
                 firstName = kullanici.FirstName,
                 lastName = kullanici.LastName,
@@ -112,72 +191,90 @@ public static class MfaEndpoints
             });
         }).RequireAuthorization("PreMfaOnly");
 
-        // 3) Login akışı 2. adımı — MFA zaten enabled, kullanıcı MFA kodunu gönderir.
-        //    PreMfaScheme authenticated, kodu doğrular, asıl scheme'e upgrade eder.
+        // 3) Login sonrası MFA doğrulama — Email method ise kod gönder, TOTP ise direkt verify.
         grup.MapPost("/verify", async (
-            MfaKodIstegi istek,
+            MfaVerifyIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             SignInManager<ApplicationUser> girisYoneticisi,
             FikirPlatformuDbContext veritabani,
-            HassasVeriSifreleme sifreleme) =>
+            HassasVeriSifreleme sifreleme,
+            EmailOtpStore otpStore,
+            IEmailSender epostaGonderici,
+            CancellationToken cancellationToken) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
-            if (kullanici is null || !kullanici.TwoFactorEnabled || string.IsNullOrEmpty(kullanici.TwoFactorSecret))
+            if (kullanici is null || !kullanici.TwoFactorEnabled || kullanici.TwoFactorMethod == TwoFactorMethod.None)
             {
                 await AuthEventKaydet(veritabani, http, kullanici?.Email, kullanici?.Id,
                     AuthEventType.MfaLoginFailure, success: false, reason: "kullanici_yok_veya_mfa_kapali");
                 return Results.Json(new { message = "Geçersiz istek." }, statusCode: 400);
             }
 
-            // TOTP doğrula (30 sn pencere, ±1 step tolerans).
-            var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret);
-            if (string.IsNullOrEmpty(secretDuz) || !TotpGecerliMi(secretDuz, istek.Code))
+            bool basarili = false;
+
+            if (kullanici.TwoFactorMethod == TwoFactorMethod.Totp)
             {
-                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                    AuthEventType.MfaLoginFailure, success: false, reason: "kod_yanlis");
-                return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
+                if (string.IsNullOrEmpty(kullanici.TwoFactorSecret))
+                {
+                    await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                        AuthEventType.MfaLoginFailure, success: false, reason: "secret_yok");
+                    return Results.Json(new { message = "MFA yapılandırması eksik." }, statusCode: 400);
+                }
+                var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret);
+                if (string.IsNullOrEmpty(secretDuz) || !TotpGecerliMi(secretDuz, istek.Code))
+                {
+                    await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                        AuthEventType.MfaLoginFailure, success: false, reason: "kod_yanlis");
+                    return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
+                }
+                basarili = true;
+            }
+            else if (kullanici.TwoFactorMethod == TwoFactorMethod.Email)
+            {
+                basarili = otpStore.Verify(kullanici.Id, istek.Code);
+                if (!basarili)
+                {
+                    await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                        AuthEventType.MfaLoginFailure, success: false, reason: "email_kod_yanlis");
+                    return Results.Json(new { message = "Doğrulama kodu geçersiz veya süresi dolmuş." }, statusCode: 400);
+                }
             }
 
-            // Scheme upgrade: PreMfaScheme SignOut + asıl scheme SignIn.
+            // Scheme upgrade
             var (hedefScheme, context) = await SchemeUpgradeYap(kullanici, kullaniciYoneticisi, girisYoneticisi, http);
 
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                AuthEventType.MfaLoginSuccess, success: true, reason: $"scheme={hedefScheme}");
+                AuthEventType.MfaLoginSuccess, success: true, reason: $"method={kullanici.TwoFactorMethod}");
 
             return Results.Ok(new
             {
                 email = kullanici.Email,
                 firstName = kullanici.FirstName,
                 lastName = kullanici.LastName,
+                method = kullanici.TwoFactorMethod.ToString(),
                 context,
                 mfaVerified = true
             });
         }).RequireAuthorization("PreMfaOnly");
 
-        // (eski) /login endpoint'i kaldırıldı — Sprint 9 ile birlikte /verify kullanılıyor.
-
-        // 4) MFA kapatma — mevcut şifre + MFA kodu ile doğrulama zorunlu.
-        // Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) MFA kapatamaz.
+        // 4) MFA yöntemi değiştirme veya devre dışı bırakma — mevcut scheme authenticated user için.
         grup.MapPost("/disable", async (
-            MfaKodIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
-            SignInManager<ApplicationUser> girisYoneticisi,
-            FikirPlatformuDbContext veritabani,
-            HassasVeriSifreleme sifreleme) =>
+            FikirPlatformuDbContext veritabani) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
-            if (kullanici is null || !kullanici.TwoFactorEnabled || string.IsNullOrEmpty(kullanici.TwoFactorSecret))
+            if (kullanici is null || !kullanici.TwoFactorEnabled)
                 return Results.Json(new { message = "MFA zaten kapalı." }, statusCode: 400);
 
-            // Ayrıcalıklı rol kontrolü (plan §7.1).
+            // Privileged roller MFA kapatamaz (Sprint 7).
             var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
             if (roller.Any(r => r is "MinistryOfficial" or "ProvinceManager" or "SystemAdmin"))
             {
@@ -189,12 +286,9 @@ public static class MfaEndpoints
                 }, statusCode: 403);
             }
 
-            var secretDuzDisable = sifreleme.Coz(kullanici.TwoFactorSecret);
-            if (string.IsNullOrEmpty(secretDuzDisable) || !TotpGecerliMi(secretDuzDisable, istek.Code))
-                return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
-
             kullanici.TwoFactorEnabled = false;
             kullanici.TwoFactorSecret = null;
+            kullanici.TwoFactorMethod = TwoFactorMethod.None;
             await kullaniciYoneticisi.UpdateAsync(kullanici);
 
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
@@ -215,7 +309,6 @@ public static class MfaEndpoints
         SignInManager<ApplicationUser> girisYoneticisi,
         HttpContext http)
     {
-        // PreMfaScheme cookie'yi temizle (kullanıcı MFA'yı tamamladı).
         await http.SignOutAsync("PreMfaScheme");
 
         var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
@@ -293,8 +386,7 @@ public static class MfaEndpoints
     {
         try
         {
-            // YEĞİTEK gereksinim #9: PII mask'leme.
-            veritabani.AuthEvents.Add(new AuthEvent
+            veritabani.AuthEvents.Add(new Domain.Auth.AuthEvent
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
@@ -313,13 +405,7 @@ public static class MfaEndpoints
 
     public sealed record MfaKodIstegi([Required, RegularExpression("^[0-9]{6}$")] string Code);
 
-    public sealed record MfaLoginIstegi(
-        [Required, EmailAddress, StringLength(256)] string Email,
-        [Required, StringLength(128)] string Password,
-        [Required, RegularExpression("^[0-9]{6}$")] string Code,
-        bool RememberMe = false,
-        string? Role = null,
-        // CAPTCHA
-        [Required, StringLength(64)] string CaptchaId = "",
-        [Required, StringLength(16)] string CaptchaAnswer = "");
+    public sealed record MfaSetupIstegi([Required] TwoFactorMethod Method);
+
+    public sealed record MfaVerifyIstegi([Required, RegularExpression("^[0-9]{6}$")] string Code);
 }

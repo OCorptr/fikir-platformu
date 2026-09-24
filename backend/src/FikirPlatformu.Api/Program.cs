@@ -298,6 +298,7 @@ builder.Services.AddDataProtection()
 
 // Hassas alan şifreleme servisi (TOTP secret, vs.).
 builder.Services.AddSingleton<FikirPlatformu.Api.Endpoints.HassasVeriSifreleme>();
+builder.Services.AddSingleton<FikirPlatformu.Api.Endpoints.EmailOtpStore>();
 
 // CORS whitelist (plan §3.5 — Sprint 3):
 // Cors:AllowedOrigins BOŞSA → CORS middleware hiç aktif olmaz (same-origin reverse proxy).

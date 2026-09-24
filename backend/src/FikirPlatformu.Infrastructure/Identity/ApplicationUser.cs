@@ -16,7 +16,21 @@ public sealed class ApplicationUser : IdentityUser
     /// <summary>
     /// TOTP MFA için base32 secret (plan §2.7 — Sprint 6).
     /// TwoFactorEnabled IdentityUser'dan miras; secret burada.
-    /// NULL = MFA henüz kurulmamış.
+    /// NULL = MFA henüz kurulmamış VEYA Email OTP yöntemi seçilmiş (secret gerekmez).
     /// </summary>
     public string? TwoFactorSecret { get; set; }
+
+    /// <summary>
+    /// Kullanıcının tercih ettiği MFA yöntemi (Sprint 10).
+    /// TOTP = Authenticator app (secret TwoFactorSecret'de saklanır).
+    /// Email = E-posta OTP (her girişte yeni kod gönderilir, secret saklanmaz).
+    /// </summary>
+    public TwoFactorMethod TwoFactorMethod { get; set; } = TwoFactorMethod.None;
+}
+
+public enum TwoFactorMethod
+{
+    None = 0,
+    Totp = 1,
+    Email = 2
 }
