@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FikirPlatformu.Application.Abstractions;
+using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
@@ -114,11 +115,14 @@ public static class AuthEndpoints
             GirisIstegi istek,
             [FromQuery] string? role,
             SignInManager<ApplicationUser> girisYoneticisi,
+            FikirPlatformuDbContext veritabani,
             HttpContext http) =>
         {
             var kullanici = await girisYoneticisi.UserManager.FindByEmailAsync(istek.Email);
             if (kullanici is null)
             {
+                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: null,
+                    AuthEventType.LoginFailure, success: false, reason: "email_bulunamadi");
                 return KimlikHatasi("E-posta veya şifre geçersiz.");
             }
 
@@ -129,9 +133,19 @@ public static class AuthEndpoints
             if (!dogrulama.Succeeded)
             {
                 if (dogrulama.IsLockedOut)
+                {
+                    await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                        AuthEventType.LoginLockedOut, success: false, reason: "kilitli");
                     return Results.Json(new { message = "Çok fazla hatalı deneme yapıldı. Hesabınız geçici olarak kilitlendi." }, statusCode: 423);
+                }
                 if (dogrulama.IsNotAllowed)
+                {
+                    await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                        AuthEventType.LoginEmailNotConfirmed, success: false, reason: "email_dogrulanmamis");
                     return Results.Json(new { message = "E-posta adresiniz doğrulanmamış. Doğrulama e-postasındaki bağlantıyı kullanın." }, statusCode: 403);
+                }
+                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                    AuthEventType.LoginFailure, success: false, reason: "yanlis_sifre");
                 return KimlikHatasi("E-posta veya şifre geçersiz.");
             }
 
@@ -148,6 +162,8 @@ public static class AuthEndpoints
                     "ministry" => "bakanlık",
                     _ => "bilinmeyen"
                 };
+                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                    AuthEventType.LoginFailure, success: false, reason: "rol_uyumsuz");
                 return Results.Json(new
                 {
                     message = $"Bu hesap '{beklenen}' rolü için yetkili değil."
@@ -164,6 +180,9 @@ public static class AuthEndpoints
                 ExpiresUtc = istek.RememberMe ? DateTimeOffset.UtcNow.AddDays(14) : (DateTimeOffset?)null,
             };
             await http.SignInAsync(scheme, principal, props);
+
+            await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                AuthEventType.LoginSuccess, success: true, reason: null);
 
             // Şifre değişikliği zorunluluğu (plan §2.5) ve süre sonu (plan §2.4) kontrolü.
             var simdi = DateTimeOffset.UtcNow;
@@ -197,7 +216,8 @@ public static class AuthEndpoints
             SifreDegistirIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
-            SignInManager<ApplicationUser> girisYoneticisi) =>
+            SignInManager<ApplicationUser> girisYoneticisi,
+            FikirPlatformuDbContext veritabani) =>
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
@@ -209,7 +229,11 @@ public static class AuthEndpoints
             var dogrulama = await girisYoneticisi.CheckPasswordSignInAsync(
                 kullanici, istek.CurrentPassword, lockoutOnFailure: false);
             if (!dogrulama.Succeeded)
+            {
+                await AuthEventKaydet(veritabani, http, email: kullanici.Email, userId: kullanici.Id,
+                    AuthEventType.LoginFailure, success: false, reason: "change_password_yanlis_mevcut");
                 return Results.Json(new { message = "Mevcut şifre yanlış." }, statusCode: 400);
+            }
 
             // Yeni şifre = Identity policy'e uygun mu? (RequiredLength=8 + karmaşıklık).
             // ChangePasswordAsync zaten validate ediyor; hata dönerse mesajı iletiriz.
@@ -217,6 +241,8 @@ public static class AuthEndpoints
             if (!sonuc.Succeeded)
             {
                 var mesajlar = sonuc.Errors.Select(e => e.Description).ToArray();
+                await AuthEventKaydet(veritabani, http, email: kullanici.Email, userId: kullanici.Id,
+                    AuthEventType.LoginFailure, success: false, reason: "change_password_politika");
                 return Results.Json(new { errors = mesajlar }, statusCode: 400);
             }
 
@@ -226,13 +252,20 @@ public static class AuthEndpoints
 
             // Cookie'yi yeniden yaz (yeni şifre hashing sonrası SecurityStamp değişti).
             await girisYoneticisi.RefreshSignInAsync(kullanici);
+
+            await AuthEventKaydet(veritabani, http, email: kullanici.Email, userId: kullanici.Id,
+                AuthEventType.PasswordChanged, success: true, reason: null);
             return Results.Ok(new { message = "Şifre güncellendi." });
         }).RequireAuthorization();
 
         grup.MapPost("/logout", async (
             [FromQuery] string? role,
-            HttpContext http) =>
+            HttpContext http,
+            FikirPlatformuDbContext veritabani) =>
         {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var email = http.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
             // role belirtilmişse sadece o scheme'in cookie'sini sil;
             // belirtilmemişse tümünü sil (tüm sekmelerden çıkış).
             if (!string.IsNullOrEmpty(role))
@@ -241,12 +274,16 @@ public static class AuthEndpoints
                 if (scheme is not null)
                 {
                     await http.SignOutAsync(scheme);
+                    await AuthEventKaydet(veritabani, http, email: email, userId: userId,
+                        AuthEventType.Logout, success: true, reason: $"scheme={scheme}");
                     return Results.Ok(new { message = "Çıkış yapıldı.", context = role });
                 }
             }
             await http.SignOutAsync(IdentityConstants.ApplicationScheme);
             await http.SignOutAsync("ProvinceScheme");
             await http.SignOutAsync("MinistryScheme");
+            await AuthEventKaydet(veritabani, http, email: email, userId: userId,
+                AuthEventType.Logout, success: true, reason: "scheme=all");
             return Results.Ok(new { message = "Çıkış yapıldı.", context = "all" });
         });
 
@@ -339,6 +376,41 @@ public static class AuthEndpoints
 
     private static IResult KimlikHatasi(string mesaj) =>
         Results.ValidationProblem(new Dictionary<string, string[]> { ["kimlik"] = [mesaj] });
+
+    /// <summary>
+    /// Kimlik doğrulama olayını auth_events tablosuna yazar (plan §2.6: login/logout/şifre değişikliği izlenir).
+    /// Hata olursa akışı bozmadan yutar — audit log yazımı başarısız girişi engellemez.
+    /// </summary>
+    private static async Task AuthEventKaydet(
+        FikirPlatformuDbContext veritabani,
+        HttpContext http,
+        string? email,
+        string? userId,
+        AuthEventType tip,
+        bool success,
+        string? reason)
+    {
+        try
+        {
+            veritabani.AuthEvents.Add(new AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Email = email,
+                IpAddress = http.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = tip,
+                Success = success,
+                FailureReason = reason,
+                CreatedAt = DateTime.UtcNow
+            });
+            await veritabani.SaveChangesAsync(http.RequestAborted);
+        }
+        catch
+        {
+            // Audit log yazımı asla istek akışını bozmamalı.
+        }
+    }
 
     private static string FrontendAdresi(IConfiguration yapilandirma) =>
         (yapilandirma["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');

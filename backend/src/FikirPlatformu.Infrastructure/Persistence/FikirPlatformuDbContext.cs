@@ -1,3 +1,4 @@
+using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Domain.Common;
 using FikirPlatformu.Domain.Evaluations;
 using FikirPlatformu.Domain.Identity;
@@ -27,6 +28,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<PeriodSelection> PeriodSelections => Set<PeriodSelection>();
     public DbSet<ImplementationReport> ImplementationReports => Set<ImplementationReport>();
     public DbSet<ProvinceUserAssignment> ProvinceUserAssignments => Set<ProvinceUserAssignment>();
+    public DbSet<AuthEvent> AuthEvents => Set<AuthEvent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +45,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
         modelBuilder.ApplyConfiguration(new PeriodSelectionConfiguration());
         modelBuilder.ApplyConfiguration(new ImplementationReportConfiguration());
         modelBuilder.ApplyConfiguration(new ProvinceUserAssignmentConfiguration());
+        modelBuilder.ApplyConfiguration(new AuthEventConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }
