@@ -2,6 +2,75 @@
 
 Bu doküman, geliştirme süreci tamamlandıktan sonra **Geleceğin Fikri Platformu**'nun kendi sunucularınızda kurulumu için hazırlanmıştır.
 
+---
+
+## ⚡ Hızlı başlangıç (30 dakikada kurulum)
+
+İlk kez kurulum yapıyorsanız aşağıdaki adımları sırayla takip edin. Detaylar ilerleyen bölümlerde.
+
+### A) Aynı domain + nginx reverse proxy (önerilen — Linux sunucu)
+
+```bash
+# 1) Proje dosyalarını sunucuya taşı
+scp -r FikirPlatformu/ kullanici@sunucu:/opt/
+
+# 2) MySQL veritabanı oluştur (kendi sunucunuzda)
+mysql -u root -p
+> CREATE DATABASE fikir_platformu CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+> CREATE USER 'fikir_app'@'localhost' IDENTIFIED BY 'GUCLU_SIFRE';
+> GRANT ALL ON fikir_platformu.* TO 'fikir_app'@'localhost';
+> FLUSH PRIVILEGES;
+> EXIT;
+
+# 3) Backend .env dosyası (sunucuda)
+cd /opt/FikirPlatformu
+cp .env.example .env
+nano .env  # DB_CONNECTION_STRING düzenle
+
+# 4) Backend yayınla + migration'ları çalıştır
+cd backend
+dotnet publish src/FikirPlatformu.Api -c Release -o /opt/fikir-api
+# İlk çalıştırmada EF Core migration'lar otomatik uygulanır (Program.cs)
+# Manuel kontrol: dotnet ef database update --project src/FikirPlatformu.Infrastructure
+
+# 5) Frontend build
+cd ../frontend
+pnpm install --frozen-lockfile
+pnpm run build  # VITE_API_BASE_URL boş → relative /api (nginx proxy'ler)
+
+# 6) Seed: ilk 9 hesap
+cd ..
+TIDB_HOST=localhost TIDB_USER=fikir_app TIDB_PASS=GUCLU_SIFRE python3 seed/ilk_hesaplar.py
+
+# 7) systemd + nginx ayarla (Bölüm 5-6)
+sudo systemctl enable --now fikir-api
+sudo nginx -t && sudo systemctl reload nginx
+
+# 8) Test: https://fikir.meb.gov.tr → "Yetkili Girişi" → system.admin@fikir.local / NewAudit456!
+```
+
+### B) docker-compose ile (kendi MySQL'in yoksa)
+
+```bash
+cd /opt/FikirPlatformu
+cp .env.example .env
+# .env'de DB_CONNECTION_STRING="Server=mysql;Port=3306;Database=fikir_platformu;User=fikir;Password=FikirGuclu2026!;SslMode=Preferred;"
+docker compose --profile with-mysql up -d
+TIDB_HOST=localhost TIDB_USER=fikir TIDB_PASS=FikirGuclu2026! python3 seed/ilk_hesaplar.py
+```
+
+### C) Sadece backend + frontend (mevcut MySQL'iniz var)
+
+```bash
+cd /opt/FikirPlatformu
+cp .env.example .env
+nano .env  # DB_CONNECTION_STRING'i kendi MySQL'inize göre düzenle
+docker compose up -d backend frontend
+python3 seed/ilk_hesaplar.py
+```
+
+---
+
 ## 📋 Sistem gereksinimleri
 
 | Bileşen | Minimum | Önerilen |
@@ -323,8 +392,52 @@ VITE_API_BASE_URL=https://api.fikir.meb.gov.tr
 | Avantaj | Dezavantaj |
 |---|---|
 | Backend ayrı ölçeklenebilir | CORS konfigürasyonu |
-| Statik CDN'e taşınabilir | Cookie `SameSite=None; Secure` zorunlu |
+| Statik CDN'e taşınabilir | Cookie `SameSite=None; Secure` zorunlu | |
 | | Çift SSL sertifikası |
+
+---
+
+## 🔑 İlk giriş ve MFA kurulumu
+
+`seed/ilk_hesaplar.py` çalıştırıldıktan sonra aşağıdaki 9 hesap oluşur (şifre: `NewAudit456!`):
+
+| E-posta | Rol | MFA |
+|---|---|---|
+| `system.admin@fikir.local` | SystemAdmin | Zorunlu |
+| `bakanlik@fikir.local` | MinistryOfficial | Zorunlu |
+| `il.istanbul@fikir.local` | ProvinceManager | Zorunlu |
+| `il.ankara@fikir.local` | ProvinceManager | Zorunlu |
+| `il.izmir@fikir.local` | ProvinceManager | Zorunlu |
+| `deg.istanbul@fikir.local` | ProvinceEvaluator | Zorunlu |
+| `deg.ankara@fikir.local` | ProvinceEvaluator | Zorunlu |
+| `deg.izmir@fikir.local` | ProvinceEvaluator | Zorunlu |
+| `demo.ogrenci@fikir.local` | Student | Yok |
+
+### Test akışı (Sistem Yöneticisi olarak)
+
+1. **Siteye git:** `https://fikir.meb.gov.tr`
+2. **Anasayfada** "Yetkili Girişi" butonuna tıkla
+3. **Email:** `system.admin@fikir.local`
+4. **Şifre:** `NewAudit456!`
+5. **CAPTCHA** sorusunu çöz
+6. **MFA kurulum sayfası** açılır:
+   - Google Authenticator veya Microsoft Authenticator uygulamasını aç
+   - "Manuel olarak ekle" seçeneğini kullan
+   - Hesap adı: `system.admin@fikir.local` (veya sayfada gösterilen)
+   - Gizli anahtar: sayfada gösterilen base32 secret'i gir
+   - Tip: TOTP, 6 hane, 30 saniye
+7. **Authenticator'dan** 6 haneli kodu gir → "Kurulumu tamamla"
+8. **Bakanlık paneline** yönlendirilirsin
+9. **Üst menüden** "Kullanıcı Yönetimi" → `/bakanlik/admin/kullanicilar`
+10. **Yeni kullanıcı oluştur:** Bakanlık/İl/Evaluator hesapları ekle
+
+### Şifre değiştirme
+
+İlk girişten sonra her kullanıcı kendi şifresini değiştirmeli (`/api/auth/change-password`). Sistem yöneticisi bu zorunluluğu `MustChangePassword=true` ile zorlar (seed script bunu zaten yapmaz; production'da yeni kullanıcılar için true önerilir).
+
+### Demo hesap (öğrenci, MFA yok)
+
+`demo.ogrenci@fikir.local / NewAudit456!` → doğrudan öğrenci paneline giriş.
 
 ---
 
