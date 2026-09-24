@@ -1,4 +1,4 @@
 # Render.com static site — /api/* isteklerini backend'e yönlendir
 # Format: <kaynak> <hedef> <status>
 # Cross-origin cookie auth sorunsuz çalışır (proxy üzerinden aynı origin gibi görünür)
-/api/*  https://fikir-platformu-api.onrender.com/api/*  200
+/api/*  https://fikir-platformu.onrender.com/api/*  200
