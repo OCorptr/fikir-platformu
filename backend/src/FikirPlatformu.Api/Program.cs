@@ -275,11 +275,13 @@ builder.Services.AddAuthorization(options =>
     // Şifre doğrulandı ama MFA tamamlanmadı → kısa süreli cookie yazılır,
     // MFA endpoint'lerine erişim verilir. Verify başarılı olunca normal scheme'e upgrade.
     options.AddPolicy("PreMfaOnly", p => p
-        .AddAuthenticationSchemes("PreMfaScheme"));
+        .AddAuthenticationSchemes("PreMfaScheme")
+        .RequireAuthenticatedUser());
 
     // MFA doğrulanmış kullanıcı — herhangi bir normal scheme.
     options.AddPolicy("MfaCompleted", p => p
-        .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, "ProvinceScheme", "MinistryScheme"));
+        .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, "ProvinceScheme", "MinistryScheme")
+        .RequireAuthenticatedUser());
 
     // SystemAdmin only — MFA doğrulanmış + SystemAdmin rolü (Sprint 9 admin endpoint'leri).
     options.AddPolicy("SystemAdminOnly", p => p
