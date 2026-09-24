@@ -3,18 +3,19 @@
 #
 # İki servis:
 #   1. fikir-platformu-api   — .NET 10 backend (Docker)
-#   2. fikir-platformu-web   — React/Vite frontend (Static Site) + /api proxy
+#   2. fikir-platformu-web   — React/Vite frontend (Static Site + /api proxy)
 #
 # Deploy sonrası Render otomatik hostname atar (örn: fikir-platformu-api.onrender.com).
-# Cross-origin cookie auth için Static Site proxy tercih edildi — frontend kodunda değişiklik yok.
+# Cross-origin cookie auth için Static Site proxy tercih edildi — _redirects dosyası
+# frontend/public/ altında (Vite build sırasında dist/ içine kopyalanır).
 #
 # Env variable'lar Dashboard'dan ayarlanmalı (sync: false = manual):
 #   - api → ConnectionStrings__MySql (TiDB Cloud connection string)
 #   - api → Cors__AllowedOrigins__0 (frontend public URL'si: https://fikir-platformu-web.onrender.com)
-#   - web → VITE_API_BASE_URL (opsiyonel, proxy kullanıldığı için gerek yok)
+#   - api → Frontend__BaseUrl (verify-email link için)
 
 services:
-  # ---------------- BACKEND ----------------
+  # ---------------- BACKEND (.NET 10 / Docker) ----------------
   - type: web
     name: fikir-platformu-api
     runtime: docker
@@ -37,17 +38,13 @@ services:
       - key: Frontend__BaseUrl
         sync: false
 
-  # ---------------- FRONTEND ----------------
-  - type: static_site
+  # ---------------- FRONTEND (Vite / Static Site) ----------------
+  - type: web
     name: fikir-platformu-web
+    runtime: static
     rootDir: frontend
     plan: free
     branch: main
     buildCommand: npm ci && npm run build
-    publishPath: dist
+    staticPublishPath: ./dist
     autoDeploy: true
-    # /api isteklerini backend'e proxy et — cross-origin cookie auth sorunsuz çalışır.
-    routes:
-      - type: rewrite
-        source: /api/*
-        destination: https://fikir-platformu-api.onrender.com/api/*
