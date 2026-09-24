@@ -589,16 +589,20 @@ namespace FikirPlatformu.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
-
                     b.HasIndex("StudentId")
                         .HasDatabaseName("ix_ideas_student_id");
 
                     b.HasIndex("SubmittedAt")
                         .HasDatabaseName("ix_ideas_submitted_at");
 
+                    b.HasIndex("CategoryId", "SubmittedAt")
+                        .HasDatabaseName("ix_ideas_category_submitted");
+
                     b.HasIndex("ProvinceId", "Status")
                         .HasDatabaseName("ix_ideas_province_status");
+
+                    b.HasIndex("ProvinceId", "SubmittedAt")
+                        .HasDatabaseName("ix_ideas_province_submitted");
 
                     b.ToTable("ideas", "public");
                 });
@@ -1081,6 +1085,25 @@ namespace FikirPlatformu.Infrastructure.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", "public");
+                });
+
+            modelBuilder.Entity("Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FriendlyName")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Xml")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("DataProtectionKeys", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
