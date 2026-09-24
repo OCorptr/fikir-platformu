@@ -8,6 +8,7 @@ import { ApiHttpError } from "../services/api";
 import { contextFromPath, login, register, type LoginContext } from "../services/auth";
 import { getProvinces } from "../services/references";
 import type { ProvinceRef } from "../types";
+import { CaptchaField } from "./CaptchaField";
 
 type Mod = "giris" | "kayit" | "dogrulamaBekleniyor";
 
@@ -36,6 +37,8 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   // Giriş
   const [girisEposta, setGirisEposta] = useState("");
   const [girisSifre, setGirisSifre] = useState("");
+  const [girisCaptchaId, setGirisCaptchaId] = useState("");
+  const [girisCaptchaCevap, setGirisCaptchaCevap] = useState("");
 
   // Kayıt
   const [kayitAd, setKayitAd] = useState("");
@@ -46,6 +49,8 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   const [kayitOkulNo, setKayitOkulNo] = useState("");
   const [kayitEposta, setKayitEposta] = useState("");
   const [kayitSifre, setKayitSifre] = useState("");
+  const [kayitCaptchaId, setKayitCaptchaId] = useState("");
+  const [kayitCaptchaCevap, setKayitCaptchaCevap] = useState("");
 
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
@@ -99,7 +104,13 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
     setCalisiyor(true);
     setHata(null);
     try {
-      await login({ email: girisEposta.trim(), password: girisSifre, context });
+      await login({
+        email: girisEposta.trim(),
+        password: girisSifre,
+        context,
+        captchaId: girisCaptchaId,
+        captchaAnswer: girisCaptchaCevap,
+      });
       onAuthed();
     } catch (e) {
       setHata(mesajCikar(e));
@@ -134,6 +145,8 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
         school: kayitOkul.trim() ? kayitOkul.trim() : null,
         grade: kayitSinif === "" ? null : kayitSinif,
         studentNumber: kayitOkulNo.trim() ? kayitOkulNo.trim() : null,
+        captchaId: kayitCaptchaId,
+        captchaAnswer: kayitCaptchaCevap,
       });
       setMod("dogrulamaBekleniyor");
     } catch (e) {
@@ -208,6 +221,13 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
               value={girisSifre}
               onChange={(e) => setGirisSifre(e.target.value)}
               placeholder="••••••••"
+            />
+            <CaptchaField
+              id="giris-captcha"
+              value={girisCaptchaCevap}
+              onChange={setGirisCaptchaCevap}
+              captchaId={girisCaptchaId}
+              onCaptchaIdChange={setGirisCaptchaId}
             />
             <div className="fikir-butonlar">
               <button
@@ -344,6 +364,14 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                 />
               </div>
             </div>
+
+            <CaptchaField
+              id="kayit-captcha"
+              value={kayitCaptchaCevap}
+              onChange={setKayitCaptchaCevap}
+              captchaId={kayitCaptchaId}
+              onCaptchaIdChange={setKayitCaptchaId}
+            />
 
             <div className="fikir-butonlar">
               <button

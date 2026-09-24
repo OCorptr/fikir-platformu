@@ -323,6 +323,7 @@ app.MapGet("/api/health/db", async (FikirPlatformuDbContext db, CancellationToke
 
 app.MapAuthEndpoints();
 app.MapMfaEndpoints();
+app.MapCaptchaEndpoints();
 app.MapProfileEndpoints();
 app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();

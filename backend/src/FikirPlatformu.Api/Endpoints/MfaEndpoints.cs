@@ -98,6 +98,12 @@ public static class MfaEndpoints
             FikirPlatformuDbContext veritabani,
             HttpContext http) =>
         {
+            // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
+            if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
+            {
+                return Results.Json(new { message = "CAPTCHA doğrulaması başarısız." }, statusCode: 400);
+            }
+
             var kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
             if (kullanici is null || !kullanici.TwoFactorEnabled || string.IsNullOrEmpty(kullanici.TwoFactorSecret))
             {
@@ -253,12 +259,13 @@ public static class MfaEndpoints
     {
         try
         {
+            // YEĞİTEK gereksinim #9: PII mask'leme.
             veritabani.AuthEvents.Add(new AuthEvent
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                Email = email,
-                IpAddress = http.Connection.RemoteIpAddress?.ToString(),
+                Email = KisiselVeriYardimci.EmailMaskele(email),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
                 UserAgent = http.Request.Headers.UserAgent.ToString(),
                 EventType = tip,
                 Success = success,
@@ -277,5 +284,8 @@ public static class MfaEndpoints
         [Required, StringLength(128)] string Password,
         [Required, RegularExpression("^[0-9]{6}$")] string Code,
         bool RememberMe = false,
-        string? Role = null);
+        string? Role = null,
+        // CAPTCHA
+        [Required, StringLength(64)] string CaptchaId = "",
+        [Required, StringLength(16)] string CaptchaAnswer = "");
 }

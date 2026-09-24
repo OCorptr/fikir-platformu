@@ -16,10 +16,23 @@ export async function register(payload: {
   school?: string | null;
   grade?: number | null;
   studentNumber?: string | null;
+  captchaId?: string;
+  captchaAnswer?: string;
 }): Promise<RegisterResponse> {
   return apiRequest<RegisterResponse>("/api/auth/register", {
     method: "POST",
-    body: payload,
+    body: {
+      firstName: payload.firstName,
+      lastName: payload.lastName,
+      email: payload.email,
+      password: payload.password,
+      provinceId: payload.provinceId,
+      school: payload.school ?? null,
+      grade: payload.grade ?? null,
+      studentNumber: payload.studentNumber ?? null,
+      captchaId: payload.captchaId ?? "",
+      captchaAnswer: payload.captchaAnswer ?? "",
+    },
   });
 }
 
@@ -31,13 +44,21 @@ export async function login(payload: {
   password: string;
   rememberMe?: boolean;
   context?: LoginContext; // hangi panele giriş yapıldığı
+  captchaId?: string;
+  captchaAnswer?: string;
 }): Promise<LoginResponse> {
   const url = payload.context
     ? `/api/auth/login?role=${encodeURIComponent(payload.context)}`
     : "/api/auth/login";
   return apiRequest<LoginResponse>(url, {
     method: "POST",
-    body: { email: payload.email, password: payload.password, rememberMe: payload.rememberMe ?? true },
+    body: {
+      email: payload.email,
+      password: payload.password,
+      rememberMe: payload.rememberMe ?? true,
+      captchaId: payload.captchaId ?? "",
+      captchaAnswer: payload.captchaAnswer ?? "",
+    },
   });
 }
 

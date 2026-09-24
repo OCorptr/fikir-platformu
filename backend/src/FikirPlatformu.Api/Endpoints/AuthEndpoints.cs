@@ -26,6 +26,12 @@ public static class AuthEndpoints
             IEmailSender epostaGonderici,
             HttpContext http) =>
         {
+            // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
+            if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
+            {
+                return Results.Json(new { message = "CAPTCHA doğrulaması başarısız. Lütfen yeni bir soru çözün." }, statusCode: 400);
+            }
+
             if (string.IsNullOrWhiteSpace(istek.FirstName) || string.IsNullOrWhiteSpace(istek.LastName))
             {
                 return Results.ValidationProblem(new Dictionary<string, string[]>
@@ -123,7 +129,14 @@ public static class AuthEndpoints
             SignInManager<ApplicationUser> girisYoneticisi,
             FikirPlatformuDbContext veritabani,
             HttpContext http) =>
+        // Rate limit: 5 deneme / dakika / IP (plan §5.1 — login brute-force koruması).
         {
+            // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
+            if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
+            {
+                return Results.Json(new { message = "CAPTCHA doğrulaması başarısız. Lütfen yeni bir soru çözün." }, statusCode: 400);
+            }
+
             var kullanici = await girisYoneticisi.UserManager.FindByEmailAsync(istek.Email);
             if (kullanici is null)
             {
@@ -443,12 +456,13 @@ public static class AuthEndpoints
     {
         try
         {
+            // YEĞİTEK gereksinim #9: loglarda düz metin PII olmaz — email ve IP mask'lenir.
             veritabani.AuthEvents.Add(new AuthEvent
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                Email = email,
-                IpAddress = http.Connection.RemoteIpAddress?.ToString(),
+                Email = KisiselVeriYardimci.EmailMaskele(email),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
                 UserAgent = http.Request.Headers.UserAgent.ToString(),
                 EventType = tip,
                 Success = success,
@@ -564,12 +578,18 @@ public static class AuthEndpoints
         [Range(1, 81)] int ProvinceId,
         [StringLength(120)] string? School = null,
         [Range(1, 12)] int? Grade = null,
-        [StringLength(40)] string? StudentNumber = null);
+        [StringLength(40)] string? StudentNumber = null,
+        // CAPTCHA (YEĞİTEK gereksinim #2)
+        [Required, StringLength(64)] string CaptchaId = "",
+        [Required, StringLength(16)] string CaptchaAnswer = "");
 
     public sealed record GirisIstegi(
         [Required, EmailAddress, StringLength(256)] string Email,
         [Required, StringLength(128)] string Password,
-        bool RememberMe = true);
+        bool RememberMe = true,
+        // CAPTCHA (YEĞİTEK gereksinim #2)
+        [Required, StringLength(64)] string CaptchaId = "",
+        [Required, StringLength(16)] string CaptchaAnswer = "");
 
     public sealed record SifremiUnuttumIstegi(
         [Required, EmailAddress, StringLength(256)] string Email);
