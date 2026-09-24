@@ -272,7 +272,9 @@ public static class MfaEndpoints
         }
     }
 
-    /// <summary>TOTP kodunu ±1 zaman adımı toleransla doğrular (RFC 6238).</summary>
+    /// <summary>TOTP kodunu ±1 zaman adımı toleransla doğrular (RFC 6238).
+    /// NOT: Render container saat drift sorunu nedeniyle geçici olarak ±50 step pencere (25dk).
+    /// Production'a geçerken tekrar ±1 step'e düşürülmeli.</summary>
     private static bool TotpGecerliMi(string secretBase32, string kod)
     {
         if (string.IsNullOrWhiteSpace(kod) || kod.Length != 6 || !kod.All(char.IsDigit))
@@ -281,7 +283,9 @@ public static class MfaEndpoints
         {
             var secretBytes = Base32Encoding.ToBytes(secretBase32);
             var totp = new Totp(secretBytes, step: 30, totpSize: 6);
-            return totp.VerifyTotp(kod, out _, new VerificationWindow(1, 1));
+            // GEÇİCİ: Render container clock drift için geniş pencere.
+            // Kalıcı çözüm: server NTP sync veya yeniden başlatma.
+            return totp.VerifyTotp(kod, out _, new VerificationWindow(50, 50));
         }
         catch
         {
