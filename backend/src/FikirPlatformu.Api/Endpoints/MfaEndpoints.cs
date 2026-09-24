@@ -90,6 +90,10 @@ public static class MfaEndpoints
             if (string.IsNullOrEmpty(secretDuzMetin))
                 return Results.Json(new { message = "MFA secret okunamadı. Lütfen kurulumu yeniden başlatın." }, statusCode: 400);
 
+            // DEBUG: TOTP doğrulama öncesi secret/code/counter logla (geçici debug).
+            var serverCounter = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30;
+            Console.WriteLine($"[MFA-DEBUG] user={kullanici.Email} decrypted_secret='{secretDuzMetin}' code={istek.Code} server_counter={serverCounter}");
+
             if (!TotpGecerliMi(secretDuzMetin, istek.Code))
                 return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
 
