@@ -318,6 +318,7 @@ app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
 app.MapMinistryEndpoints();
+app.MapDemoSeedEndpoints();
 
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())
