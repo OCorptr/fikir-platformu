@@ -1,7 +1,7 @@
 // AdminLayout — il/bakanlık panelleri için sidebar + üstbar çerçevesi (admin.html).
 // Admin teması (assets/css/admin-panel.css) kullanılır; anasayfa ve /fikir bu temayı kullanmaz.
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { logout, type LoginContext } from "../services/auth";
 import type { MeSession } from "../types";
@@ -62,6 +62,8 @@ const ikon = {
 export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: AdminLayoutProps) {
   const navigate = useNavigate();
   const yol = useLocation().pathname;
+  const [kullaniciMenuAcik, setKullaniciMenuAcik] = useState(false);
+  const kullaniciMenuRef = useRef<HTMLDivElement>(null);
 
   // body class'ı admin sayfalarında "sayfa-admin" olmalı (admin.css govde kenarı buna göre konumlandırır)
   useEffect(() => {
@@ -71,6 +73,18 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
       // (sayfa değişimi App.tsx'teki GovdeSinifi ile düzenleniyor; cleanup orada)
     };
   }, []);
+
+  // Kullanıcı menüsünü dışarı tıklayınca kapat (plan §3.4 — üst bar dropdown).
+  useEffect(() => {
+    if (!kullaniciMenuAcik) return;
+    function tikla(e: MouseEvent) {
+      if (kullaniciMenuRef.current && !kullaniciMenuRef.current.contains(e.target as Node)) {
+        setKullaniciMenuAcik(false);
+      }
+    }
+    document.addEventListener("mousedown", tikla);
+    return () => document.removeEventListener("mousedown", tikla);
+  }, [kullaniciMenuAcik]);
 
   // Rol bazlı menü
   const ilPaneli = ben?.roles.some((r) => r === "ProvinceEvaluator" || r === "ProvinceManager") ?? false;
@@ -96,6 +110,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
     : ilPaneli ? "İl AR-GE Paneli" : ministryMi ? "Bakanlık Paneli" : "Yönetim Paneli";
 
   const kullaniciAdi = ben ? `${ben.firstName} ${ben.lastName}` : "Kullanıcı";
+  const kullaniciBen = kullaniciAdi;
   // Rol etiketleri Türkçe
   const rolAdi = ben?.roles
     .map((r) => r === "ProvinceManager" ? "İl AR-GE Yönetici"
@@ -172,6 +187,34 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
           </div>
           <div className="ustbar-sag">
             {donemRozet && <span className="donem-rozeti">{donemRozet}</span>}
+            {ben && (
+              <div className="kullanici-menu" ref={kullaniciMenuRef}>
+                <button
+                  type="button"
+                  className="km-tetik"
+                  aria-haspopup="menu"
+                  aria-expanded={kullaniciMenuAcik}
+                  onClick={() => setKullaniciMenuAcik((a) => !a)}
+                  title="Hesap menüsü"
+                >
+                  <span className="k-avatar kucuk">{avatarBasHarf}</span>
+                  <span className="km-isim">{kullaniciAdi}</span>
+                  <span className="km-asagi" aria-hidden="true">▾</span>
+                </button>
+                {kullaniciMenuAcik && (
+                  <div className="km-dropdown" role="menu">
+                    <div className="km-dropdown-baslik">
+                      <b>{kullaniciBen}</b>
+                      <small>{rolAdi}</small>
+                      <small className="km-eposta">{ben.email}</small>
+                    </div>
+                    <button type="button" className="km-dropdown-oge cikis" role="menuitem" onClick={cikis}>
+                      🚪 Çıkış Yap
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </header>
         <main className="icerik">{children}</main>

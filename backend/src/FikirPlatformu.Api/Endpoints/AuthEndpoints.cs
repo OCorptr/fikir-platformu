@@ -95,20 +95,25 @@ public static class AuthEndpoints
         grup.MapGet("/verify-email", async (
             [FromQuery] string userId,
             [FromQuery] string token,
+            [FromQuery] string? returnUrl,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             IConfiguration yapilandirma) =>
         {
             var frontendAdresi = FrontendAdresi(yapilandirma);
+            var izinliOriginler = new[] { frontendAdresi };
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
+            string hedef;
             if (kullanici is null)
             {
-                return Results.Redirect($"{frontendAdresi}/giris?verified=invalid");
+                hedef = "invalid";
             }
-
-            var sonuc = await kullaniciYoneticisi.ConfirmEmailAsync(kullanici, token);
-            return sonuc.Succeeded
-                ? Results.Redirect($"{frontendAdresi}/giris?verified=success")
-                : Results.Redirect($"{frontendAdresi}/giris?verified=invalid");
+            else
+            {
+                var sonuc = await kullaniciYoneticisi.ConfirmEmailAsync(kullanici, token);
+                hedef = sonuc.Succeeded ? "success" : "invalid";
+            }
+            var guvenliDonus = YerelUrlYardimci.GuvenliVeyaNull(returnUrl, izinliOriginler) ?? $"/giris?verified={hedef}";
+            return Results.Redirect($"{frontendAdresi}{guvenliDonus}");
         });
 
         grup.MapPost("/login", async (

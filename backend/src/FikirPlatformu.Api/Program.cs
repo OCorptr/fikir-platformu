@@ -79,6 +79,20 @@ builder.Services
     .AddSignInManager<SignInManager<ApplicationUser>>()
     .AddDefaultTokenProviders();
 
+// Cookie güvenlik ayarları (plan §3.1 + §3.2 — Sprint 3):
+//   - HttpOnly: JS erişemez (XSS koruması)
+//   - SameSite=Lax: CSRF baseline koruma
+//   - SecurePolicy: Development'ta SameAsRequest (HTTP test), Production'da Always (HTTPS zorunlu)
+//   - ExpireTimeSpan=30 dk: idle timeout (plan §3.2)
+//   - Absolute timeout=8 saat: ASP.NET Core cookie auth'da yok; OnValidatePrincipal + IssueDate ile manuel uygulanır.
+var isProduction = builder.Environment.IsProduction();
+var securePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+
+// Mutlak oturum süresi: kullanıcının cookie yazıldıktan sonra en fazla açık kalabileceği süre.
+// Cookie + DB'de saklanan ilk giriş zamanı (ApplicationUser.PasswordChangedAt benzeri tek bir "session start" alanı) ile kontrol edilebilir;
+// ancak IdentityUser'da mevcut alan yok. Bu yüzden claim'e yazıp OnValidatePrincipal'de kontrol ediyoruz.
+var absoluteTimeout = TimeSpan.FromHours(8);
+
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     // Öğrenci: Identity'nin default scheme'i (Identity.Application).
     .AddCookie(IdentityConstants.ApplicationScheme, options =>
@@ -86,11 +100,31 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.Cookie.Name = ".FikirStudent.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SecurePolicy = securePolicy;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
         options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
+        // Absolute timeout: cookie IssueDate'i claim olarak yazıldıktan 8 saat sonra oturum düşürülür.
+        options.Events.OnSigningIn = ctx =>
+        {
+            var issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            ctx.Principal!.Identities.First().AddClaim(new System.Security.Claims.Claim("auth_issued_at", issuedAt));
+            return Task.CompletedTask;
+        };
+        options.Events.OnValidatePrincipal = ctx =>
+        {
+            var issuedAtClaim = ctx.Principal?.FindFirst("auth_issued_at")?.Value;
+            if (long.TryParse(issuedAtClaim, out var issuedAt))
+            {
+                var age = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(issuedAt);
+                if (age > absoluteTimeout)
+                {
+                    ctx.RejectPrincipal(); // 401 — kullanıcı tekrar login olmalı
+                }
+            }
+            return Task.CompletedTask;
+        };
     })
     // İl AR-GE personeli: ayrı cookie — aynı tarayıcıda bakanlık hesabı açıkken
     // il-panel'e girildiğinde çakışmayı önler (plan §49).
@@ -99,11 +133,30 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.Cookie.Name = ".FikirProvince.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SecurePolicy = securePolicy;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
         options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
+        options.Events.OnSigningIn = ctx =>
+        {
+            var issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            ctx.Principal!.Identities.First().AddClaim(new System.Security.Claims.Claim("auth_issued_at", issuedAt));
+            return Task.CompletedTask;
+        };
+        options.Events.OnValidatePrincipal = ctx =>
+        {
+            var issuedAtClaim = ctx.Principal?.FindFirst("auth_issued_at")?.Value;
+            if (long.TryParse(issuedAtClaim, out var issuedAt))
+            {
+                var age = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(issuedAt);
+                if (age > absoluteTimeout)
+                {
+                    ctx.RejectPrincipal();
+                }
+            }
+            return Task.CompletedTask;
+        };
     })
     // Bakanlık: ayrı cookie.
     .AddCookie("MinistryScheme", options =>
@@ -111,11 +164,30 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.Cookie.Name = ".FikirMinistry.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.SecurePolicy = securePolicy;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
         options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
         options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
+        options.Events.OnSigningIn = ctx =>
+        {
+            var issuedAt = DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString();
+            ctx.Principal!.Identities.First().AddClaim(new System.Security.Claims.Claim("auth_issued_at", issuedAt));
+            return Task.CompletedTask;
+        };
+        options.Events.OnValidatePrincipal = ctx =>
+        {
+            var issuedAtClaim = ctx.Principal?.FindFirst("auth_issued_at")?.Value;
+            if (long.TryParse(issuedAtClaim, out var issuedAt))
+            {
+                var age = DateTimeOffset.UtcNow - DateTimeOffset.FromUnixTimeSeconds(issuedAt);
+                if (age > absoluteTimeout)
+                {
+                    ctx.RejectPrincipal();
+                }
+            }
+            return Task.CompletedTask;
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -134,15 +206,21 @@ builder.Services.AddAuthorization(options =>
         .RequireAssertion(ctx => ctx.User.IsInRole("MinistryOfficial")));
 });
 
-const string DevelopmentFrontendPolicy = "DevelopmentFrontend";
+// CORS whitelist (plan §3.5 — Sprint 3):
+// Production: sadece Cors:AllowedOrigins'deki origin'lere izin (örn "https://fikir.meb.gov.tr")
+// Development: localhost:5173 + localhost:4173 (vite dev + vite preview)
+var allowedOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+const string FrontendCorsPolicy = "FrontendCors";
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(DevelopmentFrontendPolicy, policy =>
+    options.AddPolicy(FrontendCorsPolicy, policy =>
     {
-        policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials(); // cookie tabanlı auth zorunlu
     });
 });
 
@@ -152,10 +230,8 @@ app.UseExceptionHandler();
 app.UseAuthentication();
 app.UseAuthorization();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseCors(DevelopmentFrontendPolicy);
-}
+// CORS her ortamda aktif (production whitelist, development localhost).
+app.UseCors(FrontendCorsPolicy);
 
 app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 {
