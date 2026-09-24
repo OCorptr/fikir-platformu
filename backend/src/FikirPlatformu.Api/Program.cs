@@ -322,6 +322,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// EF Core migration'ları otomatik uygula (Sprint 10 — yoksa deployment'ta yeni
+// kolonlar (örn. TwoFactorMethod) uygulanmaz, runtime'da hata verir).
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext>();
+    dbContext.Database.Migrate();
+}
+
 // Güvenlik header'ları (Sprint 5 — ek savunma katmanı).
 // X-Content-Type-Options: MIME sniffing engeli
 // X-Frame-Options: clickjacking koruması
