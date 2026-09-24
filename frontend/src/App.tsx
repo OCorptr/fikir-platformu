@@ -1,9 +1,10 @@
-import { useEffect } from "react";
+import { Component, useEffect, type ErrorInfo, type ReactNode } from "react";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { UstBar } from "./components/UstBar";
 import FikirPage from "./pages/FikirPage";
+import { SayfaBulunamadi, SunucuHatasi } from "./pages/HataSayfalari";
 import { HomePage } from "./pages/HomePage";
 import { ProvinceInboxPage } from "./pages/ProvinceInboxPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
@@ -43,6 +44,7 @@ function KosulluUstBar() {
 
 export default function App() {
   return (
+    <UygulamayiSinirla>
     <BrowserRouter>
       <GovdeSinifi />
       <KosulluUstBar />
@@ -61,8 +63,29 @@ export default function App() {
           <Route path="/bakanlik" element={<MinistryPage gorunum="adaylar" />} />
           <Route path="/bakanlik/donemler" element={<MinistryPage gorunum="donemler" />} />
         </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<SayfaBulunamadi />} />
       </Routes>
     </BrowserRouter>
+    </UygulamayiSinirla>
   );
+}
+
+// Genel hata sınırı (YEĞİTEK gereksinim #35): React render hatalarını yakala,
+// kullanıcı dostu sayfa göster. PII sızdırma — sadece teknik bilgi gösterilir.
+class GenelHataSinir extends Component<{ children: ReactNode }, { hata: Error | null }> {
+  state = { hata: null as Error | null };
+  static getDerivedStateFromError(hata: Error) { return { hata }; }
+  componentDidCatch(hata: Error, bilgi: ErrorInfo) {
+    // İstemci hatasını konsola yaz (production'da log servisi).
+    // eslint-disable-next-line no-console
+    console.error("UI render hatası:", hata, bilgi);
+  }
+  render() {
+    if (this.state.hata) return <SunucuHatasi />;
+    return this.props.children;
+  }
+}
+
+function UygulamayiSinirla({ children }: { children: ReactNode }) {
+  return <GenelHataSinir>{children}</GenelHataSinir>;
 }

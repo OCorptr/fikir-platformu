@@ -305,8 +305,34 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
-app.UseExceptionHandler();
-app.UseStatusCodePages(); // 404/500 gibi statü kodu döndüren endpoint'ler için (plan §5.2)
+// Güvenli global hata yönetici — PII sızıntısı yok (YEĞİTEK gereksinim #41).
+FikirPlatformu.Api.Middleware.GuvenliHataYonetici.Kullan(app);
+app.UseStatusCodePages(async context =>
+{
+    // UseStatusCodePages handler'ı fallback ProblemDetails üretir. Burada kısa Türkçe mesaj yazıyoruz.
+    var ctx2 = context.HttpContext;
+    ctx2.Response.ContentType = "application/problem+json";
+    if (ctx2.Response.StatusCode == StatusCodes.Status404NotFound)
+    {
+        await ctx2.Response.WriteAsJsonAsync(new
+        {
+            type = "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+            title = "Sayfa bulunamadı",
+            status = StatusCodes.Status404NotFound,
+            detail = "Aradığınız sayfa veya kayıt bulunamadı."
+        });
+    }
+    else if (ctx2.Response.StatusCode == StatusCodes.Status405MethodNotAllowed)
+    {
+        await ctx2.Response.WriteAsJsonAsync(new
+        {
+            type = "https://tools.ietf.org/html/rfc9110#section-15.5.6",
+            title = "İstek yöntemi desteklenmiyor",
+            status = StatusCodes.Status405MethodNotAllowed,
+            detail = "Bu endpoint bu HTTP yöntemini desteklemiyor."
+        });
+    }
+});
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
