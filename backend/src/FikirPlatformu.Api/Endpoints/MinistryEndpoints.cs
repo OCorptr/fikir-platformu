@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
@@ -183,6 +184,6 @@ public static class MinistryEndpoints
         return app;
     }
 
-    public sealed record YeniDonemIstegi(DateTimeOffset? StartAt, string? Label);
-    public sealed record DonemSecimIstegi(int CategoryId, Guid IdeaId);
+    public sealed record YeniDonemIstegi(DateTimeOffset? StartAt, [StringLength(100)] string? Label);
+    public sealed record DonemSecimIstegi([Range(1, int.MaxValue)] int CategoryId, [Required] Guid IdeaId);
 }

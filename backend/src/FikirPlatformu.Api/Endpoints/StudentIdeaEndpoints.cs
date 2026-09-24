@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Ideas;
 using FikirPlatformu.Domain.Ideas;
@@ -364,5 +365,7 @@ public static class StudentIdeaEndpoints
     private static IResult Conflict(string message) =>
         Results.Json(new { message }, statusCode: StatusCodes.Status409Conflict);
 
-    public sealed record SaveDraftRequest(int CategoryId, string Content);
+    public sealed record SaveDraftRequest(
+        [Range(1, int.MaxValue)] int CategoryId,
+        [Required, StringLength(2000, MinimumLength = 10)] string Content);
 }

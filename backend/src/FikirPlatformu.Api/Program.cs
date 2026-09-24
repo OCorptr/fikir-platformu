@@ -26,6 +26,9 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddProblemDetails();
+// DataAnnotations validation: DTO'lardaki [Required], [StringLength], [Range], [EmailAddress]
+// otomatik uygulanır; başarısızda 400 + ValidationProblemDetails (plan §4.2).
+builder.Services.AddValidation();
 
 builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
 {

@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
@@ -131,11 +132,11 @@ public static class ProfileEndpoints
     }
 
     public sealed record ProfilGuncellemeIstegi(
-        int? ProvinceId,
-        string? District,
-        string? School,
-        int? Grade,
-        string? StudentNumber,
-        string? FirstName,
-        string? LastName);
+        [Range(1, 81)] int? ProvinceId,
+        [StringLength(60)] string? District,
+        [StringLength(120)] string? School,
+        [Range(1, 12)] int? Grade,
+        [StringLength(40)] string? StudentNumber,
+        [StringLength(50, MinimumLength = 2)] string? FirstName,
+        [StringLength(50, MinimumLength = 2)] string? LastName);
 }

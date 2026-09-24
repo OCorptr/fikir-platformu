@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Auth;
@@ -511,19 +512,29 @@ public static class AuthEndpoints
     }
 
     public sealed record KayitIstegi(
-        string FirstName,
-        string LastName,
-        string Email,
-        string Password,
-        int ProvinceId,
-        string? School = null,
-        int? Grade = null,
-        string? StudentNumber = null);
+        [Required, StringLength(50, MinimumLength = 2)] string FirstName,
+        [Required, StringLength(50, MinimumLength = 2)] string LastName,
+        [Required, EmailAddress, StringLength(256)] string Email,
+        [Required, StringLength(128, MinimumLength = 8)] string Password,
+        [Range(1, 81)] int ProvinceId,
+        [StringLength(120)] string? School = null,
+        [Range(1, 12)] int? Grade = null,
+        [StringLength(40)] string? StudentNumber = null);
 
-    public sealed record GirisIstegi(string Email, string Password, bool RememberMe = true);
+    public sealed record GirisIstegi(
+        [Required, EmailAddress, StringLength(256)] string Email,
+        [Required, StringLength(128)] string Password,
+        bool RememberMe = true);
 
-    public sealed record SifremiUnuttumIstegi(string Email);
+    public sealed record SifremiUnuttumIstegi(
+        [Required, EmailAddress, StringLength(256)] string Email);
 
-    public sealed record SifreSifirlamaIstegi(string Email, string Token, string NewPassword);
-    public sealed record SifreDegistirIstegi(string CurrentPassword, string NewPassword);
+    public sealed record SifreSifirlamaIstegi(
+        [Required, EmailAddress, StringLength(256)] string Email,
+        [Required, StringLength(512)] string Token,
+        [Required, StringLength(128, MinimumLength = 8)] string NewPassword);
+
+    public sealed record SifreDegistirIstegi(
+        [Required, StringLength(128)] string CurrentPassword,
+        [Required, StringLength(128, MinimumLength = 8)] string NewPassword);
 }

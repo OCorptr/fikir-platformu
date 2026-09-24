@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Evaluations;
 using FikirPlatformu.Application.Ideas;
@@ -446,15 +447,24 @@ public static class ProvinceEndpoints
     }
 
     public sealed record EvaluatorAtamaDto(string UserId, string Email, string FirstName, string LastName, DateTimeOffset AssignedAt);
-    public sealed record EvaluatorAtaIstegi(string UserId);
-    public sealed record YeniEvaluatorIstegi(string Email, string Password, string FirstName, string LastName);
+    public sealed record EvaluatorAtaIstegi([Required, StringLength(450)] string UserId);
+    public sealed record YeniEvaluatorIstegi(
+        [Required, EmailAddress, StringLength(256)] string Email,
+        [Required, StringLength(128, MinimumLength = 8)] string Password,
+        [Required, StringLength(50, MinimumLength = 2)] string FirstName,
+        [Required, StringLength(50, MinimumLength = 2)] string LastName);
 
-    public sealed record UygulamaRaporuIstegi(ImplementationStatus Status, string? Note);
+    public sealed record UygulamaRaporuIstegi(
+        [Required] ImplementationStatus Status,
+        [StringLength(2000)] string? Note);
 }
 
-public sealed record AssignEvaluatorIstegi(string EvaluatorUserId);
+public sealed record AssignEvaluatorIstegi([Required, StringLength(450)] string EvaluatorUserId);
 
 public sealed record PuanlamaIstegi(List<PuanlamaIstegi.ScoreItem>? Scores)
 {
-    public sealed record ScoreItem(EvaluationCriterion Criterion, int Score, string? Comment);
+    public sealed record ScoreItem(
+        [Required] EvaluationCriterion Criterion,
+        [Range(0, 100)] int Score,
+        [StringLength(2000)] string? Comment);
 }
