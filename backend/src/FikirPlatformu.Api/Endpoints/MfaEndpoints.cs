@@ -90,22 +90,8 @@ public static class MfaEndpoints
             if (string.IsNullOrEmpty(secretDuzMetin))
                 return Results.Json(new { message = "MFA secret okunamadı. Lütfen kurulumu yeniden başlatın." }, statusCode: 400);
 
-            // DEBUG: TOTP doğrulama öncesi secret/code/counter logla (geçici debug).
-            var serverCounter = DateTimeOffset.UtcNow.ToUnixTimeSeconds() / 30;
-            var serverTotp = TotpHesapla(secretDuzMetin, serverCounter);
-            Console.WriteLine($"[MFA-DEBUG] user={kullanici.Email} decrypted_secret='{secretDuzMetin}' input_code={istek.Code} server_code={serverTotp} server_counter={serverCounter}");
-
             if (!TotpGecerliMi(secretDuzMetin, istek.Code))
-            {
-                // DEBUG: client'ın görmesi için server code'u da dön.
-                return Results.Json(new
-                {
-                    message = "Doğrulama kodu geçersiz.",
-                    debug_server_secret = secretDuzMetin,
-                    debug_server_code = serverTotp,
-                    debug_server_counter = serverCounter
-                }, statusCode: 400);
-            }
+                return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
 
             kullanici.TwoFactorEnabled = true;
             await kullaniciYoneticisi.UpdateAsync(kullanici);
@@ -255,21 +241,6 @@ public static class MfaEndpoints
             _ => "student"
         };
         return (hedefScheme, context);
-    }
-
-    /// <summary>TOTP kodunu hesaplar (geçici debug için).</summary>
-    private static string TotpHesapla(string secretBase32, long counter)
-    {
-        try
-        {
-            var secretBytes = Base32Encoding.ToBytes(secretBase32);
-            var totp = new Totp(secretBytes, step: 30, totpSize: 6);
-            return totp.ComputeTotp(DateTimeOffset.FromUnixTimeSeconds(counter * 30).UtcDateTime);
-        }
-        catch (Exception ex)
-        {
-            return $"ERROR:{ex.GetType().Name}";
-        }
     }
 
     /// <summary>TOTP kodunu ±1 zaman adımı toleransla doğrular (RFC 6238).
