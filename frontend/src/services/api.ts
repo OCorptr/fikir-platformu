@@ -1,7 +1,22 @@
 // fetch wrapper — cookie auth (credentials: 'include') + ortak hata yönetimi.
-// Vite proxy: /api istekleri http://localhost:5000'e yönlenir (vite.config.ts).
+// Development: Vite proxy /api → http://localhost:5000 (vite.config.ts).
+// Production:  VITE_API_BASE_URL env variable ile absolute backend URL'i kullanılır.
 
 import type { ApiError } from "../types";
+
+/// <summary>
+/// API base URL'i: env variable varsa onu, yoksa "/api" (Vite proxy).
+/// Production deploy'da VITE_API_BASE_URL=https://fikir-platformu.onrender.com
+/// gibi absolute URL verilir — frontend kendi domainindeki static path'e değil
+/// doğrudan backend'e istek gönderir.
+/// </summary>
+const API_BASE: string = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+
+export function apiUrl(path: string): string {
+  // path "/api/..." veya "api/..." olabilir
+  const temiz = path.replace(/^\/+/, "");
+  return API_BASE ? `${API_BASE}/${temiz}` : `/${temiz}`;
+}
 
 export class ApiHttpError extends Error {
   readonly status: number;
@@ -55,6 +70,13 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const { method = "GET", body, signal } = options;
 
+  // Relative path ise (/api/...), absolute backend URL'ine ekle.
+  // Absolute path ise (http/https://...) olduğu gibi bırak.
+  let fullUrl = url;
+  if (url.startsWith("/")) {
+    fullUrl = API_BASE ? `${API_BASE}${url}` : url;
+  }
+
   const headers: Record<string, string> = {
     Accept: "application/json",
   };
@@ -64,7 +86,7 @@ export async function apiRequest<T>(
     payload = JSON.stringify(body);
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(fullUrl, {
     method,
     headers,
     body: payload,

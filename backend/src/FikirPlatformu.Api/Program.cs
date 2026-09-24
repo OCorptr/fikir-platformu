@@ -126,12 +126,13 @@ builder.Services
 
 // Cookie güvenlik ayarları (plan §3.1 + §3.2 — Sprint 3):
 //   - HttpOnly: JS erişemez (XSS koruması)
-//   - SameSite=Lax: CSRF baseline koruma
-//   - SecurePolicy: Development'ta SameAsRequest (HTTP test), Production'da Always (HTTPS zorunlu)
+//   - SameSite: Development=Lax (same-origin); Production=None (cross-origin static site → backend)
+//   - SecurePolicy: Development=SameAsRequest (HTTP test); Production=Always (HTTPS zorunlu)
 //   - ExpireTimeSpan=30 dk: idle timeout (plan §3.2)
 //   - Absolute timeout=8 saat: ASP.NET Core cookie auth'da yok; OnValidatePrincipal + IssueDate ile manuel uygulanır.
 var isProduction = builder.Environment.IsProduction();
 var securePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+var sameSite = isProduction ? SameSiteMode.None : SameSiteMode.Lax;
 
 // Mutlak oturum süresi: kullanıcının cookie yazıldıktan sonra en fazla açık kalabileceği süre.
 // Cookie + DB'de saklanan ilk giriş zamanı (ApplicationUser.PasswordChangedAt benzeri tek bir "session start" alanı) ile kontrol edilebilir;
@@ -144,7 +145,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     {
         options.Cookie.Name = ".FikirStudent.Auth";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SameSite = sameSite;
         options.Cookie.SecurePolicy = securePolicy;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
@@ -177,7 +178,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     {
         options.Cookie.Name = ".FikirProvince.Auth";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SameSite = sameSite;
         options.Cookie.SecurePolicy = securePolicy;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
@@ -208,7 +209,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     {
         options.Cookie.Name = ".FikirMinistry.Auth";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SameSite = sameSite;
         options.Cookie.SecurePolicy = securePolicy;
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
