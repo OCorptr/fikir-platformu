@@ -101,25 +101,30 @@ public static class AdminEndpoints
             sayfa = sayfa <= 0 ? 1 : sayfa;
             sayfaBasina = sayfaBasina <= 0 || sayfaBasina > 100 ? 25 : sayfaBasina;
 
-            var sorgu = kullaniciYoneticisi.Users.AsQueryable();
+            // Rol filtresi için rol-UserId eşlemesini önceden çekip in-memory filtre uygula
+            // (EF Core LINQ navigation property default gelmiyor; küçük ölçekli sistem için yeterli).
+            IReadOnlyCollection<string>? rolUserIds = null;
             if (!string.IsNullOrWhiteSpace(role))
             {
                 var hedefRolId = await veritabani.Roles
                     .Where(r => r.Name == role)
                     .Select(r => r.Id)
                     .FirstOrDefaultAsync();
-                if (hedefRolId is not null)
+                if (hedefRolId is null)
                 {
-                    var userIds = await veritabani.Set<IdentityUserRole<string>>()
-                        .Where(ur => ur.RoleId == hedefRolId)
-                        .Select(ur => ur.UserId)
-                        .ToListAsync();
-                    sorgu = sorgu.Where(u => userIds.Contains(u.Id));
+                    return Results.Ok(new { toplam = 0, sayfa, sayfaBasina, kullanicilar = Array.Empty<object>() });
                 }
-                else
-                {
-                    sorgu = sorgu.Where(u => false); // rol bulunamazsa boş liste
-                }
+                rolUserIds = await veritabani.Set<IdentityUserRole<string>>()
+                    .Where(ur => ur.RoleId == hedefRolId)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync();
+            }
+
+            var sorgu = kullaniciYoneticisi.Users.AsQueryable();
+            if (rolUserIds is not null)
+            {
+                var ids = rolUserIds; // closure için yerel değişkene al
+                sorgu = sorgu.Where(u => ids.Contains(u.Id));
             }
 
             var toplam = await sorgu.CountAsync();
