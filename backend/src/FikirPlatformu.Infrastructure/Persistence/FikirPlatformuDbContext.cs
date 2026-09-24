@@ -8,13 +8,14 @@ using FikirPlatformu.Domain.Ministry;
 using FikirPlatformu.Domain.Moderation;
 using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Identity;
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace FikirPlatformu.Infrastructure.Persistence;
 
 public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbContext> options)
-    : IdentityDbContext<ApplicationUser>(options)
+    : IdentityDbContext<ApplicationUser>(options), IDataProtectionKeyContext
 {
     public DbSet<Idea> Ideas => Set<Idea>();
     public DbSet<IdeaCategory> IdeaCategories => Set<IdeaCategory>();
@@ -29,6 +30,10 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<ImplementationReport> ImplementationReports => Set<ImplementationReport>();
     public DbSet<ProvinceUserAssignment> ProvinceUserAssignments => Set<ProvinceUserAssignment>();
     public DbSet<AuthEvent> AuthEvents => Set<AuthEvent>();
+    // Microsoft.AspNetCore.DataProtection.EntityFrameworkCore paketinden gelen tip
+    // — IDataProtectionKeyContext kontratı bu tipi bekler.
+    public DbSet<Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey> DataProtectionKeys
+        => Set<Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

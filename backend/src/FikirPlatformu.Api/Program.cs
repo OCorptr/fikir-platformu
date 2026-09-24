@@ -12,6 +12,7 @@ using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Moderation;
 using FikirPlatformu.Infrastructure.Persistence;
 using FikirPlatformu.Infrastructure.Time;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -256,6 +257,16 @@ builder.Services.AddAuthorization(options =>
         .AddAuthenticationSchemes("MinistryScheme")
         .RequireAssertion(ctx => ctx.User.IsInRole("MinistryOfficial")));
 });
+
+// Data Protection API: TOTP secret gibi hassas alanları DB'de şifreli saklamak için
+// (plan §6.4 + YEĞİTEK gereksinim #8). Anahtarlar aynı DB'de data_protection_keys
+// tablosunda saklanır — container yeniden başladığında şifre çözme devam eder.
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext>()
+    .SetApplicationName("FikirPlatformu");
+
+// Hassas alan şifreleme servisi (TOTP secret, vs.).
+builder.Services.AddSingleton<FikirPlatformu.Api.Endpoints.HassasVeriSifreleme>();
 
 // CORS whitelist (plan §3.5 — Sprint 3):
 // Cors:AllowedOrigins BOŞSA → CORS middleware hiç aktif olmaz (same-origin reverse proxy).

@@ -30,6 +30,7 @@ public static class MfaEndpoints
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani,
+            HassasVeriSifreleme sifreleme,
             IConfiguration yapilandirma) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -42,7 +43,7 @@ public static class MfaEndpoints
             var secretBytes = KeyGeneration.GenerateRandomKey(20);
             var secretBase32 = Base32Encoding.ToString(secretBytes);
 
-            kullanici.TwoFactorSecret = secretBase32;
+            kullanici.TwoFactorSecret = sifreleme.Sifrele(secretBase32);
             // Setup sırasında TwoFactorEnabled henüz false — kullanıcı verify edince açılır.
             await kullaniciYoneticisi.UpdateAsync(kullanici);
 
@@ -69,7 +70,8 @@ public static class MfaEndpoints
             MfaKodIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
-            FikirPlatformuDbContext veritabani) =>
+            FikirPlatformuDbContext veritabani,
+            HassasVeriSifreleme sifreleme) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
@@ -79,7 +81,12 @@ public static class MfaEndpoints
             if (string.IsNullOrEmpty(kullanici.TwoFactorSecret))
                 return Results.Json(new { message = "Önce MFA kurulumunu başlatın." }, statusCode: 400);
 
-            if (!TotpGecerliMi(kullanici.TwoFactorSecret, istek.Code))
+            // DB'deki şifreli secret'i çöz (YEĞİTEK gereksinim #8).
+            var secretDuzMetin = sifreleme.Coz(kullanici.TwoFactorSecret);
+            if (string.IsNullOrEmpty(secretDuzMetin))
+                return Results.Json(new { message = "MFA secret okunamadı. Lütfen kurulumu yeniden başlatın." }, statusCode: 400);
+
+            if (!TotpGecerliMi(secretDuzMetin, istek.Code))
                 return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
 
             kullanici.TwoFactorEnabled = true;
@@ -96,6 +103,7 @@ public static class MfaEndpoints
             SignInManager<ApplicationUser> girisYoneticisi,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani,
+            HassasVeriSifreleme sifreleme,
             HttpContext http) =>
         {
             // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
@@ -122,7 +130,8 @@ public static class MfaEndpoints
             }
 
             // TOTP doğrula (30 sn pencere, ±1 step tolerans).
-            if (!TotpGecerliMi(kullanici.TwoFactorSecret, istek.Code))
+            var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret ?? "");
+            if (string.IsNullOrEmpty(secretDuz) || !TotpGecerliMi(secretDuz, istek.Code))
             {
                 await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                     AuthEventType.MfaLoginFailure, success: false, reason: "kod_yanlis");
@@ -173,7 +182,8 @@ public static class MfaEndpoints
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             SignInManager<ApplicationUser> girisYoneticisi,
-            FikirPlatformuDbContext veritabani) =>
+            FikirPlatformuDbContext veritabani,
+            HassasVeriSifreleme sifreleme) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
@@ -194,7 +204,8 @@ public static class MfaEndpoints
                 }, statusCode: 403);
             }
 
-            if (!TotpGecerliMi(kullanici.TwoFactorSecret, istek.Code))
+            var secretDuzDisable = sifreleme.Coz(kullanici.TwoFactorSecret);
+            if (string.IsNullOrEmpty(secretDuzDisable) || !TotpGecerliMi(secretDuzDisable, istek.Code))
                 return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
 
             kullanici.TwoFactorEnabled = false;
