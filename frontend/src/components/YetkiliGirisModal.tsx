@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { login, me, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
+import { CaptchaField } from "./CaptchaField";
 
 interface Props {
   acik: boolean;
@@ -19,6 +20,8 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const navigate = useNavigate();
   const [eposta, setEposta] = useState("");
   const [sifre, setSifre] = useState("");
+  const [captchaId, setCaptchaId] = useState("");
+  const [captchaCevap, setCaptchaCevap] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
 
@@ -54,7 +57,12 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     setHata(null);
     try {
       // context belirtmiyoruz — backend hesabın sahip olduğu role göre scheme seçsin.
-      const sonuc = await login({ email: eposta.trim(), password: sifre });
+      const sonuc = await login({
+        email: eposta.trim(),
+        password: sifre,
+        captchaId,
+        captchaAnswer: captchaCevap,
+      });
       // MFA setup gerekiyor → /mfa-setup sayfasına yönlendir (Sprint 9).
       if (sonuc.mfaSetupRequired) {
         navigate("/mfa-setup");
@@ -147,6 +155,14 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
               placeholder="••••••••"
             />
           </label>
+
+          <CaptchaField
+            id="yetkili-captcha"
+            value={captchaCevap}
+            onChange={setCaptchaCevap}
+            captchaId={captchaId}
+            onCaptchaIdChange={setCaptchaId}
+          />
 
           <button
             type="submit"
