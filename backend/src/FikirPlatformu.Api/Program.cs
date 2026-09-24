@@ -13,7 +13,9 @@ using FikirPlatformu.Infrastructure.Moderation;
 using FikirPlatformu.Infrastructure.Persistence;
 using FikirPlatformu.Infrastructure.Time;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -29,6 +31,42 @@ builder.Services.AddProblemDetails();
 // DataAnnotations validation: DTO'lardaki [Required], [StringLength], [Range], [EmailAddress]
 // otomatik uygulanır; başarısızda 400 + ValidationProblemDetails (plan §4.2).
 builder.Services.AddValidation();
+
+// Rate limiting (plan §5.1 — Sprint 5): Brute-force koruması.
+// Login: 5 deneme / dakika (Identity lockout zaten var; bu ek savunma katmanı).
+// Genel: 100 istek / dakika IP başına.
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.AddPolicy("login", httpContext =>
+    {
+        // Login endpoint'inde IP başına 5 deneme / dakika (plan §2.2 ile uyumlu).
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            AutoReplenishment = true
+        });
+    });
+
+    // Genel IP-bazlı sınır (tüm endpoint'ler).
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+    {
+        var ip = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(ip, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            AutoReplenishment = true
+        });
+    });
+});
 
 builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
 {
@@ -56,6 +94,8 @@ builder.Services.AddScoped<IImplementationSummaryQueryService, ImplementationSum
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
 builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
+// Background job: auth_events 2 yıl retention (plan §1.7).
+builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetentionService>();
 
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
@@ -229,7 +269,24 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Güvenlik header'ları (Sprint 5 — ek savunma katmanı).
+// X-Content-Type-Options: MIME sniffing engeli
+// X-Frame-Options: clickjacking koruması
+// Referrer-Policy: referrer bilgisi sızıntısı azaltma
+// Permissions-Policy: gereksiz tarayıcı özelliklerini kapatma
+app.Use(async (ctx, next) =>
+{
+    var h = ctx.Response.Headers;
+    h["X-Content-Type-Options"] = "nosniff";
+    h["X-Frame-Options"] = "DENY";
+    h["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    h["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()";
+    await next();
+});
+
 app.UseExceptionHandler();
+app.UseStatusCodePages(); // 404/500 gibi statü kodu döndüren endpoint'ler için (plan §5.2)
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

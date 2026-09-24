@@ -215,7 +215,7 @@ public static class AuthEndpoints
                 mustChangePassword = mustChange || passwordExpired,
                 passwordWarn = passwordWarn && !mustChange && !passwordExpired,
             });
-        });
+        }).RequireRateLimiting("login");
 
         // Şifre değiştirme (plan §2.5: ilk giriş ve 90 gün sonra zorla).
         grup.MapPost("/change-password", async (
