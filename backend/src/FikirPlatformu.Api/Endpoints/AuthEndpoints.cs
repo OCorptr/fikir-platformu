@@ -187,6 +187,27 @@ public static class AuthEndpoints
             };
             await http.SignInAsync(scheme, principal, props);
 
+            // MFA aktifse cookie YAZMA — kullanıcı 2. adımda MFA kodunu göndermeli.
+            // Frontend bu response'ı alınca /api/auth/mfa/login'e email+şifre+kod ile gider.
+            if (kullanici.TwoFactorEnabled)
+            {
+                await http.SignOutAsync(scheme);
+                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                    AuthEventType.LoginSuccess, success: true, reason: "mfa_required");
+                return Results.Ok(new
+                {
+                    mfaRequired = true,
+                    email = kullanici.Email,
+                    roles = roller,
+                    context = scheme switch
+                    {
+                        "ProvinceScheme" => "province",
+                        "MinistryScheme" => "ministry",
+                        _ => "student"
+                    }
+                });
+            }
+
             await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                 AuthEventType.LoginSuccess, success: true, reason: null);
 

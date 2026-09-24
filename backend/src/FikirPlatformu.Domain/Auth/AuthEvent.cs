@@ -25,6 +25,9 @@ public enum AuthEventType
     LoginEmailNotConfirmed = 4,
     Logout = 10,
     PasswordChanged = 20,
+    MfaSetupStarted = 28,
     MfaEnabled = 30,
     MfaDisabled = 31,
+    MfaLoginSuccess = 32,    // 2. adım MFA doğrulama başarılı
+    MfaLoginFailure = 33,    // 2. adım MFA doğrulama başarısız
 }

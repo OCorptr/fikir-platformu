@@ -12,4 +12,11 @@ public sealed class ApplicationUser : IdentityUser
 
     /// <summary>İlk girişte kullanıcı şifresini değiştirmeye zorlanmalı (plan §2.5).</summary>
     public bool MustChangePassword { get; set; }
+
+    /// <summary>
+    /// TOTP MFA için base32 secret (plan §2.7 — Sprint 6).
+    /// TwoFactorEnabled IdentityUser'dan miras; secret burada.
+    /// NULL = MFA henüz kurulmamış.
+    /// </summary>
+    public string? TwoFactorSecret { get; set; }
 }
