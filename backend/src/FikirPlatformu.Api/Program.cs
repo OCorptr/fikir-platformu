@@ -28,7 +28,14 @@ builder.Services.AddSingleton<IClock, SystemClock>();
 builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQL")));
+{
+    var connectionString = builder.Configuration.GetConnectionString("MySql")
+        ?? throw new InvalidOperationException("MySql connection string eksik (appsettings.json veya user-secrets).");
+    // TiDB Cloud MySQL 8 uyumlu. Pomelo 9 + EF Core 9 ile stabil.
+    // useMicrosoftSchema: false (default) — MySQL schemasız; "public" referansı yok sayılır.
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+        my => my.EnableRetryOnFailure(maxRetryCount: 3));
+});
 builder.Services.AddScoped<IIdeaRepository, IdeaRepository>();
 builder.Services.AddScoped<IIdeaReadReceiptRepository, IdeaReadReceiptRepository>();
 builder.Services.AddScoped<IIdeaAssignmentRepository, IdeaAssignmentRepository>();
