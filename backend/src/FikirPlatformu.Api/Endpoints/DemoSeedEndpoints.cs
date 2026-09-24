@@ -20,18 +20,17 @@ public static class DemoSeedEndpoints
         grup.MapPost("/reset-passwords", async (
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani,
+            IConfiguration yapilandirma,
             HttpContext http) =>
         {
-            // Admin guard — MinistryOfficial veya SystemAdmin rolu olmalı
-            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-
-            var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
-            if (kullanici is null) return Results.Unauthorized();
-
-            var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
-            if (!roller.Any(r => r is "MinistryOfficial" or "SystemAdmin"))
-                return Results.Json(new { message = "Bu endpoint yalnızca bakanlık/admin hesaplarına açıktır." }, statusCode: 403);
+            // Bootstrap key kontrolü — Render.com env variable'a DemoSeed:BypassKey set edilir.
+            // Key olmadan endpoint çalışmaz (yetkisiz erişimi önler).
+            var beklenenKey = yapilandirma["DemoSeed:BypassKey"];
+            var gelenKey = http.Request.Headers["X-Bootstrap-Key"].FirstOrDefault();
+            if (string.IsNullOrEmpty(beklenenKey) || gelenKey != beklenenKey)
+            {
+                return Results.Json(new { message = "Geçersiz bootstrap anahtarı." }, statusCode: 403);
+            }
 
             // Demo şifreler — hepsi Identity policy'e uyumlu (min 8 + karmaşıklık + unique 4)
             var demoSifreler = new Dictionary<string, string>
@@ -77,7 +76,7 @@ public static class DemoSeedEndpoints
                 mesaj = "Demo şifreler güncellendi.",
                 sonuclar
             });
-        }).RequireAuthorization();
+        }).AllowAnonymous();
 
         return app;
     }
