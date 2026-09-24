@@ -74,9 +74,11 @@ builder.Services.AddDbContext<FikirPlatformuDbContext>(options =>
     var connectionString = builder.Configuration.GetConnectionString("MySql")
         ?? throw new InvalidOperationException("MySql connection string eksik (appsettings.json veya user-secrets).");
     // TiDB Cloud MySQL 8 uyumlu. Pomelo 9 + EF Core 9 ile stabil.
-    // useMicrosoftSchema: false (default) — MySQL schemasız; "public" referansı yok sayılır.
+    // SchemaBehavior.Ignore — EF Core'un "public" gibi MySQL olmayan schema referanslarını yok say
+    // (Pomelo varsayılan olarak Throw eder; migration'larda explicit "public" yazıldığı için gerekli).
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
-        my => my.EnableRetryOnFailure(maxRetryCount: 3));
+        my => my.SchemaBehavior(Pomelo.EntityFrameworkCore.MySql.Infrastructure.MySqlSchemaBehavior.Ignore)
+               .EnableRetryOnFailure(maxRetryCount: 3));
 });
 builder.Services.AddScoped<IIdeaRepository, IdeaRepository>();
 builder.Services.AddScoped<IIdeaReadReceiptRepository, IdeaReadReceiptRepository>();
