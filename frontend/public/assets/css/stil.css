@@ -1264,4 +1264,239 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
 
 /* Sprint 8.3 erişilebilirlik güncelleme */
 
+/* Sprint 9 — MFA kurulum/login + Admin kullanıcı yönetimi stilleri */
+.sayfa-ortak {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2rem 1.2rem;
+}
+.sayfa-ortak h1 {
+  font-size: 1.7rem;
+  margin: 0 0 0.5rem;
+  color: #1f2937;
+}
+.sayfa-ortak .alt-aciklama,
+.sayfa-ortak .mfa-aciklama {
+  color: #4b5563;
+  line-height: 1.5;
+  margin: 0 0 1.2rem;
+}
+.mfa-kurulum, .mfa-login, .admin-kullanicilar {
+  background: #fff;
+  border-radius: 0.8rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  padding: 1.6rem;
+}
+.mfa-adimlar {
+  list-style: none;
+  padding: 0;
+  counter-reset: adim;
+  margin: 1.2rem 0;
+}
+.mfa-adimlar > li {
+  counter-increment: adim;
+  position: relative;
+  padding: 0.8rem 0.8rem 0.8rem 2.6rem;
+  border-left: 3px solid #1e6fb8;
+  margin-bottom: 1rem;
+  background: #f8fafc;
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+.mfa-adimlar > li::before {
+  content: counter(adim);
+  position: absolute;
+  left: -0.9rem;
+  top: 0.8rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  background: #1e6fb8;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.mfa-bilgi {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 0.8rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.9rem;
+}
+.mfa-bilgi dt { color: #4b5563; font-weight: 600; }
+.mfa-bilgi dd { margin: 0; word-break: break-all; }
+.mfa-bilgi code {
+  background: #fff;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.3rem;
+  border: 1px solid #e5e7eb;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+.mfa-secret {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.mfa-secret code {
+  flex: 1;
+}
+.mfa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+.mfa-alan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mfa-alan span {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.9rem;
+}
+.mfa-alan input {
+  padding: 0.7rem 0.9rem;
+  font-size: 1.4rem;
+  letter-spacing: 0.3rem;
+  text-align: center;
+  border: 2px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+}
+.mfa-alan input:focus {
+  outline: none;
+  border-color: #1e6fb8;
+}
+.mfa-detay {
+  margin-top: 1.5rem;
+  padding: 0.8rem 1rem;
+  background: #f3f4f6;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+}
+.mfa-detay summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #1e6fb8;
+}
+.mfa-otpauth {
+  display: block;
+  word-break: break-all;
+  background: #fff;
+  padding: 0.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.3rem;
+  margin: 0.5rem 0;
+  font-size: 0.8rem;
+}
+.btn-kucuk {
+  background: #e5e7eb;
+  border: 0;
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.btn-kucuk:hover { background: #d1d5db; }
+.btn-link {
+  background: transparent;
+  border: 0;
+  color: #1e6fb8;
+  cursor: pointer;
+  padding: 0.6rem 0;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  text-decoration: underline;
+}
+
+/* Admin sayfası */
+.admin-filtre {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+.admin-filtre label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+.admin-filtre select {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+  background: #fff;
+}
+.yeni-kullanici-form {
+  background: #f8fafc;
+  padding: 1rem 1.2rem;
+  border-radius: 0.6rem;
+  margin-bottom: 1.5rem;
+}
+.yeni-kullanici-form h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.1rem;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+}
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+.form-grid input,
+.form-grid select {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.4rem;
+}
+.kullanici-tablosu {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.8rem;
+}
+.kullanici-tablosu th,
+.kullanici-tablosu td {
+  text-align: left;
+  padding: 0.5rem 0.7rem;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+}
+.kullanici-tablosu th {
+  background: #f3f4f6;
+  font-weight: 600;
+}
+.sayfalama {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.sayfalama button {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+.sayfalama button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Sprint 8.5 canlı marker: 40926ff148cc47a1b6cbcdc965cc9b4f */

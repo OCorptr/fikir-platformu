@@ -117,11 +117,20 @@ export interface RegisterResponse {
 }
 
 // POST /api/auth/login — 200
+// Normal login başarılı: {email, firstName, lastName, roles, context}
+// MFA setup gerekiyor: {mfaSetupRequired:true, email, roles, context}
+// MFA code gerekiyor: {mfaRequired:true, email, roles, context}
 export interface LoginResponse {
-  email: string;
-  firstName: string;
-  lastName: string;
-  roles: string[];
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  roles?: string[];
+  context?: string;
+  mfaSetupRequired?: boolean;
+  mfaRequired?: boolean;
+  message?: string;
+  mustChangePassword?: boolean;
+  passwordWarn?: boolean;
 }
 
 // Genel hata cevabı (RFC 7807 / ValidationProblem)

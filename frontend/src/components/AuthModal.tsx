@@ -3,7 +3,7 @@
 // Kapatılamaz — kullanıcı yalnız giriş veya kayıt yoluyla forma ulaşır.
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { contextFromPath, login, register, type LoginContext } from "../services/auth";
 import { getProvinces } from "../services/references";
@@ -27,6 +27,7 @@ interface Props {
 }
 
 export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contextProp, arkadaMi = false, onModChange }: Props) {
+  const navigate = useNavigate();
   // Path'ten context algıla (prop verilmediyse).
   const yol = useLocation().pathname;
   const context: LoginContext | undefined = contextProp ?? contextFromPath(yol);
@@ -104,13 +105,23 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
     setCalisiyor(true);
     setHata(null);
     try {
-      await login({
+      const sonuc = await login({
         email: girisEposta.trim(),
         password: girisSifre,
         context,
         captchaId: girisCaptchaId,
         captchaAnswer: girisCaptchaCevap,
       });
+      // MFA setup gerekiyor (Sprint 9) → /mfa-setup sayfasına yönlendir.
+      if (sonuc.mfaSetupRequired) {
+        navigate("/mfa-setup");
+        return;
+      }
+      // MFA code gerekiyor (Sprint 9) → /mfa-login sayfasına yönlendir.
+      if (sonuc.mfaRequired) {
+        navigate("/mfa-login");
+        return;
+      }
       onAuthed();
     } catch (e) {
       setHata(mesajCikar(e));

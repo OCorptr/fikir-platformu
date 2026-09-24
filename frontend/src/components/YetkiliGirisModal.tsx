@@ -55,7 +55,19 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     try {
       // context belirtmiyoruz — backend hesabın sahip olduğu role göre scheme seçsin.
       const sonuc = await login({ email: eposta.trim(), password: sifre });
-      const ctx: LoginContext | undefined = (sonuc as { context?: string }).context as LoginContext | undefined;
+      // MFA setup gerekiyor → /mfa-setup sayfasına yönlendir (Sprint 9).
+      if (sonuc.mfaSetupRequired) {
+        navigate("/mfa-setup");
+        onKapat();
+        return;
+      }
+      // MFA code gerekiyor → /mfa-login sayfasına yönlendir (Sprint 9).
+      if (sonuc.mfaRequired) {
+        navigate("/mfa-login");
+        onKapat();
+        return;
+      }
+      const ctx: LoginContext | undefined = sonuc.context as LoginContext | undefined;
       if (ctx === "province") {
         navigate("/il-panel");
       } else if (ctx === "ministry") {

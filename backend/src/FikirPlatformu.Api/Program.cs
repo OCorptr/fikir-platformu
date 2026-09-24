@@ -240,6 +240,20 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
             }
             return Task.CompletedTask;
         };
+    })
+    // Pre-MFA scheme (Sprint 9): MFA setup/verify bekleyen kullanıcı için kısa süreli cookie.
+    // Şifre doğrulandı ama MFA tamamlanmadı → 10dk cookie yazılır, MFA endpoint'lerine erişim.
+    // MFA tamamlanınca normal scheme'e upgrade edilir (SignOut + SignIn).
+    .AddCookie("PreMfaScheme", options =>
+    {
+        options.Cookie.Name = ".FikirPreMfa.Auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = sameSite;
+        options.Cookie.SecurePolicy = securePolicy;
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+        options.SlidingExpiration = false;
+        options.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = 401; return Task.CompletedTask; };
+        options.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = 403; return Task.CompletedTask; };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -256,6 +270,21 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("MinistryOnly", p => p
         .AddAuthenticationSchemes("MinistryScheme")
         .RequireAssertion(ctx => ctx.User.IsInRole("MinistryOfficial")));
+
+    // Pre-MFA scheme: MFA setup veya MFA verify bekleyen kullanıcı (Sprint 9).
+    // Şifre doğrulandı ama MFA tamamlanmadı → kısa süreli cookie yazılır,
+    // MFA endpoint'lerine erişim verilir. Verify başarılı olunca normal scheme'e upgrade.
+    options.AddPolicy("PreMfaOnly", p => p
+        .AddAuthenticationSchemes("PreMfaScheme"));
+
+    // MFA doğrulanmış kullanıcı — herhangi bir normal scheme.
+    options.AddPolicy("MfaCompleted", p => p
+        .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, "ProvinceScheme", "MinistryScheme"));
+
+    // SystemAdmin only — MFA doğrulanmış + SystemAdmin rolü (Sprint 9 admin endpoint'leri).
+    options.AddPolicy("SystemAdminOnly", p => p
+        .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme, "ProvinceScheme", "MinistryScheme")
+        .RequireAssertion(ctx => ctx.User.IsInRole("SystemAdmin")));
 });
 
 // Data Protection API: TOTP secret gibi hassas alanları DB'de şifreli saklamak için
@@ -361,6 +390,7 @@ app.MapGet("/api/health/db", async (FikirPlatformuDbContext db, CancellationToke
 app.MapAuthEndpoints();
 app.MapMfaEndpoints();
 app.MapCaptchaEndpoints();
+app.MapAdminEndpoints();
 app.MapProfileEndpoints();
 app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();

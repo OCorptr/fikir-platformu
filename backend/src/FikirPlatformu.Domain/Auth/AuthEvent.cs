@@ -30,4 +30,5 @@ public enum AuthEventType
     MfaDisabled = 31,
     MfaLoginSuccess = 32,    // 2. adım MFA doğrulama başarılı
     MfaLoginFailure = 33,    // 2. adım MFA doğrulama başarısız
+    UserCreated = 40,        // Sistem yöneticisi tarafından yeni kullanıcı oluşturuldu
 }

@@ -12,12 +12,14 @@ using OtpNet;
 namespace FikirPlatformu.Api.Endpoints;
 
 /// <summary>
-/// MFA (TOTP) endpoint'leri (plan §2.7 — Sprint 6).
-/// - /setup: secret üretir + otpauth URL döner (authenticator app elle eklenir)
-/// - /verify-setup: kodu doğrular + TwoFactorEnabled=true
-/// - /disable: MFA'yı kapatır
-/// Login akışı: email/şifre doğruysa ve kullanıcıda MFA varsa 200 + mfaRequired=true döner;
-/// frontend kullanıcıdan kodu alıp /mfa/login ile 2. adımı tamamlar.
+/// MFA (TOTP) endpoint'leri (plan §2.7 — Sprint 6 + Sprint 9 güncellemesi).
+/// Tüm endpoint'ler PreMfaScheme ile authenticate olur:
+///   /setup: secret üretir + otpauth URL döner (authenticator app elle eklenir)
+///   /verify-setup: kodu doğrular + TwoFactorEnabled=true + normal scheme'e upgrade
+///   /verify: MFA zaten enabled, sadece kodu doğrular + normal scheme'e upgrade
+///   /disable: MFA'yı kapatır (privileged rollere yasak)
+/// Login akışı: email/şifre doğruysa ve kullanıcı MFA zorunluysa login 200 + PreMfaScheme cookie yazılır
+/// (mfaSetupRequired=true veya mfaRequired=true). Frontend /mfa/setup veya /mfa/verify'a yönlendirir.
 /// </summary>
 public static class MfaEndpoints
 {
@@ -63,13 +65,15 @@ public static class MfaEndpoints
                 period = 30,
                 issuer
             });
-        }).RequireAuthorization();
+        }).RequireAuthorization("PreMfaOnly");
 
         // 2) Kurulum doğrulama — kullanıcı authenticator'dan aldığı 6 haneli kodu gönderir.
+        //    Başarılı olursa PreMfaScheme SignOut + asıl scheme SignIn (cookie upgrade).
         grup.MapPost("/verify-setup", async (
             MfaKodIstegi istek,
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
+            SignInManager<ApplicationUser> girisYoneticisi,
             FikirPlatformuDbContext veritabani,
             HassasVeriSifreleme sifreleme) =>
         {
@@ -92,88 +96,69 @@ public static class MfaEndpoints
             kullanici.TwoFactorEnabled = true;
             await kullaniciYoneticisi.UpdateAsync(kullanici);
 
+            // Scheme upgrade: PreMfaScheme SignOut + asıl scheme SignIn.
+            var (hedefScheme, context) = await SchemeUpgradeYap(kullanici, kullaniciYoneticisi, girisYoneticisi, http);
+
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                AuthEventType.MfaEnabled, success: true, reason: null);
-            return Results.Ok(new { message = "İki adımlı doğrulama etkinleştirildi." });
-        }).RequireAuthorization();
-
-        // 3) Login akışı 2. adımı — kullanıcı MFA kodunu gönderir, cookie yazılır.
-        grup.MapPost("/login", async (
-            MfaLoginIstegi istek,
-            SignInManager<ApplicationUser> girisYoneticisi,
-            UserManager<ApplicationUser> kullaniciYoneticisi,
-            FikirPlatformuDbContext veritabani,
-            HassasVeriSifreleme sifreleme,
-            HttpContext http) =>
-        {
-            // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
-            if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
+                AuthEventType.MfaEnabled, success: true, reason: $"scheme={hedefScheme}");
+            return Results.Ok(new
             {
-                return Results.Json(new { message = "CAPTCHA doğrulaması başarısız." }, statusCode: 400);
-            }
+                message = "İki adımlı doğrulama etkinleştirildi.",
+                email = kullanici.Email,
+                firstName = kullanici.FirstName,
+                lastName = kullanici.LastName,
+                context,
+                mfaEnabled = true
+            });
+        }).RequireAuthorization("PreMfaOnly");
 
-            var kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
+        // 3) Login akışı 2. adımı — MFA zaten enabled, kullanıcı MFA kodunu gönderir.
+        //    PreMfaScheme authenticated, kodu doğrular, asıl scheme'e upgrade eder.
+        grup.MapPost("/verify", async (
+            MfaKodIstegi istek,
+            HttpContext http,
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            SignInManager<ApplicationUser> girisYoneticisi,
+            FikirPlatformuDbContext veritabani,
+            HassasVeriSifreleme sifreleme) =>
+        {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null || !kullanici.TwoFactorEnabled || string.IsNullOrEmpty(kullanici.TwoFactorSecret))
             {
-                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: null,
+                await AuthEventKaydet(veritabani, http, kullanici?.Email, kullanici?.Id,
                     AuthEventType.MfaLoginFailure, success: false, reason: "kullanici_yok_veya_mfa_kapali");
                 return Results.Json(new { message = "Geçersiz istek." }, statusCode: 400);
             }
 
-            // Şifre tekrar doğrula — frontend bu endpoint'i çağırırken şifreyi de gönderir.
-            var dogrulama = await girisYoneticisi.CheckPasswordSignInAsync(kullanici, istek.Password, lockoutOnFailure: true);
-            if (!dogrulama.Succeeded)
-            {
-                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
-                    AuthEventType.MfaLoginFailure, success: false, reason: "sifre_yanlis");
-                return Results.Json(new { message = "Şifre yanlış." }, statusCode: 400);
-            }
-
             // TOTP doğrula (30 sn pencere, ±1 step tolerans).
-            var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret ?? "");
+            var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret);
             if (string.IsNullOrEmpty(secretDuz) || !TotpGecerliMi(secretDuz, istek.Code))
             {
-                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
                     AuthEventType.MfaLoginFailure, success: false, reason: "kod_yanlis");
                 return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
             }
 
-            // Cookie yaz.
-            var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
-            var scheme = GirisIcinSchemeSec(roller, istek.Role);
-            if (scheme is null)
-            {
-                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
-                    AuthEventType.MfaLoginFailure, success: false, reason: "rol_uyumsuz");
-                return Results.Json(new { message = "Bu hesap için uygun context bulunamadı." }, statusCode: 403);
-            }
+            // Scheme upgrade: PreMfaScheme SignOut + asıl scheme SignIn.
+            var (hedefScheme, context) = await SchemeUpgradeYap(kullanici, kullaniciYoneticisi, girisYoneticisi, http);
 
-            var principal = await girisYoneticisi.CreateUserPrincipalAsync(kullanici);
-            var props = new AuthenticationProperties
-            {
-                IsPersistent = istek.RememberMe,
-                ExpiresUtc = istek.RememberMe ? DateTimeOffset.UtcNow.AddDays(14) : null,
-            };
-            await http.SignInAsync(scheme, principal, props);
-
-            await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
-                AuthEventType.MfaLoginSuccess, success: true, reason: $"scheme={scheme}");
+            await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                AuthEventType.MfaLoginSuccess, success: true, reason: $"scheme={hedefScheme}");
 
             return Results.Ok(new
             {
                 email = kullanici.Email,
                 firstName = kullanici.FirstName,
                 lastName = kullanici.LastName,
-                roles = roller,
-                context = scheme switch
-                {
-                    "ProvinceScheme" => "province",
-                    "MinistryScheme" => "ministry",
-                    _ => "student"
-                },
-                mfaUsed = true
+                context,
+                mfaVerified = true
             });
-        });
+        }).RequireAuthorization("PreMfaOnly");
+
+        // (eski) /login endpoint'i kaldırıldı — Sprint 9 ile birlikte /verify kullanılıyor.
 
         // 4) MFA kapatma — mevcut şifre + MFA kodu ile doğrulama zorunlu.
         // Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) MFA kapatamaz.
@@ -215,9 +200,47 @@ public static class MfaEndpoints
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
                 AuthEventType.MfaDisabled, success: true, reason: null);
             return Results.Ok(new { message = "İki adımlı doğrulama kapatıldı." });
-        }).RequireAuthorization();
+        }).RequireAuthorization("MfaCompleted");
 
         return app;
+    }
+
+    /// <summary>
+    /// PreMfaScheme cookie'sini temizler, kullanıcının sahip olduğu role'lere göre asıl scheme seçer
+    /// ve yeni cookie yazar (MFA tamamlandı → gerçek authenticated session'a upgrade).
+    /// </summary>
+    private static async Task<(string hedefScheme, string context)> SchemeUpgradeYap(
+        ApplicationUser kullanici,
+        UserManager<ApplicationUser> kullaniciYoneticisi,
+        SignInManager<ApplicationUser> girisYoneticisi,
+        HttpContext http)
+    {
+        // PreMfaScheme cookie'yi temizle (kullanıcı MFA'yı tamamladı).
+        await http.SignOutAsync("PreMfaScheme");
+
+        var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
+        var hedefScheme = GirisIcinSchemeSec(roller, null);
+        if (hedefScheme is null)
+        {
+            // SystemAdmin gibi özel bir rol için scheme yok — default Student scheme'e düş.
+            hedefScheme = IdentityConstants.ApplicationScheme;
+        }
+
+        var principal = await girisYoneticisi.CreateUserPrincipalAsync(kullanici);
+        var props = new AuthenticationProperties
+        {
+            IsPersistent = false,
+            ExpiresUtc = null
+        };
+        await http.SignInAsync(hedefScheme, principal, props);
+
+        var context = hedefScheme switch
+        {
+            "ProvinceScheme" => "province",
+            "MinistryScheme" => "ministry",
+            _ => "student"
+        };
+        return (hedefScheme, context);
     }
 
     /// <summary>TOTP kodunu ±1 zaman adımı toleransla doğrular (RFC 6238).</summary>

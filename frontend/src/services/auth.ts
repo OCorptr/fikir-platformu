@@ -78,3 +78,34 @@ export function contextFromPath(pathname: string): LoginContext | undefined {
 export async function me(signal?: AbortSignal): Promise<MeResponse> {
   return apiRequest<MeResponse>("/api/auth/me", { signal });
 }
+
+// ---- MFA (Sprint 9) ----
+
+export interface MfaSetupResponse {
+  secret: string;
+  otpauthUrl: string;
+  digits: number;
+  period: number;
+  issuer: string;
+}
+
+/** MFA kurulumu başlat — server secret üretir, otpauth URL döner (PreMfaScheme authenticated). */
+export async function mfaSetupBaslat(): Promise<MfaSetupResponse> {
+  return apiRequest<MfaSetupResponse>("/api/auth/mfa/setup", { method: "POST" });
+}
+
+/** MFA kodu doğrula (kurulum tamamla veya login 2. adım). Body: {code} */
+export async function mfaVerifyKod(code: string): Promise<{ message: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
+  return apiRequest("/api/auth/mfa/verify-setup", {
+    method: "POST",
+    body: { code },
+  });
+}
+
+/** Login sonrası MFA code doğrula (MFA zaten enabled). Body: {code} */
+export async function mfaLoginVerify(code: string): Promise<{ message: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
+  return apiRequest("/api/auth/mfa/verify", {
+    method: "POST",
+    body: { code },
+  });
+}

@@ -12,6 +12,9 @@ import { CandidatesPage } from "./pages/CandidatesPage";
 import { EkipPage } from "./pages/EkipPage";
 import { MinistryPage } from "./pages/MinistryPage";
 import { ProvinceReportPage } from "./pages/ProvinceReportPage";
+import { MfaSetupPage } from "./pages/MfaSetupPage";
+import { MfaLoginPage } from "./pages/MfaLoginPage";
+import { AdminUsersPage } from "./pages/AdminUsersPage";
 
 /* her rotada govde sinifi degisir:
    - /il-panel*, /bakanlik*  → sayfa-admin (sidebar + govde düzeni admin.css'ten)
@@ -52,6 +55,8 @@ export default function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/fikir" element={<FikirPage />} />
+        <Route path="/mfa-setup" element={<MfaSetupPage />} />
+        <Route path="/mfa-login" element={<MfaLoginPage />} />
         <Route element={<ProtectedRoute context="province" />}>
           <Route path="/il-panel" element={<ProvinceInboxPage />} />
           <Route path="/il-panel/adaylar" element={<CandidatesPage />} />
@@ -62,6 +67,7 @@ export default function App() {
         <Route element={<ProtectedRoute context="ministry" />}>
           <Route path="/bakanlik" element={<MinistryPage gorunum="adaylar" />} />
           <Route path="/bakanlik/donemler" element={<MinistryPage gorunum="donemler" />} />
+          <Route path="/admin/kullanicilar" element={<AdminUsersPage />} />
         </Route>
         <Route path="*" element={<SayfaBulunamadi />} />
       </Routes>

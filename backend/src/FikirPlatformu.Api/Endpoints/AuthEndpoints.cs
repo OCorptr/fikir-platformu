@@ -200,13 +200,22 @@ public static class AuthEndpoints
             };
             await http.SignInAsync(scheme, principal, props);
 
-            // MFA kontrolü (plan §7.1 — Sprint 7):
+            // MFA kontrolü (Sprint 9 güncellemesi):
             // Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) MFA zorunlu.
-            // MFA aktif değilse cookie yazılır AMA login response'ı hata bildirir; kullanıcı /mfa/setup'a yönlenir.
+            // MFA setup veya MFA verify gerekiyorsa PreMfaScheme ile kısa süreli cookie yazılır
+            // (10dk), kullanıcı MFA endpoint'lerine (/api/mfa/setup, /api/mfa/verify-setup, /api/mfa/verify)
+            // erişebilir. MFA tamamlanınca PreMfaScheme SignOut + asıl scheme SignIn yapılır.
             var ayricalikliRol = roller.Any(r => r is "MinistryOfficial" or "ProvinceManager" or "SystemAdmin");
             if (!kullanici.TwoFactorEnabled && ayricalikliRol)
             {
+                // PreMfaScheme ile cookie yaz (MFA setup endpoint'lerine erişim için).
                 await http.SignOutAsync(scheme);
+                var preMfaProps = new AuthenticationProperties
+                {
+                    IsPersistent = false, // Pre-MFA cookie persistent olmasın
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10)
+                };
+                await http.SignInAsync("PreMfaScheme", principal, preMfaProps);
                 await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                     AuthEventType.LoginSuccess, success: true, reason: "mfa_zorunlu_henuz_kurulmamis");
                 return Results.Json(new
@@ -221,14 +230,19 @@ public static class AuthEndpoints
                         "MinistryScheme" => "ministry",
                         _ => "student"
                     }
-                }, statusCode: 403);
+                });
             }
 
-            // MFA aktifse cookie YAZMA — kullanıcı 2. adımda MFA kodunu göndermeli.
-            // Frontend bu response'ı alınca /api/auth/mfa/login'e email+şifre+kod ile gider.
+            // MFA aktifse — PreMfaScheme cookie yaz, kullanıcı /api/mfa/verify'a kodu göndersin.
             if (kullanici.TwoFactorEnabled)
             {
                 await http.SignOutAsync(scheme);
+                var preMfaProps = new AuthenticationProperties
+                {
+                    IsPersistent = false,
+                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10)
+                };
+                await http.SignInAsync("PreMfaScheme", principal, preMfaProps);
                 await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                     AuthEventType.LoginSuccess, success: true, reason: "mfa_required");
                 return Results.Ok(new
