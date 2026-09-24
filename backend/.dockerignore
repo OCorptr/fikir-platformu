@@ -1,0 +1,16 @@
+# Docker build sırasında context'e dahil edilmeyecek dosyalar
+bin/
+obj/
+out/
+*.user
+*.suo
+.vs/
+.vscode/
+.idea/
+node_modules/
+dist/
+.DS_Store
+*.log
+.dev/
+_backend_secrets_*.json
+secrets.json
