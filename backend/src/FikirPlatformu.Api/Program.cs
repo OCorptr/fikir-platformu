@@ -96,6 +96,8 @@ builder.Services.AddScoped<SubmitIdeaService>();
 builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
 // Background job: auth_events 2 yıl retention (plan §1.7).
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetentionService>();
+// Background job: kullanılmayan hesapları 90 gün sonra kilitle (plan §6.3).
+builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
 
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>

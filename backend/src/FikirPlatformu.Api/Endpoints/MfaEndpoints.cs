@@ -161,6 +161,7 @@ public static class MfaEndpoints
         });
 
         // 4) MFA kapatma — mevcut şifre + MFA kodu ile doğrulama zorunlu.
+        // Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) MFA kapatamaz.
         grup.MapPost("/disable", async (
             MfaKodIstegi istek,
             HttpContext http,
@@ -174,6 +175,18 @@ public static class MfaEndpoints
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null || !kullanici.TwoFactorEnabled || string.IsNullOrEmpty(kullanici.TwoFactorSecret))
                 return Results.Json(new { message = "MFA zaten kapalı." }, statusCode: 400);
+
+            // Ayrıcalıklı rol kontrolü (plan §7.1).
+            var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
+            if (roller.Any(r => r is "MinistryOfficial" or "ProvinceManager" or "SystemAdmin"))
+            {
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                    AuthEventType.MfaDisabled, success: false, reason: "ayricalikli_rol_zorunlu");
+                return Results.Json(new
+                {
+                    message = "Bu hesap için iki adımlı doğrulama zorunludur ve kapatılamaz."
+                }, statusCode: 403);
+            }
 
             if (!TotpGecerliMi(kullanici.TwoFactorSecret, istek.Code))
                 return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);

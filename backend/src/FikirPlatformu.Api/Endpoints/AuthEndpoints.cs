@@ -187,6 +187,30 @@ public static class AuthEndpoints
             };
             await http.SignInAsync(scheme, principal, props);
 
+            // MFA kontrolü (plan §7.1 — Sprint 7):
+            // Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) MFA zorunlu.
+            // MFA aktif değilse cookie yazılır AMA login response'ı hata bildirir; kullanıcı /mfa/setup'a yönlenir.
+            var ayricalikliRol = roller.Any(r => r is "MinistryOfficial" or "ProvinceManager" or "SystemAdmin");
+            if (!kullanici.TwoFactorEnabled && ayricalikliRol)
+            {
+                await http.SignOutAsync(scheme);
+                await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
+                    AuthEventType.LoginSuccess, success: true, reason: "mfa_zorunlu_henuz_kurulmamis");
+                return Results.Json(new
+                {
+                    mfaSetupRequired = true,
+                    message = "Bu hesap için iki adımlı doğrulama zorunludur. Lütfen kurulumu tamamlayın.",
+                    email = kullanici.Email,
+                    roles = roller,
+                    context = scheme switch
+                    {
+                        "ProvinceScheme" => "province",
+                        "MinistryScheme" => "ministry",
+                        _ => "student"
+                    }
+                }, statusCode: 403);
+            }
+
             // MFA aktifse cookie YAZMA — kullanıcı 2. adımda MFA kodunu göndermeli.
             // Frontend bu response'ı alınca /api/auth/mfa/login'e email+şifre+kod ile gider.
             if (kullanici.TwoFactorEnabled)
