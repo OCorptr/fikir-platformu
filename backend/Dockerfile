@@ -6,6 +6,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
 # Solution dosyasını kopyala → restore (layer cache'lenir)
+COPY Directory.Build.props ./
 COPY FikirPlatformu.slnx ./
 COPY src/FikirPlatformu.Domain/*.csproj src/FikirPlatformu.Domain/
 COPY src/FikirPlatformu.Application/*.csproj src/FikirPlatformu.Application/
