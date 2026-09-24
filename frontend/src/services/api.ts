@@ -49,10 +49,12 @@ async function parseBody(response: Response): Promise<ApiError | null> {
 }
 
 function buildMessage(status: number, body: ApiError | null): string {
+  // Backend'in özel mesajı varsa onu tercih et (en anlamlı bilgi).
   if (body) {
     if (body.message && body.message.trim().length > 0) {
       return body.message;
     }
+    // Validation problem details (.NET DataAnnotations): { errors: { FieldName: ["mesaj1", "mesaj2"] } }
     if (body.errors) {
       const ilk = Object.values(body.errors).flat()[0];
       if (ilk) return ilk;
@@ -61,6 +63,13 @@ function buildMessage(status: number, body: ApiError | null): string {
       return body.title;
     }
   }
+  // Fallback: HTTP status'a göre anlaşılır Türkçe mesaj.
+  if (status === 401) return "Oturum geçersiz veya süresi dolmuş. Lütfen tekrar giriş yapın.";
+  if (status === 403) return "Bu işlem için yetkiniz yok.";
+  if (status === 404) return "İstenen kaynak bulunamadı.";
+  if (status === 423) return "Çok fazla hatalı deneme. Hesap geçici olarak kilitlendi.";
+  if (status === 429) return "Çok fazla istek gönderildi. Lütfen biraz bekleyin.";
+  if (status >= 500) return "Sunucu hatası. Lütfen daha sonra tekrar deneyin.";
   return `İstek başarısız (HTTP ${status}).`;
 }
 

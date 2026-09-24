@@ -51,6 +51,13 @@ public static class DemoSeedEndpoints
                     continue;
                 }
 
+                // Lockout temizle (5 yanlış deneme sonrası kilitlenmiş olabilir)
+                await kullaniciYoneticisi.SetLockoutEndDateAsync(hedef, null);
+                await kullaniciYoneticisi.ResetAccessFailedCountAsync(hedef);
+
+                // Email confirmed (yoksa LoginEmailNotConfirmed audit düşer)
+                hedef.EmailConfirmed = true;
+
                 // Mevcut şifreyi sıfırla (token üretip uygula).
                 var token = await kullaniciYoneticisi.GeneratePasswordResetTokenAsync(hedef);
                 var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(hedef, token, yeniSifre);
