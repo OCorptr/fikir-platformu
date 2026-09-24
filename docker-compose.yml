@@ -1,0 +1,98 @@
+# YEĞİTEK teslim docker-compose (Sprint 9 + 10).
+# İki seçenek:
+#   A) Mevcut MySQL sunucusu: profile=mysql yok, sadece `docker compose up -d backend frontend`
+#   B) MySQL container ile: `docker compose --profile with-mysql up -d` (MySQL dahil)
+#
+# MySQL 8.0 kullanır (TiDB, MariaDB 10.x ile uyumlu). Pomelo.EntityFrameworkCore.MySql 9.0.0.
+
+services:
+  # --- Backend (zorunlu) ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: fikir-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      # DB bağlantısı (Compose içinde: mysql servisi; dışarıda: kendi MySQL'in)
+      ConnectionStrings__MySql: ${DB_CONNECTION_STRING}
+      # Data Protection master key (production'da kalıcı volume'a yazılmalı)
+      ASPNETCORE_DataProtection__KeyDirectory: /keys
+      # Cors: AllowedOrigins boş → same-origin (nginx reverse proxy önerilir)
+      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-}
+      # Email (opsiyonel, geliştirmede console'a yazar)
+      Email__Smtp__Host: ${SMTP_HOST:-}
+      Email__Smtp__Port: ${SMTP_PORT:-587}
+      Email__Smtp__User: ${SMTP_USER:-}
+      Email__Smtp__Pass: ${SMTP_PASS:-}
+      Email__From: ${EMAIL_FROM:-noreply@fikir.local}
+    volumes:
+      - data-protection-keys:/keys
+    depends_on:
+      mysql:
+        condition: service_healthy
+        required: false   # Sadece with-mysql profilinde çalışır
+    networks:
+      - fikir-net
+
+  # --- Frontend (opsiyonel, nginx reverse proxy önerilir) ---
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # VITE_API_BASE_URL: nginx reverse proxy için BOŞ bırak (relative /api).
+        # Cross-origin deployment için: VITE_API_BASE_URL=https://api.fikir.example
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
+    container_name: fikir-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - fikir-net
+
+  # --- MySQL (sadece --profile with-mysql ile başlatılır) ---
+  # Kendi MySQL sunucun varsa bunu BAŞLATMA. Sadece yoksa kullan.
+  mysql:
+    image: mysql:8.0
+    container_name: fikir-mysql
+    profiles: ["with-mysql"]
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-RootGuclu2026!}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-fikir_platformu}
+      MYSQL_USER: ${MYSQL_USER:-fikir}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-FikirGuclu2026!}
+      # 5.7 uyumluluğu için utf8mb4 default (MySQL 8 zaten default).
+      MYSQL_CHARACTER_SET_SERVER: utf8mb4
+      MYSQL_COLLATION_SERVER: utf8mb4_unicode_ci
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=caching_sha2_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-RootGuclu2026!}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - fikir-net
+
+volumes:
+  data-protection-keys:
+    # Data Protection API master key (TOTP secret şifreleme için).
+    # Container silinse bile key'ler kalıcı olur.
+  mysql-data:
+    # MySQL data (with-mysql profili kullanılıyorsa).
+
+networks:
+  fikir-net:
+    driver: bridge
