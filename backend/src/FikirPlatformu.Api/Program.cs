@@ -126,13 +126,18 @@ builder.Services
 
 // Cookie güvenlik ayarları (plan §3.1 + §3.2 — Sprint 3):
 //   - HttpOnly: JS erişemez (XSS koruması)
-//   - SameSite: Development=Lax (same-origin); Production=None (cross-origin static site → backend)
+//   - SameSite: Cors:AllowedOrigins DOLUYSA → None (cross-origin); BOŞSA → Lax (same-origin reverse proxy)
 //   - SecurePolicy: Development=SameAsRequest (HTTP test); Production=Always (HTTPS zorunlu)
 //   - ExpireTimeSpan=30 dk: idle timeout (plan §3.2)
 //   - Absolute timeout=8 saat: ASP.NET Core cookie auth'da yok; OnValidatePrincipal + IssueDate ile manuel uygulanır.
 var isProduction = builder.Environment.IsProduction();
 var securePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
-var sameSite = isProduction ? SameSiteMode.None : SameSiteMode.Lax;
+// Cross-origin (CORS whitelist dolu) → SameSite=None gerekli.
+// Same-origin (nginx reverse proxy) → Lax yeterli + daha güvenli.
+var corsOrigins = builder.Configuration
+    .GetSection("Cors:AllowedOrigins")
+    .Get<string[]>() ?? Array.Empty<string>();
+var sameSite = corsOrigins.Length > 0 ? SameSiteMode.None : SameSiteMode.Lax;
 
 // Mutlak oturum süresi: kullanıcının cookie yazıldıktan sonra en fazla açık kalabileceği süre.
 // Cookie + DB'de saklanan ilk giriş zamanı (ApplicationUser.PasswordChangedAt benzeri tek bir "session start" alanı) ile kontrol edilebilir;
@@ -253,20 +258,22 @@ builder.Services.AddAuthorization(options =>
 });
 
 // CORS whitelist (plan §3.5 — Sprint 3):
-// Production: sadece Cors:AllowedOrigins'deki origin'lere izin (örn "https://fikir.meb.gov.tr")
-// Development: localhost:5173 + localhost:4173 (vite dev + vite preview)
-var allowedOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? Array.Empty<string>();
+// Cors:AllowedOrigins BOŞSA → CORS middleware hiç aktif olmaz (same-origin reverse proxy).
+// Cors:AllowedOrigins DOLUYSA → sadece bu origin'lere izin (cross-origin deployment).
 const string FrontendCorsPolicy = "FrontendCors";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials(); // cookie tabanlı auth zorunlu
+        if (corsOrigins.Length > 0)
+        {
+            policy.WithOrigins(corsOrigins)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials(); // cookie tabanlı auth zorunlu
+        }
+        // corsOrigins boşsa policy boş kalır — UseCors aşağıda hiç çağrılmaz
+        // (same-origin reverse proxy durumu için CORS gerekmiyor).
     });
 });
 
@@ -293,8 +300,11 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// CORS her ortamda aktif (production whitelist, development localhost).
-app.UseCors(FrontendCorsPolicy);
+// CORS: sadece whitelist doluysa aktif (cross-origin deployment için).
+if (corsOrigins.Length > 0)
+{
+    app.UseCors(FrontendCorsPolicy);
+}
 
 app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 {
@@ -318,7 +328,6 @@ app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
 app.MapMinistryEndpoints();
-app.MapDemoSeedEndpoints();
 
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())
