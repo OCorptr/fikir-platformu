@@ -23,6 +23,64 @@ namespace FikirPlatformu.Infrastructure.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("FikirPlatformu.Domain.Auth.AuthEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("char(36)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)")
+                        .HasColumnName("email");
+
+                    b.Property<int>("EventType")
+                        .HasColumnType("int")
+                        .HasColumnName("event_type");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(120)
+                        .HasColumnType("varchar(120)")
+                        .HasColumnName("failure_reason");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<bool>("Success")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("success");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)")
+                        .HasColumnName("user_agent");
+
+                    b.Property<string>("UserId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_auth_events_created_at");
+
+                    b.HasIndex("UserId")
+                        .HasDatabaseName("ix_auth_events_user_id");
+
+                    b.HasIndex("EventType", "CreatedAt")
+                        .HasDatabaseName("ix_auth_events_type_created");
+
+                    b.ToTable("auth_events", "public");
+                });
+
             modelBuilder.Entity("FikirPlatformu.Domain.Common.Province", b =>
                 {
                     b.Property<int>("Id")
@@ -1005,6 +1063,9 @@ namespace FikirPlatformu.Infrastructure.Migrations
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("TwoFactorSecret")
+                        .HasColumnType("longtext");
 
                     b.Property<string>("UserName")
                         .HasMaxLength(256)
