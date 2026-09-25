@@ -9,8 +9,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { me } from "../services/auth";
-import { mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
+import { mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
 
 type Method = "Totp" | "Email" | "Yukleniyor" | "Bilinmiyor";
 
@@ -24,19 +23,15 @@ export function MfaLoginPage() {
   const [gonderimHatasi, setGonderimHatasi] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0); // saniye
 
-  // Sayfa açıldığında: kullanıcının MFA method'unu /me'den al.
+  // Sayfa açıldığında: kullanıcının MFA method'unu /api/auth/mfa/method'dan al.
   useEffect(() => {
     const controller = new AbortController();
-    me(controller.signal)
-      .then(async (u) => {
-        if (!u.authenticated) return;
-        // sessions içinden herhangi birinde TwoFactorMethod var mı?
-        // /me şu anda method döndürmüyor — bu yüzden tek yöntem: email OTP göndermeyi dene,
-        // başarısız olursa TOTP ekranı göster. Daha temiz: backend /me'ye method eklemek.
-        // Şimdilik basit yaklaşım: email OTP gönder, başarılıysa email yöntemi, değilse TOTP.
-        const sent = await trySendEmailOtp();
-        if (sent) {
+    mfaGetMethod()
+      .then(async (m) => {
+        // Email method ise otomatik kod gönder.
+        if (m.method === "Email" && m.enabled) {
           setMethod("Email");
+          await trySendEmailOtp();
           setEmailGonderildi(true);
         } else {
           setMethod("Totp");
@@ -44,7 +39,7 @@ export function MfaLoginPage() {
       })
       .catch((e) => {
         if (e instanceof DOMException && e.name === "AbortError") return;
-        setHata(e instanceof ApiHttpError ? e.message : "Oturum bilgisi alınamadı.");
+        setHata(e instanceof ApiHttpError ? e.message : "MFA yöntemi algılanamadı.");
         setMethod("Bilinmiyor");
       });
     return () => controller.abort();

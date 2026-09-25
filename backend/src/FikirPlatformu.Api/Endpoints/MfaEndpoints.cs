@@ -106,7 +106,27 @@ public static class MfaEndpoints
             }
         }).RequireAuthorization("PreMfaOnly");
 
-        // 1.5) Email OTP kod gönder (login akışında ayrı endpoint — kullanıcı tekrar isterse).
+        // 1.5) Login sonrası kullanıcının MFA method'unu döner (PreMfaScheme authenticated).
+        // /me endpoint'i PreMfaScheme'i authenticate etmediği için ayrı bu endpoint lazım.
+        grup.MapGet("/method", async (
+            HttpContext http,
+            UserManager<ApplicationUser> kullaniciYoneticisi) =>
+        {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
+            if (kullanici is null) return Results.Unauthorized();
+
+            return Results.Ok(new
+            {
+                method = kullanici.TwoFactorMethod.ToString(),
+                enabled = kullanici.TwoFactorEnabled,
+                email = kullanici.Email
+            });
+        }).RequireAuthorization("PreMfaOnly");
+
+        // 1.6) Email OTP kod gönder (login akışında ayrı endpoint — kullanıcı tekrar isterse).
         // PreMfaScheme authenticated, method=Email olan kullanıcılar için.
         grup.MapPost("/send-email-otp", async (
             HttpContext http,

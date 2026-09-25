@@ -123,6 +123,11 @@ export async function mfaLoginVerify(code: string): Promise<{ message: string; m
   });
 }
 
+/** Login sonrası kullanıcının MFA method'unu döner (PreMfaScheme authenticated). */
+export async function mfaGetMethod(): Promise<{ method: "Totp" | "Email" | "None"; enabled: boolean; email?: string }> {
+  return apiRequest("/api/auth/mfa/method", { method: "GET" });
+}
+
 /** Email OTP için kod gönder (PreMfaScheme authenticated). Login akışında çağrılır. */
 export async function mfaSendEmailOtp(): Promise<{ message: string }> {
   // Backend'de ayrı endpoint yok — /api/auth/mfa/setup email method'u tekrar çağrılarak yeni kod gönderilir.
