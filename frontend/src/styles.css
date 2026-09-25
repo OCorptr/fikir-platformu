@@ -730,3 +730,74 @@ input[type="range"] {
   font-size: 0.82rem; color: #a9c4e8; line-height: 1.45;
 }
 .yg-not b { color: #f6b40e; }
+
+/* === MFA login — method choice UI (Sprint 10) === */
+.mfa-login {
+  max-width: 28rem;
+  margin: 2rem auto;
+}
+.mfa-login h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.4rem;
+  color: var(--lacivert, #1a3a6c);
+}
+.mfa-aciklama {
+  margin: 0 0 1.2rem 0;
+  font-size: 0.95rem;
+  color: #444;
+}
+.mfa-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.mfa-alan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.mfa-alan span {
+  font-size: 0.85rem;
+  color: #444;
+}
+.mfa-alan input {
+  padding: 0.6rem 0.8rem;
+  font-size: 1.4rem;
+  text-align: center;
+  letter-spacing: 0.4em;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  border: 1px solid #ccd;
+  border-radius: 0.4rem;
+  background: #fff;
+}
+.mfa-alan input:focus {
+  outline: 2px solid var(--lacivert, #1a3a6c);
+  outline-offset: 1px;
+  border-color: var(--lacivert, #1a3a6c);
+}
+.mfa-yontem-degistir {
+  margin-top: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: center;
+}
+.mfa-yontem-degistir .btn-link:not(:last-child) {
+  margin-bottom: 0.2rem;
+}
+.btn-link {
+  background: none;
+  border: 0;
+  color: var(--lacivert, #1a3a6c);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.3rem 0.6rem;
+}
+.btn-link:hover:not(:disabled) {
+  color: var(--vurgu, #c0392b);
+}
+.btn-link:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

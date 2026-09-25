@@ -127,7 +127,8 @@ public static class MfaEndpoints
         }).RequireAuthorization("PreMfaOnly");
 
         // 1.6) Email OTP kod gönder (login akışında ayrı endpoint — kullanıcı tekrar isterse).
-        // PreMfaScheme authenticated, method=Email olan kullanıcılar için.
+        // PreMfaScheme authenticated, MFA etkin kullanıcılar için (method fark etmez —
+        // TOTP user'lar da fallback olarak e-posta kodu isteyebilir).
         grup.MapPost("/send-email-otp", async (
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
@@ -140,8 +141,12 @@ public static class MfaEndpoints
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
-            if (kullanici is null || kullanici.TwoFactorMethod != TwoFactorMethod.Email || !kullanici.TwoFactorEnabled)
-                return Results.Json(new { message = "Bu hesap için e-posta MFA yöntemi etkin değil." }, statusCode: 400);
+            if (kullanici is null || !kullanici.TwoFactorEnabled)
+                return Results.Json(new { message = "Bu hesap için MFA etkin değil." }, statusCode: 400);
+
+            // E-posta adresi yoksa SMTP gönderimi başarısız olur; anlamlı hata dön.
+            if (string.IsNullOrWhiteSpace(kullanici.Email))
+                return Results.Json(new { message = "Hesabınızda e-posta adresi tanımlı değil." }, statusCode: 400);
 
             var code = otpStore.IssueCode(kullanici.Id);
             var eposta = new EmailMessage(
@@ -235,6 +240,7 @@ public static class MfaEndpoints
             }
 
             bool basarili = false;
+            string? basarisizSebep = null;
 
             if (kullanici.TwoFactorMethod == TwoFactorMethod.Totp)
             {
@@ -245,23 +251,38 @@ public static class MfaEndpoints
                     return Results.Json(new { message = "MFA yapılandırması eksik." }, statusCode: 400);
                 }
                 var secretDuz = sifreleme.Coz(kullanici.TwoFactorSecret);
-                if (string.IsNullOrEmpty(secretDuz) || !TotpGecerliMi(secretDuz, istek.Code))
+                if (!string.IsNullOrEmpty(secretDuz) && TotpGecerliMi(secretDuz, istek.Code))
                 {
-                    await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                        AuthEventType.MfaLoginFailure, success: false, reason: "kod_yanlis");
-                    return Results.Json(new { message = "Doğrulama kodu geçersiz." }, statusCode: 400);
+                    basarili = true;
                 }
-                basarili = true;
+                else
+                {
+                    // Fallback: TOTP kodu geçersizse Email OTP'yi de dene
+                    // (kullanıcı TOTP method'unda olsa bile e-posta kodu isteyebildiği için).
+                    if (otpStore.Verify(kullanici.Id, istek.Code))
+                    {
+                        basarili = true;
+                    }
+                    else
+                    {
+                        basarisizSebep = "kod_yanlis";
+                    }
+                }
             }
             else if (kullanici.TwoFactorMethod == TwoFactorMethod.Email)
             {
                 basarili = otpStore.Verify(kullanici.Id, istek.Code);
-                if (!basarili)
-                {
-                    await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
-                        AuthEventType.MfaLoginFailure, success: false, reason: "email_kod_yanlis");
-                    return Results.Json(new { message = "Doğrulama kodu geçersiz veya süresi dolmuş." }, statusCode: 400);
-                }
+                if (!basarili) basarisizSebep = "email_kod_yanlis";
+            }
+
+            if (!basarili)
+            {
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                    AuthEventType.MfaLoginFailure, success: false, reason: basarisizSebep ?? "kod_yanlis");
+                var mesaj = kullanici.TwoFactorMethod == TwoFactorMethod.Email
+                    ? "Doğrulama kodu geçersiz veya süresi dolmuş."
+                    : "Doğrulama kodu geçersiz.";
+                return Results.Json(new { message = mesaj }, statusCode: 400);
             }
 
             // Scheme upgrade

@@ -1068,6 +1068,9 @@ namespace FikirPlatformu.Infrastructure.Migrations
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<int>("TwoFactorMethod")
+                        .HasColumnType("int");
+
                     b.Property<string>("TwoFactorSecret")
                         .HasColumnType("longtext");
 
