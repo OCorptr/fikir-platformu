@@ -32,3 +32,14 @@ frontend/.env.*
 
 # gelistirme ortami e-posta dosyalari (token icerir)
 backend/src/FikirPlatformu.Api/dev-email/
+
+# dis araclar (skill repo klonlari + referanslar)
+.tools/
+.claude/skills/
+
+# playwright-cli runtime artifacts
+.playwright-cli/
+.dev/
+
+# root-level node_modules (CLI tool kurulumları)
+node_modules/

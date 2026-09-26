@@ -206,9 +206,19 @@ var isProduction = builder.Environment.IsProduction();
 var securePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
 // Cross-origin (CORS whitelist dolu) → SameSite=None gerekli.
 // Same-origin (nginx reverse proxy) → Lax yeterli + daha güvenli.
+// Sprint 10.7+ fix: Cors:AllowedOrigins Render env'de YOK'tu → useCors
+// hiç çağrılmıyor, cross-origin 401. Default fallback ekle:
+//   - Development → Vite localhost
+//   - Production  → Render frontend URL (env override mümkün)
 var corsOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>() ?? Array.Empty<string>();
+    .Get<string[]>();
+if (corsOrigins == null || corsOrigins.Length == 0)
+{
+    corsOrigins = builder.Environment.IsDevelopment()
+        ? new[] { "http://localhost:5173", "http://localhost:5174" }
+        : new[] { "https://fikir-platformu-web.onrender.com" };
+}
 var sameSite = corsOrigins.Length > 0 ? SameSiteMode.None : SameSiteMode.Lax;
 
 // Mutlak oturum süresi: kullanıcının cookie yazıldıktan sonra en fazla açık kalabileceği süre.
@@ -445,14 +455,14 @@ app.UseStatusCodePages(async context =>
     }
 });
 app.UseRateLimiter();
+
+// CORS middleware UseAuthentication'dan ÖNCE olmalı (Microsoft Learn:
+// UseCors must be called after UseRouting but before UseAuthorization).
+// Preflight OPTIONS request'leri unauthenticated handle edilmeli.
+app.UseCors(FrontendCorsPolicy);
+
 app.UseAuthentication();
 app.UseAuthorization();
-
-// CORS: sadece whitelist doluysa aktif (cross-origin deployment için).
-if (corsOrigins.Length > 0)
-{
-    app.UseCors(FrontendCorsPolicy);
-}
 
 app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 {
