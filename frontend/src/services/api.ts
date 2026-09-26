@@ -95,13 +95,27 @@ export async function apiRequest<T>(
     payload = JSON.stringify(body);
   }
 
-  const response = await fetch(fullUrl, {
-    method,
-    headers,
-    body: payload,
-    credentials: "include",
-    signal,
-  });
+  // Default 25s timeout: SMTP bağlantısı yavaş olduğunda kullanıcı takılmasın.
+  // Signal zaten verildiyse onu kullan, ek AbortController oluşturma.
+  const controller = signal ? null : new AbortController();
+  const fetchSignal = signal ?? controller?.signal;
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+  if (controller) {
+    timeoutHandle = setTimeout(() => controller.abort(), 25_000);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(fullUrl, {
+      method,
+      headers,
+      body: payload,
+      credentials: "include",
+      signal: fetchSignal,
+    });
+  } finally {
+    if (timeoutHandle) clearTimeout(timeoutHandle);
+  }
 
   // 204 No Content — gövde yok
   if (response.status === 204) {

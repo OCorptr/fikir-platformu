@@ -96,36 +96,56 @@ builder.Services.AddScoped<SubmitImplementationReportService>();
 builder.Services.AddScoped<IImplementationSummaryQueryService, ImplementationSummaryQueryService>();
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
-// E-posta gönderici: "Mail:Host" (yeni) veya "SMTP_HOST" (eski, backward compat)
-// env var varsa SmtpEmailSender (üretim), yoksa DevelopmentEmailSender.
+// E-posta gönderici seçimi — 3 mod:
+//   1) Mail__Type=resend + Mail__Pass=API_KEY → ResendHttpEmailSender (HTTPS 443, garantili)
+//   2) Mail__Host (veya SMTP_HOST) → SmtpEmailSender (SMTP 587)
+//   3) Hiçbiri yok → DevelopmentEmailSender (log'a düşer, demo için)
+builder.Services.AddHttpClient<ResendHttpEmailSender>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("FikirPlatformu/1.0");
+});
 builder.Services.AddScoped<IEmailSender>(sp =>
 {
-    // Öncelik: yeni MAIL__* (doğru config), sonra eski SMTP_*
     var yeni = builder.Configuration.GetSection("Mail");
-    var host = yeni["Host"] ?? builder.Configuration["SMTP_HOST"];
-    if (string.IsNullOrWhiteSpace(host))
-    {
-        // Geliştirme / demo modu (log'a + dosyaya yazar)
-        return ActivatorUtilities.CreateInstance<DevelopmentEmailSender>(sp);
-    }
-    // Üretim SMTP sağlayıcısı (Resend / Gmail / SendGrid / Outlook)
-    // MAIL__Pass vs SMTP_PASS önceliği: yeni önce, eski fallback.
+    var tip = (yeni["Type"] ?? "").ToLowerInvariant();
     var pass = yeni["Pass"] ?? builder.Configuration["SMTP_PASS"];
-    var user = yeni["User"] ?? builder.Configuration["SMTP_USER"];
-    var portStr = yeni["Port"] ?? builder.Configuration["SMTP_PORT"];
-    var from = yeni["From"] ?? builder.Configuration["EMAIL_FROM"];
-    var mailOpts = Microsoft.Extensions.Options.Options.Create(new MailAyarlari
+
+    // Mod 1: Resend HTTPS (önerilen — SMTP port bloklaması yok)
+    if (tip == ResendHttpEmailSender.SaglayiciTipi && !string.IsNullOrWhiteSpace(pass))
     {
-        Host = host,
-        Port = int.TryParse(portStr, out var p) ? p : 587,
-        UseStartTls = !string.Equals(yeni["UseStartTls"], "false", StringComparison.OrdinalIgnoreCase),
-        User = user,
-        Pass = pass,
-        From = from ?? user,
-        FromName = yeni["FromName"] ?? "Geleceğin Fikri",
-    });
-    var logger = sp.GetRequiredService<ILogger<SmtpEmailSender>>();
-    return new SmtpEmailSender(mailOpts, logger);
+        var ayarlar = Microsoft.Extensions.Options.Options.Create(new MailAyarlari
+        {
+            Host = null,
+            Pass = pass,
+            From = yeni["From"] ?? builder.Configuration["EMAIL_FROM"],
+            FromName = yeni["FromName"] ?? "Geleceğin Fikri",
+        });
+        return ActivatorUtilities.CreateInstance<ResendHttpEmailSender>(sp, ayarlar);
+    }
+
+    // Mod 2: SMTP (Mail__Host veya SMTP_HOST varsa)
+    var host = yeni["Host"] ?? builder.Configuration["SMTP_HOST"];
+    if (!string.IsNullOrWhiteSpace(host))
+    {
+        var user = yeni["User"] ?? builder.Configuration["SMTP_USER"];
+        var portStr = yeni["Port"] ?? builder.Configuration["SMTP_PORT"];
+        var from = yeni["From"] ?? builder.Configuration["EMAIL_FROM"];
+        var mailOpts = Microsoft.Extensions.Options.Options.Create(new MailAyarlari
+        {
+            Host = host,
+            Port = int.TryParse(portStr, out var p) ? p : 587,
+            UseStartTls = !string.Equals(yeni["UseStartTls"], "false", StringComparison.OrdinalIgnoreCase),
+            User = user,
+            Pass = pass,
+            From = from ?? user,
+            FromName = yeni["FromName"] ?? "Geleceğin Fikri",
+        });
+        return ActivatorUtilities.CreateInstance<SmtpEmailSender>(sp, mailOpts);
+    }
+
+    // Mod 3: Development fallback
+    return ActivatorUtilities.CreateInstance<DevelopmentEmailSender>(sp);
 });
 // Background job: auth_events 2 yıl retention (plan §1.7).
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetentionService>();
