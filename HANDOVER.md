@@ -196,6 +196,50 @@ OAuth handshake yapılmadı. Onur browser'da `/api/auth/gmail-oauth/start` git �
 
 ---
 
+## 🚀 Sprint 10.7++ Bug-fix Workstream (Onur 2026-09-27 oturumu)
+
+Oturum başında `Yetkili Girişi` modal login sonrası yönlendirmiyordu. Kök neden zinciri CORS olmuştu, sonra SPA vs static-site routing, sonra OAuth absolute-URL. Hepsi sırayla fix'lendi.
+
+### Commit serisi (main, push edildi → Render auto-deploy hepsi tetiklendi)
+
+| Commit | Scope |
+|---|---|
+| `69b14dd` | **Backend CORS middleware order + default origins.** `UseCors()` `UseAuthentication`'dan ÖNCE taşındı (Microsoft Learn). `corsOrigins` env boşsa production için `fikir-platformu-web.onrender.com` hardcoded fallback. |
+| `5decfcd` | **Frontend `YetkiliGirisModal` full-page nav.** `useNavigate()` ve `<Navigate>` Modal içinde v7 declarative modda history.pushState tetiklemiyordu. Tüm navigate call'ları `window.location.href = "/..."` (full page load) ile değişti. |
+| `7a2b62e` | **Frontend `MfaLoginPage` document.cookie bug fix.** `document.cookie` ile HttpOnly PreMfa kontrolü yanlıştı; HttpOnly cookie JS'den görünmediği için "yok" sanıp sonsuz döngü oluşturuyordu (`/`'e redirect). Çıkarıldı, backend `mfaGetMethod`'a güveniyoruz. 401/403 → `window.location.href = "/"` (SPA nav Modal dışında da güvenli değildi). |
+| `2e08f44` | **Frontend `MfaLoginPage`/`MfaSetupPage` E-posta seçiminde OAuth handshake.** `yontemSec("Email")` içinde `needsGmailOAuth: true` ise OTP göndermeden ÖNCE `/api/auth/gmail-oauth/start?returnTo=...` ile full redirect tetikleniyor. |
+| `84e14d4` | **Frontend OAuth absolute backend URL.** `window.location.assign(\`/api/...\`) ` fikir-platformu-web.onrender.com` SPA fallback'ine takılıp 404 dönüyordu. `services/api.ts` → `backendOrigin()` + `backendApiUrl()` helper'ları eklendi, hardcoded fallback `https://fikir-platformu.onrender.com`. Tüm OAuth call'lar bu kullanıyor. |
+| `9143da9` | **Backend `MfaEndpoints` providerReady + needsGmailOAuth Gmail-mode based.** Eski kontrol sender tipine bakıyordu (Development'a düşünce yanlış true dönüyordu). Yeni: Gmail mode + RefreshToken yok → `providerReady:false, needsGmailOAuth:true`. Env kontrolü sadece (DB persist Sprint 11). |
+| `800b94b` | **(yarım) Gmail refresh token DB persist + HassasVeriSifreleme gmail protector.** `GmailRefreshToken` entity + `GmailRefreshTokenConfiguration` + `HassasVeriSifreleme.SifreleGmail/CozGmail` hazır. **EF Core CLI dosya yazma sorunu (sandbox)** nedeniyle migration dosyaları temiz oluşturulamadı — Sprint 11'e bırakıldı. Workaround: `Program.cs` startup'ta idempotent `CREATE TABLE IF NOT EXISTS gmail_refresh_tokens (...)` SQL. Caller dosyalarında DB kullanan yerler no-op comment'lendi (Sprint 11'de geri açılacak). |
+
+### Sprint 11 plan başlangıcı (per-user Gmail mimarisi)
+
+Onur itirazı: "herkes kendi Gmail'i ile mi olması gerekiyordu" — İNTERNET ARAŞTIRMASI ONAYLIYOR: **per-user Google API OAuth2 standart pattern**. Google for Developers, Agentic Fabriq, Microsoft Entra OTPSender üçü de "refresh_token **keyed by user id**" / "per end user" diyor.
+
+**SİSTEM SABİT GMAİL (mevcut) YANLIŞ KARAR** — Sprint 11 başında değiştirilecek:
+
+| Task | Scope |
+|---|---|
+| **1. Yeni entity `UserGmailToken`** (userId FK ApplicationUser, encryptedRefreshToken, scope='gmail.send', UpdatedAt). EF migration temiz generate et. Index: `(userId)` unique. | Sprint 11.P0 |
+| **2. `GmailApiEmailSender` → factory.** `ForUserAsync(userId, cancellationToken)` signature. Refresh token'ı user'a özel DB'den çözer. Sender scoped → user-specific. | Sprint 11.P0 |
+| **3. `mfaGetMethod` user-specific.** User'ın kendi `UserGmailToken`'ı var mı kontrol et. Yoksa `needsGmailOAuth:true` + state user id'sini içer. | Sprint 11.P1 |
+| **4. `mfaSendEmailOtp` user-authenticated.** PreMfa scheme authenticated → user id okunur → sender user'a özel. | Sprint 11.P1 |
+| **5. `AuthEndpoints` OAuth callback user-tied.** State kısmına userId ekle (encrypted cookie içinde). Callback user.id ile DB'ye upsert (encrypted). | Sprint 11.P0 |
+| **6. Frontend `MfaLoginPage` / `MfaSetupPage` per-user.** Handshake tetikleme aynı, ama user zaten authenticated (Login → MFA setup → user kendi Gmail'ine bağlar). | Sprint 11.P1 |
+| **7. Migration dosyaları Sandbox dışı CI'da üret.** Lokal sandbox'ta `dotnet ef migrations add` dosya yazmadığı için temiz üretim yok. CI veya temiz bash'te tekrar üretilecek. | Sprint 11.P2 |
+
+### Sprint 10.7++ Manuel yol (Onur için şu an)
+
+Çünkü Sprint 10.7 tamamlanma aşaması, per-user'a geçiş Sprint 11'e. **ŞİMDİ:**
+1. Hard refresh (Ctrl+Shift+R)
+2. Yetkili Giriş → login → /mfa-login
+3. **E-posta kodu seç** → otomatik Google OAuth'a yönlendirilir
+4. Google consent ekranı → kendi Google hesabıyla onayla (`onur35bilisim@gmail.com` veya kuruluş hesabı)
+5. Google → callback → backend `/mfa-login?gmail_oauth=ok` redirect
+6. **Render dashboard logs** → `refresh_token` satırını yakala (artık DB'ye yazılmıyor; Sprint 11'de)
+7. Render env → `Mail__Gmail__RefreshToken = <token>` yapıştır
+8. Restart sonrası tüm OTP'ler o Gmail'den gider (Sistem Sabit).
+
 ## 🔄 Test Akışı (Onur'un Doğrulama Pattern)
 
 Onur test makinesinde:
