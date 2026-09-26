@@ -29,21 +29,21 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
   const [aktifOturum, setAktifOturum] = useState<LoginContext | null>(null);
-  const [oturumYukleniyor, setOturumYukleniyor] = useState(false);
+  // Sprint 10.7: initial state TRUE. İlk render'da form flash'lanmasın.
+  // useEffect mount olunca setOturumYukleniyor(false) ancak me() cevabı ile.
+  const [oturumYukleniyor, setOturumYukleniyor] = useState(true);
 
   // Modal açıldığında: /me ile mevcut oturumun context'ini bul.
   // province / ministry / student — hangisi varsa form gizlenir.
   useEffect(() => {
     if (!acik) {
       setAktifOturum(null);
-      setOturumYukleniyor(false);
+      setOturumYukleniyor(true); // Modal açıldığında yeniden true (initial state gibi)
       return;
     }
     const controller = new AbortController();
-    setOturumYukleniyor(true); // Onur feedback: /me cevabı gelene kadar form GÖSTERİLMEZ
     me(controller.signal)
       .then((cevap) => {
-        // Sıralı kontrol — province/ministry öncelik alır.
         if (sessionForContext(cevap, "ministry")) setAktifOturum("ministry");
         else if (sessionForContext(cevap, "province")) setAktifOturum("province");
         else if (sessionForContext(cevap, "student")) setAktifOturum("student");
