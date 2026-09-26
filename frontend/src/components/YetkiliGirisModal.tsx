@@ -1,10 +1,12 @@
 // Yetkili Giriş Modalı — İl AR-GE personeli ve Bakanlık için (admin teması, sade).
 // Çocuk temalı sarı/kayıt özellikleri yok — sadece e-posta + şifre.
-// Onur feedback (Sprint 10.2):
-//   Otomatik /bakanlik veya /il-panel'e yönlendirme KALDIRILDI.
-//   Authenticated kullanıcı her açılışta login modalini gorur
-//   (farkli hesap test etmek veya 'Cikis' yapmak icin).
-//   Modal icinde 'Oturum Acik' banner + 'Panele Git' + 'Cikis Yap' butonlari.
+// Onur feedback (Sprint 10.2-3):
+//   * Otomatik /bakanlik veya /il-panel'e yönlendirme YAPILMAZ.
+//   * HERHANGI bir context'te (province/ministry/student) oturum açıksa
+//     login formu GİZLİLİR. Banner + 'Çıkış yap' gösterilir — başka
+//     context'te login yapılamaz. Hangi context'te oturum açıksa
+//     o panele yönlendiren buton gösterilir.
+//   * Hiç oturum yoksa form gösterilir (normal login akışı).
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -28,9 +30,8 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [calisiyor, setCalisiyor] = useState(false);
   const [aktifOturum, setAktifOturum] = useState<LoginContext | null>(null);
 
-  // Modal açıldığında: /me ile mevcut oturumu kontrol et.
-  // Onur feedback: mevcut oturum Varsa bile otomatik yönlendirme YAPMA.
-  // Sadece bilgi olarak banner + 'Panele Git' + 'Çıkış Yap' butonlari göster.
+  // Modal açıldığında: /me ile mevcut oturumun context'ini bul.
+  // province / ministry / student — hangisi varsa form gizlenir.
   useEffect(() => {
     if (!acik) {
       setAktifOturum(null);
@@ -39,8 +40,10 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     const controller = new AbortController();
     me(controller.signal)
       .then((cevap) => {
+        // Sıralı kontrol — province/ministry öncelik alır.
         if (sessionForContext(cevap, "ministry")) setAktifOturum("ministry");
         else if (sessionForContext(cevap, "province")) setAktifOturum("province");
+        else if (sessionForContext(cevap, "student")) setAktifOturum("student");
         else setAktifOturum(null);
       })
       .catch(() => setAktifOturum(null));
@@ -49,24 +52,35 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
 
   if (!acik) return null;
 
+  const oturumEtiketi =
+    aktifOturum === "ministry" ? "Bakanlık"
+    : aktifOturum === "province" ? "İl AR-GE"
+    : aktifOturum === "student" ? "Öğrenci"
+    : null;
+
   function paneleGit() {
     if (aktifOturum === "ministry") navigate("/bakanlik");
     else if (aktifOturum === "province") navigate("/il-panel");
+    else if (aktifOturum === "student") navigate("/fikir");
     onKapat();
   }
 
   async function cikisYap() {
+    setCalisiyor(true);
     try {
+      // Tüm scheme cookie'leri silinir (logout endpoint'i hepsini temizler).
       await logout();
     } catch {
       // yine de modalı kapat
+    } finally {
+      setAktifOturum(null);
+      setEposta("");
+      setSifre("");
+      setCaptchaCevap("");
+      setCaptchaId("");
+      setHata(null);
+      setCalisiyor(false);
     }
-    setAktifOturum(null);
-    setEposta("");
-    setSifre("");
-    setCaptchaCevap("");
-    setCaptchaId("");
-    setHata(null);
   }
 
   async function handleGiris(olay: FormEvent) {
@@ -146,78 +160,86 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
           İl AR-GE birimi veya bakanlık yetkilisiyseniz hesabınızla giriş yapın.
         </p>
 
-        {aktifOturum && (
+        {/* Onur feedback: session varken form GÖSTERİLMEZ, sadece banner + butonlar.
+            Tekrar giriş için önce 'Çıkış yap' butonu zorunlu. */}
+        {aktifOturum ? (
           <div className="yg-aktif-oturum" role="status">
             <div className="yg-aktif-oturum__baslik">
               ✓ Bu tarayıcıda oturum açık
-              <small>({aktifOturum === "ministry" ? "Bakanlık" : "İl AR-GE"})</small>
+              <small>({oturumEtiketi})</small>
             </div>
+            <p className="yg-aktif-oturum__metin">
+              Zaten giriş yapmışsınız ({oturumEtiketi}). Panele gitmek için aşağıdaki butonu kullanın.
+              <br />
+              Farklı bir hesapla girmek için önce <b>Çıkış yap</b>'a basın.
+            </p>
             <div className="yg-aktif-oturum__butonlar">
               <button type="button" className="yg-ikincil" onClick={paneleGit}>
-                {aktifOturum === "ministry" ? "Bakanlık paneline git →" : "İl paneline git →"}
+                {aktifOturum === "ministry" ? "Bakanlık paneline git →"
+                  : aktifOturum === "province" ? "İl paneline git →"
+                  : "Fikirlerime git →"}
               </button>
               <button type="button" className="yg-cikis" onClick={cikisYap} disabled={calisiyor}>
-                Çıkış yap
+                {calisiyor ? "Çıkış yapılıyor…" : "Çıkış yap"}
               </button>
             </div>
-            <p className="yg-aktif-oturum__not">
-              ℹ️ Farklı hesapla girmek için aşağıya yeni bilgileri yazabilir veya "Çıkış yap"a basabilirsiniz.
-            </p>
           </div>
+        ) : (
+          <>
+            {hata && (
+              <div className="status-banner status-banner--error" role="alert">
+                <span className="status-banner__icon">!</span>
+                <span>{hata}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleGiris} className="yg-form">
+              <label className="yg-alan">
+                <span>E-posta</span>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={eposta}
+                  onChange={(e) => setEposta(e.target.value)}
+                  placeholder="ad.soyad@….gov.tr"
+                />
+              </label>
+
+              <label className="yg-alan">
+                <span>Şifre</span>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={sifre}
+                  onChange={(e) => setSifre(e.target.value)}
+                  placeholder="••••••••"
+                />
+              </label>
+
+              <CaptchaField
+                id="yetkili-captcha"
+                value={captchaCevap}
+                onChange={setCaptchaCevap}
+                captchaId={captchaId}
+                onCaptchaIdChange={setCaptchaId}
+              />
+
+              <button
+                type="submit"
+                className="yg-giris"
+                disabled={calisiyor}
+              >
+                {calisiyor ? "Giriş yapılıyor…" : "Giriş Yap"}
+              </button>
+            </form>
+
+            <div className="yg-not">
+              🔒 Öğrenci hesabınızla giriş yapmak için anasayfadaki <b>Fikrimi Yaz</b> butonunu kullanın.
+            </div>
+          </>
         )}
-
-        {hata && (
-          <div className="status-banner status-banner--error" role="alert">
-            <span className="status-banner__icon">!</span>
-            <span>{hata}</span>
-          </div>
-        )}
-
-        <form onSubmit={handleGiris} className="yg-form">
-          <label className="yg-alan">
-            <span>E-posta</span>
-            <input
-              type="email"
-              autoComplete="email"
-              required
-              value={eposta}
-              onChange={(e) => setEposta(e.target.value)}
-              placeholder="ad.soyad@….gov.tr"
-            />
-          </label>
-
-          <label className="yg-alan">
-            <span>Şifre</span>
-            <input
-              type="password"
-              autoComplete="current-password"
-              required
-              value={sifre}
-              onChange={(e) => setSifre(e.target.value)}
-              placeholder="••••••••"
-            />
-          </label>
-
-          <CaptchaField
-            id="yetkili-captcha"
-            value={captchaCevap}
-            onChange={setCaptchaCevap}
-            captchaId={captchaId}
-            onCaptchaIdChange={setCaptchaId}
-          />
-
-          <button
-            type="submit"
-            className="yg-giris"
-            disabled={calisiyor}
-          >
-            {calisiyor ? "Giriş yapılıyor…" : "Giriş Yap"}
-          </button>
-        </form>
-
-        <div className="yg-not">
-          🔒 Öğrenci hesabınızla giriş yapmak için anasayfadaki <b>Fikrimi Yaz</b> butonunu kullanın.
-        </div>
       </div>
     </div>
   );

@@ -1,12 +1,16 @@
 // /fikir sayfasında kullanılan giriş/kayıt modalı.
 // Fikrini Anlat teması: .fikir-karti, .balon, .bolum-basligi, .tema-secim, .btn-ana.
 // Kapatılamaz — kullanıcı yalnız giriş veya kayıt yoluyla forma ulaşır.
+// Onur feedback (Sprint 10.3):
+//   Cross-context guard — yetkili session (province/ministry) açıksa
+//   öğrenci login yapılamaz. Modal açılınca /me kontrol edilir.
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { contextFromPath, login, register, type LoginContext } from "../services/auth";
+import { contextFromPath, login, register, logout, me, type LoginContext } from "../services/auth";
 import { getProvinces } from "../services/references";
+import { sessionForContext } from "../types";
 import type { ProvinceRef } from "../types";
 import { CaptchaField } from "./CaptchaField";
 
@@ -55,6 +59,25 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
 
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
+  const [yetkiliOturumAcik, setYetkiliOturumAcik] = useState<LoginContext | null>(null);
+
+  // Cross-context guard: Modal her açılışında /me çağırır. Province/ministry
+  // session varsa öğrenci login yapılamaz — banner + logout butonu göster.
+  useEffect(() => {
+    if (!acik) {
+      setYetkiliOturumAcik(null);
+      return;
+    }
+    const controller = new AbortController();
+    me(controller.signal)
+      .then((cevap) => {
+        if (sessionForContext(cevap, "ministry")) setYetkiliOturumAcik("ministry");
+        else if (sessionForContext(cevap, "province")) setYetkiliOturumAcik("province");
+        else setYetkiliOturumAcik(null);
+      })
+      .catch(() => setYetkiliOturumAcik(null));
+    return () => controller.abort();
+  }, [acik]);
 
   // Mod değiştiğinde dışarıya bildir (FikirPage maskot balonunu buna göre günceller)
   useEffect(() => {
@@ -88,6 +111,52 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   }, [acik]);
 
   if (!acik) return null;
+
+  // Onur feedback (Sprint 10.3): Yetkili oturum açıksa öğrenci login yapılamaz.
+  // Sadece banner + 'Çıkış yap' göster, normal auth akışını render etme.
+  if (yetkiliOturumAcik) {
+    return (
+      <div
+        className={`af-lightbox ${arkadaMi ? "af-lightbox-arkada" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-modal-baslik"
+      >
+        <div className="fikir-karti auth-modal-kart">
+          <h1 id="auth-modal-baslik" className="auth-modal-baslik">
+            <span style={{ color: "#1f9fa4" }}>Fikrine</span>{" "}
+            <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
+          </h1>
+          <div className="yg-aktif-oturum" role="status">
+            <div className="yg-aktif-oturum__baslik">
+              ⚠️ Yetkili oturum açık
+              <small>({yetkiliOturumAcik === "ministry" ? "Bakanlık" : "İl AR-GE"})</small>
+            </div>
+            <p className="yg-aktif-oturum__metin">
+              Bu tarayıcıda yetkili hesapla oturum açık. Öğrenci girişi için
+              önce çıkış yapın. İki farklı hesap aynı anda açık olamaz.
+            </p>
+            <div className="yg-aktif-oturum__butonlar">
+              <button
+                type="button"
+                className="yg-cikis"
+                onClick={async () => {
+                  setCalisiyor(true);
+                  try { await logout(); } catch { /* yine de kapat */ }
+                  setYetkiliOturumAcik(null);
+                  setCalisiyor(false);
+                  onAuthed();
+                }}
+                disabled={calisiyor}
+              >
+                {calisiyor ? "Çıkış yapılıyor…" : "Çıkış yap"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const balikMesaji =
     mod === "giris"
@@ -181,7 +250,38 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
           <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
         </h1>
 
-        {mod !== "dogrulamaBekleniyor" && !sadeceGiris && (
+        {/* Onur feedback (Sprint 10.3): Cross-context guard.
+            Yetkili oturum (province/ministry) açıksa öğrenci login yapılamaz. */}
+        {yetkiliOturumAcik && (
+          <div className="yg-aktif-oturum" role="status">
+            <div className="yg-aktif-oturum__baslik">
+              ⚠️ Yetkili oturum açık
+              <small>({yetkiliOturumAcik === "ministry" ? "Bakanlık" : "İl AR-GE"})</small>
+            </div>
+            <p className="yg-aktif-oturum__metin">
+              Bu tarayıcıda yetkili hesapla oturum açık. Öğrenci girişi için
+              önce çıkış yapın. İki farklı hesap aynı anda açık olamaz.
+            </p>
+            <div className="yg-aktif-oturum__butonlar">
+              <button
+                type="button"
+                className="yg-cikis"
+                onClick={async () => {
+                  setCalisiyor(true);
+                  try { await logout(); } catch { /* yine de kapat */ }
+                  setYetkiliOturumAcik(null);
+                  setCalisiyor(false);
+                  onAuthed();
+                }}
+                disabled={calisiyor}
+              >
+                {calisiyor ? "Çıkış yapılıyor…" : "Çıkış yap"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!yetkiliOturumAcik && mod !== "dogrulamaBekleniyor" && !sadeceGiris && (
           <div className="auth-sekmeler" role="tablist">
             <button
               type="button"
