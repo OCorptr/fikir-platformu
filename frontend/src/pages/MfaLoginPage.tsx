@@ -80,22 +80,11 @@ export function MfaLoginPage() {
     return () => controller.abort();
   }, []);
 
-  // Onur feedback (Sprint 10.5): Email yöntemi için Gmail OAuth handshake
-  // zorunlu ve otomatik tetiklenmeli — kullanıcı manuel URL'e girmesin.
-  // needsGmailOAuth true ise Google OAuth flow başlatılır (window.location ile
-  // full-redirect — relative path; gelecekte fikrimnet.gov.tr'de de çalışır).
-  useEffect(() => {
-    if (!needsGmailOAuth) return;
-    // Provider hazır değilse OTP gönderme — OAuth handshake'e yönlendir.
-    setHata(
-      "E-posta sağlayıcısı henüz bağlı değil. Gmail hesabınızla doğrulama için Google'a yönlendiriliyorsunuz…"
-    );
-    // Mevcut path'i state olarak ver — dönüşte orijinal yere geri dön (relative).
-    const returnTo = encodeURIComponent(window.location.pathname);
-    window.location.assign(
-      backendApiUrl(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`)
-    );
-  }, [needsGmailOAuth]);
+  // Onur feedback (Sprint 10.7+++): OAuth handshake mount anında OTOMATİK
+  // TETIKLENMEMELI — kullanıcı önce TOTP (Authenticator) ya da E-posta seçimini
+  // yapar. E-posta seçince handshake tetiklenir (yontemSec handler'ında).
+  // Yoksa TOTP seçecek kullanıcının mail gönderim kutusunu doldurmak istemedigi
+  // halde OAuth flow'a yönlendirilmesi kötü UX.
 
   // Cooldown geri sayım
   useEffect(() => {
