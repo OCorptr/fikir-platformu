@@ -173,6 +173,8 @@ pnpm run build
 
 `systemd` service veya IIS application pool'a environment variable olarak ekle:
 
+**Temel (zorunlu):**
+
 | Değişken | Açıklama | Örnek |
 |---|---|---|
 | `ASPNETCORE_ENVIRONMENT` | `Production` | `Production` |
@@ -180,11 +182,30 @@ pnpm run build
 | `ConnectionStrings__MySql` | DB bağlantısı | `Server=db.fikir.meb.gov.tr;Port=3306;Database=fikir_platformu;User=fikir_app;Password=GUCLU_SIFRE;SslMode=Required;` |
 | `Frontend__BaseUrl` | verify-email link'leri için | `https://fikir.meb.gov.tr` |
 | `Cors__AllowedOrigins__0` | Cross-origin ise | (BOŞ bırak aynı domain için) |
-| `Cors__AllowedOrigins__0` | Frontend ayrı domain | `https://fikir-app.meb.gov.tr` |
+
+**E-posta (Sprint 10 — MFA Email OTP için):**
+
+| Değişken | Açıklama | Örnek |
+|---|---|---|
+| `Mail__Type` | `gmail` (OAuth2 HTTPS) / `resend` (HTTPS API) / boş (Development fallback) | `gmail` |
+| `Mail__ApiKey` | Resend API key (sadece `Mail__Type=resend`) | `re_xxxxxxxx` |
+| `Mail__Gmail__ClientId` | Google Cloud OAuth client ID | `xxx.apps.googleusercontent.com` |
+| `Mail__Gmail__ClientSecret` | Google OAuth client secret | `GOCSPX-xxx` |
+| `Mail__Gmail__RefreshToken` | OAuth2 handshake sonrası alınan refresh token | `1//0eXxx` |
+| `Mail__Gmail__SenderAddress` | Gmail adresi | `noreply@fikir.meb.gov.tr` |
+| `Mail__Gmail__SenderName` | Gönderici görünen adı | `Geleceğin Fikri` |
+| `Mail__Host` | Özel SMTP host (opsiyonel) | `smtp.kurum.gov.tr` |
+| `Mail__Port` | SMTP port | `587` |
+| `Mail__User` | SMTP kullanıcı | (kurum SMTP credential) |
+| `Mail__Pass` | SMTP şifre | (kurum SMTP credential) |
+| `Mail__From` | SMTP From adresi | (kurum adresi) |
+| `Mail__FromName` | SMTP From adı | `Geleceğin Fikri` |
 
 > ⚠️ **Aynı domain** mimarisinde `Cors__AllowedOrigins__0` **boş** olmalı. Sistem otomatik olarak `SameSite=Lax` cookie ve CORS'sız çalışır.
 >
 > **Cross-origin** gerekirse (ör. frontend ayrı subdomain'de) bu değeri doldurun — sistem `SameSite=None; Secure` cookie'ye geçer.
+>
+> **E-posta sağlayıcısı seçimi** (`Mail__Type`): Gmail OAuth2 (`gmail`) önerilir — port kısıtlaması yok, doğrudan Gmail hesabından mail gider. Kurum SMTP varsa da kullanılabilir. Detay için [`docs/GOOGLE-OAUTH-SETUP.md`](docs/GOOGLE-OAUTH-SETUP.md) ve [.env.example](.env.example).
 
 ### 5) Nginx reverse proxy örneği
 
@@ -453,8 +474,55 @@ VITE_API_BASE_URL=https://api.fikir.meb.gov.tr
 
 ---
 
+## 🔐 MFA Email OTP kurulumu (Sprint 10)
+
+Yetkili kullanıcılar için **iki** MFA yöntemi açıktır:
+1. **TOTP** — Google/MS Authenticator uygulaması (Sprint 7'den beri)
+2. **Email OTP** — kullanıcının e-posta adresine 6 haneli kod gönderilir (Sprint 10)
+
+### E-posta sağlayıcısı seçimi
+
+`Mail__Type` env ile backend seçim yapar:
+
+- **`Mail__Type=gmail`** (önerilen) — Gmail API OAuth2 HTTPS — port 443, Render/SaaS uyumlu
+- **`Mail__Type=resend`** — Resend HTTPS API, kolay setup, 100 mail/gün ücretsiz
+- **`Mail__Type=` (boş)** — Development mode (log'a yazar)
+
+### Gmail OAuth2 kurulumu
+
+`docs/GOOGLE-OAUTH-SETUP.md` tam adımları içerir. Özet:
+
+1. https://console.cloud.google.com → proje → Gmail API enable
+2. OAuth consent screen (External) → name "Geleceğin Fikri"
+3. Credentials → OAuth client → Web application → Authorized redirect URIs:
+   - Production: `https://fikir.meb.gov.tr/api/auth/gmail-oauth/callback`
+   - Test: `https://fikir-platformu.onrender.com/api/auth/gmail-oauth/callback`
+4. Client ID + Secret → env'ye yaz
+5. Browser'da `/api/auth/gmail-oauth/start` → Allow → JSON'daki `refresh_token` → env'ye yaz
+
+> **redirect_uri** Google'da tanımlı olanla **birebir aynı** olmalı (sondaki `/` dahil).
+
+### Frontend otomatik Email flow
+
+1. Yetkili email/şifre ile login → backend `mfaRequired:true` → frontend `/mfa-login`
+2. Kullanıcı 📧 kartına tıklar
+3. Backend `mfaGetMethod()` → `needsGmailOAuth:true` dönerse frontend **otomatik** `/api/auth/gmail-oauth/start`'e yönlendirir (manuel URL gerekmez)
+4. Google login → Allow → callback → `/mfa-login`'e relative redirect
+5. Email yöntemi tekrar seç → kod **gerçekten mail'e gelir** → scheme upgrade → panele yönlendir
+
+### Cross-context guard
+
+Bir context'te (student/province/ministry) oturum açıksa diğer context'in modalinde login formu **gizlidir**. Sadece banner + "Çıkış yap" gösterilir.
+
+### Frontend cache headers
+
+- Render için: `infra/render.yaml` Blueprint — index.html no-cache, assets 1y immutable
+- nginx için: Bölüm 5'te `location /assets/` bloğunda `expires 1y; immutable` zaten var
+
+---
+
 ## 📞 Destek
 
 Geliştirici ekibi: **Onur** (Windows kernel driver developer — O-Freeze projesi)
-Son güncelleme: 2026-09-24
+Son güncelleme: 2026-09-26 (Sprint 10 — MFA Email OTP + Gmail API + cache headers)
 GitHub: https://github.com/OCorptr/fikir-platformu

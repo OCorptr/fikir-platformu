@@ -1,8 +1,9 @@
 # Proje Durumu — YENİ OTURUM AÇILDIGINDA ÖNCE BU DOSYAYI OKU
 
-> Son güncelleme: 2026-09-20
+> Son güncelleme: 2026-09-26 (Sprint 9-10 — SystemAdmin + MFA setup + MFA Email OTP + Gmail API)
 > Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41–44 karar günlüğü)
 > Kaynak belge: `Fikir Platformu 11.08.2026.pdf`
+> Aktif deployment: https://fikir-platformu-web.onrender.com
 
 Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten sonra
 "Bir bakışta durum" bölümü güncellenir ve commit edilir.
@@ -37,7 +38,15 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 7 — Ana sayfa / arşiv / sertifika | ⬜ Plan §1660 — büyük iş (dinamik vitrin + arşiv filtreleri + sertifika PDF + e-posta); şu an HomePage vitrini sahte veriyle |
 | 8 — Hayata geçirme (backend) | ✅ Tamam — ImplementationReport entity, implementation_reports migration, SubmitImplementationReportService (Planned → ImplementationInProgress → ImplementationCompleted/Failed), ImplementationSummaryQueryService (Bakanlık özeti); uçtan uca test |
 | 8 — Hayata geçirme (frontend) | ✅ Tamam — ApplicationDetailPage'de Manager için 'Uygulama Raporu' formu + geçmiş listesi; MinistryPage'de 'Uygulama Takibi' tablosu |
-| 9-10 | ⬜ Başlanmadı (plan §34) |
+| 9 — SystemAdmin kullanıcı yönetimi | ✅ Tamam — `/api/admin/create-user` + `/api/admin/list-users` uçları; SystemAdmin-only authorization policy (Sprint 9); CAPTCHA eklemesi; seed/ilk_hesaplar.py (9 ilk hesap) |
+| 9 — MFA setup akışı (login sonrası) | ✅ Tamam — PreMfaScheme 10dk cookie, `/api/auth/mfa/setup` (Totp+Email), `/verify-setup`, `/disable` (privileged roller için kapalı); login → `mfaSetupRequired:true` → `/mfa-setup` |
+| 9 — docker-compose + Render | ✅ Tamam — backend (Dockerfile, TiDB Cloud uyumlu) + frontend (nginx) + opsiyonel `with-mysql` profile + .env.example |
+| 10 — MFA Email OTP yöntemi | ✅ Tamam — kullanıcı kurulum sırasında TOTP veya Email OTP seçer; `/api/auth/mfa/setup?method=Email` OTP kodu gönderir, `/verify-setup` ile etkinleştirilir; `/send-email-otp` login akışında (TOTP user da fallback olarak email kodu isteyebilir) |
+| 10 — Cross-context guard | ✅ Tamam — Yetkili session açıksa yetkili giriş modalinde form gizlenir (banner + Çıkış Yap). Yetkili session varken öğrenci modalinde form gizlenir (banner + Çıkış Yap). İki farklı hesap aynı tarayıcıda AİLENEMEZ |
+| 10 — Email sağlayıcıları | ✅ Tamam — 4 mod: Development (log), Gmail API OAuth2 (HTTPS 443, Render/SaaS uyumlu), SMTP fallback, Resend HTTPS API. Detay: `docs/GOOGLE-OAUTH-SETUP.md` |
+| 10 — Gmail OAuth2 handshake | ✅ Tamam — `/api/auth/gmail-oauth/start` → Google → `/callback` → refresh_token JSON. Frontend otomatik `/start?returnTo=/mfa-login` ile tetikler (manuel URL yok) |
+| 10 — Frontend cache headers | ✅ Tamam — `infra/render.yaml` (Blueprint IaC): index.html no-cache, assets 1y immutable. Eski Render "deleted assets" cache bug fix |
+| 11 | ⬜ Planlanmamış: refresh token DB'ye, Kubernetes manifests, MEB SAML/EGM SSO entegrasyonu |
 
 **Frontend aktif sayfalar:**
 - `/` → `HomePage.tsx` — vitrin + CTA + arşiv modalı

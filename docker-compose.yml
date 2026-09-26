@@ -22,12 +22,30 @@ services:
       ASPNETCORE_DataProtection__KeyDirectory: /keys
       # Cors: AllowedOrigins boş → same-origin (nginx reverse proxy önerilir)
       Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-}
-      # Email (opsiyonel, geliştirmede console'a yazar)
-      Email__Smtp__Host: ${SMTP_HOST:-}
-      Email__Smtp__Port: ${SMTP_PORT:-587}
-      Email__Smtp__User: ${SMTP_USER:-}
-      Email__Smtp__Pass: ${SMTP_PASS:-}
-      Email__From: ${EMAIL_FROM:-noreply@fikir.local}
+      # Email (opsiyonel, geliştirmede console'a yazar; Sprint 10.1 Gmail OAuth2)
+      # Eger hicbir mail ayari yoksa DevelopmentEmailSender'a fallback (log'a yazar)
+      #
+      # Onur feedback: Mail__Type=gmail seçilirse Gmail OAuth2 handshake
+      # handshake sonrasi MAIL__GMAIL__REFRESHTOKEN env ile gercek mail gider.
+      # Render'da SMTP port bloklamasi var — gmail/smtp calismaz, OAuth2 HTTPS kullanir.
+      # Kendi sunucularda (YEĞİTEK) SMTP 587 calisabilir — Mail__Type=smtp secilebilir.
+      Mail__Type: ${MAIL__TYPE:-}
+      Mail__ApiKey: ${MAIL__APIKEY:-}
+      Mail__Gmail__ClientId: ${MAIL__GMAIL__CLIENTID:-}
+      Mail__Gmail__ClientSecret: ${MAIL__GMAIL__CLIENTSECRET:-}
+      Mail__Gmail__RefreshToken: ${MAIL__GMAIL__REFRESHTOKEN:-}
+      Mail__Gmail__SenderAddress: ${MAIL__GMAIL__SENDERADDRESS:-}
+      Mail__Gmail__SenderName: ${MAIL__GMAIL__SENDERNAME:-Geleceğin Fikri}
+      Mail__Gmail__RedirectUri: ${MAIL__GMAIL__REDIRECTURI:-}
+      # SMTP fallback (ozel SMTP sunucusu olan kurumlar icin)
+      Mail__Host: ${SMTP_HOST:-}
+      Mail__Port: ${SMTP_PORT:-587}
+      Mail__User: ${SMTP_USER:-}
+      Mail__Pass: ${SMTP_PASS:-}
+      Mail__From: ${EMAIL_FROM:-noreply@fikir.local}
+      Mail__FromName: ${EMAIL_FROMNAME:-Geleceğin Fikri}
+      # Geriye donuk uyumluluk (eski MAIL__SMTP_HOST formatina da destek)
+      # Yeni MAIL__Host tercih edilir, eski varsa da calisir.
     volumes:
       - data-protection-keys:/keys
     depends_on:
