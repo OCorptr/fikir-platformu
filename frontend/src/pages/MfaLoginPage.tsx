@@ -13,7 +13,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiHttpError } from "../services/api";
+import { ApiHttpError, backendApiUrl } from "../services/api";
 import { mfaCancel, mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
 
 /* Deployment test (Sprint 10.7) */
@@ -93,7 +93,7 @@ export function MfaLoginPage() {
     // Mevcut path'i state olarak ver — dönüşte orijinal yere geri dön (relative).
     const returnTo = encodeURIComponent(window.location.pathname);
     window.location.assign(
-      `/api/auth/gmail-oauth/start?returnTo=${returnTo}`
+      backendApiUrl(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`)
     );
   }, [needsGmailOAuth]);
 
@@ -115,7 +115,7 @@ export function MfaLoginPage() {
         "E-posta sağlayıcısı henüz bağlı değil. Gmail hesabınızla doğrulama için Google'a yönlendiriliyorsunuz…"
       );
       const returnTo = encodeURIComponent(window.location.pathname);
-      window.location.assign(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`);
+      window.location.assign(backendApiUrl(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`));
       return;
     }
     setSeciliYontem(yontem);

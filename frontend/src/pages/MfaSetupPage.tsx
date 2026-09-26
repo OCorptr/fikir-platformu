@@ -12,7 +12,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiHttpError } from "../services/api";
+import { ApiHttpError, backendApiUrl } from "../services/api";
 import { mfaSetupBaslat, mfaVerifyKod, mfaGetMethod, mfaCancel, type MfaMethod } from "../services/auth";
 import type { MfaSetupResponse } from "../services/auth";
 
@@ -66,7 +66,7 @@ export function MfaSetupPage() {
       );
       const returnTo = encodeURIComponent("/mfa-setup");
       window.location.assign(
-        `/api/auth/gmail-oauth/start?returnTo=${returnTo}`
+        backendApiUrl(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`)
       );
       return;
     }

@@ -18,6 +18,24 @@ export function apiUrl(path: string): string {
   return API_BASE ? `${API_BASE}/${temiz}` : `/${temiz}`;
 }
 
+// Onur dashboard'nda VITE_API_BASE_URL henüz set edilmediğinden
+// production için hardcoded fallback gerekli. Gelecekte özel domain
+// (fikrimnet.gov.tr) aktifleşince env variable'ı set etmek yeterli.
+const PRODUCTION_BACKEND_ORIGIN = "https://fikir-platformu.onrender.com";
+
+export function backendOrigin(): string {
+  if (API_BASE) return API_BASE; // env variable varsa onu kullan
+  // Dev server'da (Vite proxy `/api` → :5000) kendi origin doğru.
+  // Production'da `https://fikir-platformu-web.onrender.com` origin'i
+  // `/api/...` için static SPA fallback olur — backend origin'i şart.
+  return PRODUCTION_BACKEND_ORIGIN;
+}
+
+export function backendApiUrl(path: string): string {
+  const temiz = path.replace(/^\/+/, "");
+  return `${backendOrigin()}/${temiz}`;
+}
+
 export class ApiHttpError extends Error {
   readonly status: number;
   readonly body: ApiError | null;
