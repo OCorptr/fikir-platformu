@@ -96,7 +96,32 @@ builder.Services.AddScoped<SubmitImplementationReportService>();
 builder.Services.AddScoped<IImplementationSummaryQueryService, ImplementationSummaryQueryService>();
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
-builder.Services.AddScoped<IEmailSender, DevelopmentEmailSender>();
+// E-posta gönderici: "Mail:Host" env var varsa SmtpEmailSender (üretim),
+// yoksa DevelopmentEmailSender (log'a düşer + dosyaya yazar).
+// Çift __ config provider env var'ı düzleştirir: Mail__Host -> Mail:Host
+builder.Services.AddScoped<IEmailSender>(sp =>
+{
+    var ayarlar = builder.Configuration.GetSection("Mail");
+    var host = ayarlar["Host"];
+    if (string.IsNullOrWhiteSpace(host))
+    {
+        // Geliştirme / demo modu (log'a + dosyaya yazar)
+        return ActivatorUtilities.CreateInstance<DevelopmentEmailSender>(sp);
+    }
+    // Üretim SMTP sağlayıcısı (Resend / Gmail / SendGrid / Outlook)
+    var mailOpts = Microsoft.Extensions.Options.Options.Create(new MailAyarlari
+    {
+        Host = ayarlar["Host"],
+        Port = int.TryParse(ayarlar["Port"], out var p) ? p : 587,
+        UseStartTls = !string.Equals(ayarlar["UseStartTls"], "false", StringComparison.OrdinalIgnoreCase),
+        User = ayarlar["User"],
+        Pass = ayarlar["Pass"],
+        From = ayarlar["From"] ?? ayarlar["User"],
+        FromName = ayarlar["FromName"] ?? "Geleceğin Fikri",
+    });
+    var logger = sp.GetRequiredService<ILogger<SmtpEmailSender>>();
+    return new SmtpEmailSender(mailOpts, logger);
+});
 // Background job: auth_events 2 yıl retention (plan §1.7).
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetentionService>();
 // Background job: kullanılmayan hesapları 90 gün sonra kilitle (plan §6.3).
