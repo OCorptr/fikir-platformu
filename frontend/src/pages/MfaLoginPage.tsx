@@ -62,7 +62,7 @@ export function MfaLoginPage() {
       .split("; ")
       .some((c) => c.startsWith(".FikirPreMfa.Auth="));
     if (!premfaVar) {
-      navigate("/giris", { replace: true });
+      navigate("/", { replace: true });
       return;
     }
     const controller = new AbortController();
@@ -78,7 +78,7 @@ export function MfaLoginPage() {
       .catch((e) => {
         if (authHatasiMi(e)) {
           // Giriş yapılmamış veya MFA cookie süresi dolmuş → login'e at.
-          navigate("/giris", { replace: true });
+          navigate("/", { replace: true });
           return;
         }
         // Ağ hatası vb. → seçim ekranı yine de açılsın (rozet olmadan).
@@ -164,7 +164,7 @@ export function MfaLoginPage() {
       return true;
     } catch (e) {
       if (authHatasiMi(e)) {
-        navigate("/giris", { replace: true });
+        navigate("/", { replace: true });
         return false;
       }
       setGonderimHatasi(
@@ -197,7 +197,7 @@ export function MfaLoginPage() {
       else navigate("/fikir");
     } catch (e) {
       if (authHatasiMi(e)) {
-        navigate("/giris", { replace: true });
+        navigate("/", { replace: true });
         return;
       }
       setHata(e instanceof ApiHttpError ? e.message : "Kod doğrulanamadı.");

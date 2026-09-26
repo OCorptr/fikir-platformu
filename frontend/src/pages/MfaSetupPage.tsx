@@ -49,7 +49,7 @@ export function MfaSetupPage() {
       })
       .catch((e) => {
         if (authHatasiMi(e)) {
-          navigate("/giris", { replace: true });
+          navigate("/", { replace: true });
         }
       });
     return () => controller.abort();
@@ -79,7 +79,7 @@ export function MfaSetupPage() {
       setAdim("kurulum");
     } catch (e) {
       if (authHatasiMi(e)) {
-        navigate("/giris", { replace: true });
+        navigate("/", { replace: true });
         return;
       }
       setHata(e instanceof ApiHttpError ? e.message : "Kurulum başlatılamadı.");
@@ -118,7 +118,7 @@ export function MfaSetupPage() {
       else navigate("/fikir");
     } catch (e) {
       if (authHatasiMi(e)) {
-        navigate("/giris", { replace: true });
+        navigate("/", { replace: true });
         return;
       }
       setHata(e instanceof ApiHttpError ? e.message : "Kod doğrulanamadı.");
