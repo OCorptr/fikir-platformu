@@ -808,6 +808,7 @@ input[type="range"] {
 /* === MFA login — method choice screen (Sprint 10 fix) === */
 /* Yetkili Girişi lacivert temasıyla uyumlu: koyu lacivert kartlar,
    beyaz yazı, altın "Önerilen" rozeti. */
+/* Sprint 10.7 deployment marker — real CSS change to break cache */
 .mfa-secim {
   max-width: 36rem;
 }
@@ -927,6 +928,8 @@ input[type="range"] {
   border-radius: 0.7rem;
   padding: 0.9rem 1rem;
   margin: 0.5rem 0 1.2rem 0;
+  /* Sprint 10.7 deployment marker — box-shadow eklendi, bundle hash farkli cikar */
+  box-shadow: 0 0.2rem 0.5rem rgba(22, 53, 92, 0.08);
 }
 .yg-aktif-oturum__baslik {
   font-family: "Nunito", "Baloo 2", sans-serif;
