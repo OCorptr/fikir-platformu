@@ -110,7 +110,9 @@ public static class MfaEndpoints
         // /me endpoint'i PreMfaScheme'i authenticate etmediği için ayrı bu endpoint lazım.
         grup.MapGet("/method", async (
             HttpContext http,
-            UserManager<ApplicationUser> kullaniciYoneticisi) =>
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            IConfiguration cfg,
+            IEmailSender epostaGonderici) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
@@ -118,11 +120,24 @@ public static class MfaEndpoints
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null) return Results.Unauthorized();
 
+            // Onur feedback (Sprint 10.5): Email yöntemi seçildiğinde Gmail OAuth
+            // handshake tamamlanmamışsa frontend otomatik /gmail-oauth/start'a
+            // yönlendirsin. providerReady kontrolü burada:
+            //   - Development modu → her zaman ready (devCode response)
+            //   - Gmail modu + RefreshToken var → ready
+            //   - Gmail modu ama RefreshToken yok → NOT ready (OAuth handshake zorunlu)
+            var senderTip = epostaGonderici.GetType().Name;
+            var gmailRefreshToken = cfg["Mail:Gmail:RefreshToken"];
+            var providerReady = senderTip != "GmailApiEmailSender" || !string.IsNullOrWhiteSpace(gmailRefreshToken);
+
+            // TOTP user için providerReady kontrolü gereksiz — yine de döndür (frontend kullanır).
             return Results.Ok(new
             {
                 method = kullanici.TwoFactorMethod.ToString(),
                 enabled = kullanici.TwoFactorEnabled,
-                email = kullanici.Email
+                email = kullanici.Email,
+                providerReady,
+                needsGmailOAuth = !providerReady && senderTip == "GmailApiEmailSender",
             });
         }).RequireAuthorization("PreMfaOnly");
 

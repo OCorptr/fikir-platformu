@@ -33,6 +33,8 @@ export function MfaLoginPage() {
   const [emailGonderildi, setEmailGonderildi] = useState(false);
   const [gonderimHatasi, setGonderimHatasi] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0); // saniye
+  const [providerReady, setProviderReady] = useState(true);
+  const [needsGmailOAuth, setNeedsGmailOAuth] = useState(false);
 
   // Sayfa açıldığında: PreMfa cookie'si var mı? Backend'e method sor.
   // 401/403 → kullanıcı authenticated değil veya MFA cookie süresi dolmuş
@@ -43,6 +45,9 @@ export function MfaLoginPage() {
       .then((m) => {
         const yontem: Method = m.method === "Email" ? "Email" : "Totp";
         setKayitliYontem(yontem);
+        // Onur feedback (Sprint 10.5): Gmail OAuth handshake durumunu da al.
+        if (typeof m.providerReady === "boolean") setProviderReady(m.providerReady);
+        if (typeof m.needsGmailOAuth === "boolean") setNeedsGmailOAuth(m.needsGmailOAuth);
       })
       .catch((e) => {
         if (authHatasiMi(e)) {
@@ -55,6 +60,23 @@ export function MfaLoginPage() {
       });
     return () => controller.abort();
   }, [navigate]);
+
+  // Onur feedback (Sprint 10.5): Email yöntemi için Gmail OAuth handshake
+  // zorunlu ve otomatik tetiklenmeli — kullanıcı manuel URL'e girmesin.
+  // needsGmailOAuth true ise Google OAuth flow başlatılır (window.location ile
+  // full-redirect — relative path; gelecekte fikrimnet.gov.tr'de de çalışır).
+  useEffect(() => {
+    if (!needsGmailOAuth) return;
+    // Provider hazır değilse OTP gönderme — OAuth handshake'e yönlendir.
+    setHata(
+      "E-posta sağlayıcısı henüz bağlı değil. Gmail hesabınızla doğrulama için Google'a yönlendiriliyorsunuz…"
+    );
+    // Mevcut path'i state olarak ver — dönüşte orijinal yere geri dön (relative).
+    const returnTo = encodeURIComponent(window.location.pathname);
+    window.location.assign(
+      `/api/auth/gmail-oauth/start?returnTo=${returnTo}`
+    );
+  }, [needsGmailOAuth]);
 
   // Cooldown geri sayım
   useEffect(() => {

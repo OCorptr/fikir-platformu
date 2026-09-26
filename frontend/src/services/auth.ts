@@ -123,8 +123,19 @@ export async function mfaLoginVerify(code: string): Promise<{ message: string; m
   });
 }
 
-/** Login sonrası kullanıcının MFA method'unu döner (PreMfaScheme authenticated). */
-export async function mfaGetMethod(): Promise<{ method: "Totp" | "Email" | "None"; enabled: boolean; email?: string }> {
+/** Login sonrası kullanıcının MFA method'unu ve provider durumunu döner
+ *  (PreMfaScheme authenticated).
+ *  providerReady: false → e-posta göndermek için SMTP/Gmail yapılandırılmamış,
+ *                frontend OAuth/Setup yönlendirmesi yapmalı.
+ *  needsGmailOAuth: true → Gmail mode aktif ama RefreshToken handshake
+ *                tamamlanmamış, /api/auth/gmail-oauth/start'a otomatik at. */
+export async function mfaGetMethod(): Promise<{
+  method: "Totp" | "Email" | "None";
+  enabled: boolean;
+  email?: string;
+  providerReady?: boolean;
+  needsGmailOAuth?: boolean;
+}> {
   return apiRequest("/api/auth/mfa/method", { method: "GET" });
 }
 

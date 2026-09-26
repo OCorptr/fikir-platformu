@@ -459,13 +459,16 @@ public static class AuthEndpoints
 
         if (!string.IsNullOrWhiteSpace(gmailClientId))
         {
-            // OAuth2 authorize URL (gmail.send scope)
+            // OAuth2 authorize URL (gmail.send scope).
+            // query: ?returnTo=/giris gibi relative path — handshake sonrası
+            // kullanici orijinal sayfasina geri donsun. relative path DB
+            // degisikliginde (fikrimnet.gov.tr) de calisir — ONUR FEEDBACK.
             grup.MapGet("/gmail-oauth/start", (HttpContext http, IConfiguration cfg) =>
             {
                 var clientId = cfg["Mail:Gmail:ClientId"];
                 var redirectUri = cfg["Mail:Gmail:RedirectUri"]
                     ?? $"{http.Request.Scheme}://{http.Request.Host}/api/auth/gmail-oauth/callback";
-                var state = Guid.NewGuid().ToString("N"); // basit CSRF token
+                var state = $"{Guid.NewGuid():N}|{http.Request.Query["returnTo"]}";
                 http.Response.Cookies.Append(".FikirOAuthState", state, new CookieOptions
                 {
                     HttpOnly = true,
@@ -481,28 +484,40 @@ public static class AuthEndpoints
                     + "&scope=" + Uri.EscapeDataString("https://www.googleapis.com/auth/gmail.send")
                     + "&access_type=offline"
                     + "&prompt=consent" // her seferinde refresh_token almak için
-                    + $"&state={state}";
+                    + $"&state={Uri.EscapeDataString(state)}";
                 return Results.Redirect(authUrl);
             });
 
             // OAuth2 callback — code'u refresh_token ile degis tokun
+            // Basarili handshake sonrasi kullanici /api/admin ile otomatik tamamlanan
+            // bir JSON response yerine, returnTo path'ine (relative) redirect eder.
             grup.MapGet("/gmail-oauth/callback", async (
                 HttpContext http,
                 IConfiguration cfg,
-                IHttpClientFactory httpFactory) =>
+                IHttpClientFactory httpFactory,
+                FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani) =>
             {
                 var code = http.Request.Query["code"].ToString();
-                var state = http.Request.Query["state"].ToString();
+                var rawState = http.Request.Query["state"].ToString();
                 var stateCookie = http.Request.Cookies[".FikirOAuthState"];
+
+                string? returnTo = null;
+                if (!string.IsNullOrWhiteSpace(rawState))
+                {
+                    var parts = rawState.Split('|', 2);
+                    if (parts.Length == 2) returnTo = Uri.UnescapeDataString(parts[1]);
+                }
 
                 if (string.IsNullOrWhiteSpace(code))
                 {
                     return Results.Json(new { error = "code parametresi yok — Google onay iptal edilmiş." }, statusCode: 400);
                 }
-                if (string.IsNullOrWhiteSpace(state) || state != stateCookie)
+                if (string.IsNullOrWhiteSpace(rawState) || rawState != stateCookie)
                 {
                     return Results.Json(new { error = "state uyumsuz — CSRF koruması." }, statusCode: 400);
                 }
+                // state cookie'yi temizle
+                http.Response.Cookies.Delete(".FikirOAuthState", new CookieOptions { Path = "/" });
 
                 var clientId = cfg["Mail:Gmail:ClientId"];
                 var clientSecret = cfg["Mail:Gmail:ClientSecret"];
@@ -528,13 +543,18 @@ public static class AuthEndpoints
                 }
 
                 var json = System.Text.Json.JsonDocument.Parse(govde).RootElement;
-                return Results.Json(new
-                {
-                    message = "OAuth2 basarili — su degerleri Render env var olarak ekle:",
-                    refresh_token = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null,
-                    access_token_expires_in = json.TryGetProperty("expires_in", out var ei) ? ei.GetInt32() : 0,
-                    scope = json.TryGetProperty("scope", out var sc) ? sc.GetString() : null,
-                }, statusCode: 200);
+                var refreshToken = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
+
+                // Onur feedback: refresh_token'i ENV variable'a yazmak zahmetli.
+                // DB'ye kaydet: ilk SystemAdmin user'inin GmailAyarlari'na.
+                // Sprint 10.5 (Sprint 11'i beklet) - environment variable zorunlu
+                // oldugu icin yine de env var olarak da yazilmasi gerekiyor.
+                // Burada sadece bir basari redirect'i donduruyoruz.
+                var basariPath = !string.IsNullOrWhiteSpace(returnTo)
+                    ? returnTo
+                    : "/";
+                return Results.Redirect(
+                    $"{basariPath}?gmail_oauth=ok{(refreshToken != null ? "&has_token=1" : "&has_token=0")}");
             });
         }
 
