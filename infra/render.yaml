@@ -1,0 +1,70 @@
+# Render Blueprint (Infrastructure-as-Code).
+# Render Dashboard'dan NEW + Blueprint + "Connect repo" ile bu dosyayi
+# gosterince iki service otomatik olusturulur:
+#   1) fikir-platformu (backend) — Docker, TiDB Cloud baglantisi
+#   2) fikir-platformu-web (frontend) — Static site, headers + SPA fallback
+#
+# Mevcut (zaten var olan) service'ler icin degil — yalniz yeni olustururken
+# kullanilir. Deploy/Render blueprint adresi:
+#   https://dashboard.render.com/blueprints/new
+#
+# Onur notu: header konfigurasyonu kritik — eski browser cache problemi
+# (Render'in 'deleted assets' cache davranisi) icin HTML no-cache,
+# hashed assets immutable. Bu SPA'larda klasik best practice.
+
+services:
+  # ============ BACKEND — Docker ============
+  - type: web
+    name: fikir-platformu
+    runtime: docker
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      # HTTP_PORTS/HTTPS_PORTS boş değer ata — Render default setini override etsin (uyariyi susturur)
+      - key: HTTP_PORTS
+        sync: false
+        value: ""
+      - key: HTTPS_PORTS
+        sync: false
+        value: ""
+      # TuDB Cloud, Gmail OAuth, Captcha, vs. env'leri Dashboard'dan sonra elle set et
+      # (render.yaml sync: false + readOnly: true ile kilitleyebilirsin)
+
+  # ============ FRONTEND — Static Site (Vite SPA) ============
+  - type: web
+    name: fikir-platformu-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    autoDeploy: true
+
+    # SPA fallback — her route /index.html'e yonlendirilir
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+    # Onur feedback (Sprint 10.6 cache problemi):
+    # index.html her zaman fresh (HTML degisiklikleri hemen gorunur)
+    # /assets/* hashed — 1 yil cache + immutable (performans, content-hash sayesinde
+    # guvenli — yeni build yeni uretir, eski browser eski hash'i tutar)
+    headers:
+      - path: /index.html
+        headers:
+          - name: Cache-Control
+            value: no-cache, no-store, must-revalidate
+      - path: /assets
+        headers:
+          - name: Cache-Control
+            value: public, max-age=31536000, immutable
+    # Sikistirma (Brotli) — Vite urettigi text/js/css Render CDN tarafindan
+    # otomatik sikistirilir, ek config gereksiz
