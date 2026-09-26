@@ -6,14 +6,21 @@
 //   3) Kullanıcı TOTP code girer VEYA email kodunu doğrular (ekranda gösterilir)
 //   4) /api/auth/mfa/verify-setup → code doğrula + scheme upgrade
 //   5) İlgili panele yönlendir (ministry/il-panel/fikir)
+//
+// Koruma: giriş yapmamış kullanıcı bu sayfayı açamaz (Onur feedback).
+// API 401/403 dönerse /giris'e yönlendirilir.
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { mfaSetupBaslat, mfaVerifyKod, type MfaMethod } from "../services/auth";
+import { mfaSetupBaslat, mfaVerifyKod, mfaGetMethod, type MfaMethod } from "../services/auth";
 import type { MfaSetupResponse } from "../services/auth";
 
 type Adim = "secim" | "kurulum" | "dogrulama" | "tamamlandi";
+
+function authHatasiMi(hata: unknown): boolean {
+  return hata instanceof ApiHttpError && (hata.status === 401 || hata.status === 403);
+}
 
 export function MfaSetupPage() {
   const navigate = useNavigate();
@@ -24,6 +31,21 @@ export function MfaSetupPage() {
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
 
+  // Sayfa mount: /me ile doğrula — giriş yapılmamışsa /giris'e at.
+  useEffect(() => {
+    const controller = new AbortController();
+    // Hafif bir probe: /api/auth/mfa/method PreMfaOnly gerektiriyor;
+    // 401/403 dönerse authenticated değil demektir.
+    mfaGetMethod()
+      .then(() => { /* PreMfa scheme geçerli — sayfada kal */ })
+      .catch((e) => {
+        if (authHatasiMi(e)) {
+          navigate("/giris", { replace: true });
+        }
+      });
+    return () => controller.abort();
+  }, [navigate]);
+
   async function methodSecimVeBaslat(method: MfaMethod) {
     setYontem(method);
     setCalisiyor(true);
@@ -33,6 +55,10 @@ export function MfaSetupPage() {
       setSetup(sonuc);
       setAdim("kurulum");
     } catch (e) {
+      if (authHatasiMi(e)) {
+        navigate("/giris", { replace: true });
+        return;
+      }
       setHata(e instanceof ApiHttpError ? e.message : "Kurulum başlatılamadı.");
     } finally {
       setCalisiyor(false);
@@ -55,6 +81,10 @@ export function MfaSetupPage() {
       else if (ctx === "province") navigate("/il-panel");
       else navigate("/fikir");
     } catch (e) {
+      if (authHatasiMi(e)) {
+        navigate("/giris", { replace: true });
+        return;
+      }
       setHata(e instanceof ApiHttpError ? e.message : "Kod doğrulanamadı.");
     } finally {
       setCalisiyor(false);

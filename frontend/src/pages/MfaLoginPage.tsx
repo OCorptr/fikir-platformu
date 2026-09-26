@@ -3,6 +3,10 @@
 //   1) SEÇİM: kullanıcı yöntem seçer (Authenticator / E-posta).
 //   2) GİRİŞ: seçilen yöntem için 6 haneli kod input.
 // Kayıtlı yöntem "önerilen" rozetiyle işaretlenir (useEffect).
+//
+// Koruma: giriş yapmamış kullanıcı bu sayfayı açamaz.
+// Kullanıcı /me veya /api/auth/mfa/method 401/403 alırsa /giris'e
+// yönlendirilir (Yetkili Girişi modalı orada açılır).
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +15,12 @@ import { mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth"
 
 type Method = "Totp" | "Email" | "Bilinmiyor";
 type Ekran = "secim" | "giris";
+
+// 401/403 = authenticated değil veya MFA cookie'si yok → /giris'e at.
+// Onur feedback: giriş yapmamış kullanıcı bu sayfayı açamamalı.
+function authHatasiMi(hata: unknown): boolean {
+  return hata instanceof ApiHttpError && (hata.status === 401 || hata.status === 403);
+}
 
 export function MfaLoginPage() {
   const navigate = useNavigate();
@@ -24,8 +34,9 @@ export function MfaLoginPage() {
   const [gonderimHatasi, setGonderimHatasi] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0); // saniye
 
-  // Sayfa açıldığında: kullanıcının kayıtlı MFA method'unu /api/auth/mfa/method'dan al.
-  // Hata olursa seçim ekranı yine de açılır (kullanıcı kendi seçebilir).
+  // Sayfa açıldığında: PreMfa cookie'si var mı? Backend'e method sor.
+  // 401/403 → kullanıcı authenticated değil veya MFA cookie süresi dolmuş
+  // → /giris'e yönlendir.
   useEffect(() => {
     const controller = new AbortController();
     mfaGetMethod()
@@ -33,12 +44,17 @@ export function MfaLoginPage() {
         const yontem: Method = m.method === "Email" ? "Email" : "Totp";
         setKayitliYontem(yontem);
       })
-      .catch(() => {
-        // Sessizce geç — seçim ekranı rozet olmadan görünür.
+      .catch((e) => {
+        if (authHatasiMi(e)) {
+          // Giriş yapılmamış veya MFA cookie süresi dolmuş → login'e at.
+          navigate("/giris", { replace: true });
+          return;
+        }
+        // Ağ hatası vb. → seçim ekranı yine de açılsın (rozet olmadan).
         setKayitliYontem(null);
       });
     return () => controller.abort();
-  }, []);
+  }, [navigate]);
 
   // Cooldown geri sayım
   useEffect(() => {
@@ -79,6 +95,10 @@ export function MfaLoginPage() {
       if (!ilkGonderim) setCooldown(60);
       return true;
     } catch (e) {
+      if (authHatasiMi(e)) {
+        navigate("/giris", { replace: true });
+        return false;
+      }
       setGonderimHatasi(
         e instanceof ApiHttpError ? e.message : "Kod gönderilemedi, tekrar deneyin."
       );
@@ -108,6 +128,10 @@ export function MfaLoginPage() {
       else if (ctx === "province") navigate("/il-panel");
       else navigate("/fikir");
     } catch (e) {
+      if (authHatasiMi(e)) {
+        navigate("/giris", { replace: true });
+        return;
+      }
       setHata(e instanceof ApiHttpError ? e.message : "Kod doğrulanamadı.");
     } finally {
       setCalisiyor(false);
