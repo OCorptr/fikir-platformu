@@ -51,7 +51,20 @@ export function MfaLoginPage() {
   // Sayfa açıldığında: PreMfa cookie'si var mı? Backend'e method sor.
   // 401/403 → kullanıcı authenticated değil veya MFA cookie süresi dolmuş
   // → /giris'e yönlendir.
+  //
+  // Onur feedback (Sprint 10.7+): cookie client-side kontrol — yoksa
+  // backend'e hiç gitme, sayfa ASLA açılmamalı. "Çıkış - Ana Sayfa"
+  // sonrası URL'den yazınca bile spinner göstermeden direkt /giris'e at.
   useEffect(() => {
+    // HttpOnly=false cookie olduğu için document.cookie ile okunabilir.
+    // PreMfa scheme name: ".FikirPreMfa.Auth".
+    const premfaVar = document.cookie
+      .split("; ")
+      .some((c) => c.startsWith(".FikirPreMfa.Auth="));
+    if (!premfaVar) {
+      navigate("/giris", { replace: true });
+      return;
+    }
     const controller = new AbortController();
     mfaGetMethod()
       .then((m) => {
