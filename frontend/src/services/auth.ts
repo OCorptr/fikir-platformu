@@ -128,9 +128,10 @@ export async function mfaGetMethod(): Promise<{ method: "Totp" | "Email" | "None
   return apiRequest("/api/auth/mfa/method", { method: "GET" });
 }
 
-/** Email OTP için kod gönder (PreMfaScheme authenticated). Login akışında çağrılır. */
-export async function mfaSendEmailOtp(): Promise<{ message: string }> {
-  // Backend'de ayrı endpoint yok — /api/auth/mfa/setup email method'u tekrar çağrılarak yeni kod gönderilir.
-  // Daha temiz: ayrı endpoint ekle (Sprint 10.1).
+/** Email OTP için kod gönder (PreMfaScheme authenticated). Login akışında çağrılır.
+ *  Development modunda response `devCode` alanı içerir (kullanıcı OTP kodunu görür —
+ *  SMTP yapılandırılmamış demo ortamlarında log'a bakma zahmetinden kurtarır).
+ *  Üretim (SmtpEmailSender) devCode=null döner. */
+export async function mfaSendEmailOtp(): Promise<{ message: string; devCode?: string | null }> {
   return apiRequest("/api/auth/mfa/send-email-otp", { method: "POST" });
 }

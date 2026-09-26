@@ -90,8 +90,13 @@ export function MfaLoginPage() {
     setCalisiyor(true);
     setGonderimHatasi(null);
     try {
-      await mfaSendEmailOtp();
+      const cevap = await mfaSendEmailOtp();
       setEmailGonderildi(true);
+      // Development modunda backend kodu response'a koyar; ekranda göster.
+      // SMTP'li üretimde devCode=null gelir, hiç gösterilmez.
+      if (cevap.devCode) {
+        setKod(cevap.devCode);
+      }
       if (!ilkGonderim) setCooldown(60);
       return true;
     } catch (e) {
@@ -200,6 +205,15 @@ export function MfaLoginPage() {
     <main className="sayfa-ortak mfa-login mfa-giris">
       <h1>{baslik}</h1>
       <p className="mfa-aciklama">{aciklama}</p>
+
+      {/* Development modunda backend OTP kodunu response'a koyar — input otomatik dolar;
+          üretim SMTP aktifse bu banner hiç gösterilmez (devCode null gelir). */}
+      {emailModu && emailGonderildi && kod.length === 6 && (
+        <div className="mfa-dev-banner" role="status">
+          🛠️ Demo ortamı: SMTP yapılandırılmamış, kod otomatik input'a yazıldı.
+          Doğrudan <b>Giriş yap</b>'a tıklayabilirsiniz.
+        </div>
+      )}
 
       <form className="mfa-form" onSubmit={handleOnayla}>
         <label className="mfa-alan">

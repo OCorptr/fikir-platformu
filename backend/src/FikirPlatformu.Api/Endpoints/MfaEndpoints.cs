@@ -158,7 +158,15 @@ public static class MfaEndpoints
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
                 AuthEventType.MfaLoginSuccess, success: true, reason: "email_otp_gonderildi");
 
-            return Results.Ok(new { message = "Doğrulama kodu e-postanıza gönderildi." });
+            // Development ortamı (DevelopmentEmailSender) ise: kodu response'a da koy.
+            // SMTP'li üretimde kod ASLA response body'de dönmemeli.
+            // Type check ile concrete tip tespiti — SmtpEmailSender eklenince otomatik güvenli.
+            var devModu = epostaGonderici.GetType().Name == "DevelopmentEmailSender";
+            return Results.Ok(new
+            {
+                message = "Doğrulama kodu e-postanıza gönderildi.",
+                devCode = devModu ? code : (string?)null
+            });
         }).RequireAuthorization("PreMfaOnly");
 
         // 2) Kurulum doğrulama — method'a göre TOTP veya Email kodu.

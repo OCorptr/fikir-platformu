@@ -905,3 +905,17 @@ input[type="range"] {
   gap: 0.4rem;
   align-items: center;
 }
+/* Development ortamı ipucu — SMTP yoksa kod input'a otomatik yazılır */
+.mfa-dev-banner {
+  background: #fff7e1;
+  border: 1px solid #f4c542;
+  color: #6e4f00;
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  margin: 0 0 0.8rem 0;
+}
+.mfa-dev-banner b {
+  color: #16355C;
+}
