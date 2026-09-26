@@ -123,15 +123,25 @@ public static class MfaEndpoints
             var kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
             if (kullanici is null) return Results.Unauthorized();
 
-            // Onur feedback (Sprint 10.5): Email yöntemi seçildiğinde Gmail OAuth
-            // handshake tamamlanmamışsa frontend otomatik /gmail-oauth/start'a
-            // yönlendirsin. providerReady kontrolü burada:
-            //   - Development modu → her zaman ready (devCode response)
-            //   - Gmail modu + RefreshToken var → ready
-            //   - Gmail modu ama RefreshToken yok → NOT ready (OAuth handshake zorunlu)
+            // Onur feedback (Sprint 10.5 / 10.7+++): Email yöntemi seçildiğinde
+            // Gmail OAuth handshake tamamlanmamışsa frontend otomatik
+            // /gmail-oauth/start'a yönlendirsin. providerReady kontrolü:
+            //   - Gmail mode'da (Mail:Type=gmail) + RefreshToken YOK → ready=false
+            //     (OAuth handshake zorunlu, mfaSendEmailOtp Gmail API call patlar)
+            //   - Gmail mode + RefreshToken VAR → ready=true
+            //   - Diğer mode'lar (Resend/SMTP/Development) sender tipi ne olursa
+            //     olsun ready=true (sender kendi modunda çalışabilir)
+            //
+            // ÖNCEKI BUG: providerReady = sender != "GmailApiEmailSender" || ...
+            // Bu kontrol sender tipi development'a düşmüşse bile true döndürüyordu
+            // çünkü sender DevelopmentEmailSender != GmailApiEmailSender. Sonuç:
+            // Gmail mode + RefreshToken yok → fallback Mod 4'e düşer + providerReady
+            // true görünür + frontend handshake tetiklemez.
             var senderTip = epostaGonderici.GetType().Name;
+            var tip = (cfg["Mail:Type"] ?? "").ToLowerInvariant();
             var gmailRefreshToken = cfg["Mail:Gmail:RefreshToken"];
-            var providerReady = senderTip != "GmailApiEmailSender" || !string.IsNullOrWhiteSpace(gmailRefreshToken);
+            var gmailMode = tip == GmailApiEmailSender.SaglayiciTipi; // "gmail"
+            var providerReady = !gmailMode || !string.IsNullOrWhiteSpace(gmailRefreshToken);
 
             // TOTP user için providerReady kontrolü gereksiz — yine de döndür (frontend kullanır).
             return Results.Ok(new
