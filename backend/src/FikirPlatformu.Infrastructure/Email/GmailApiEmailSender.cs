@@ -191,11 +191,9 @@ public sealed class GmailApiEmailSender : IEmailSender
         // Yine de EF Core sync API'sini kullanıyoruz — DB bağlantısı zaten var.
         try
         {
-            // Sprint 10.7+++ DB persist devre dışı: EF migration cleanup Sprint 11'de
-            // yapılacak. Bu metot return null — sadece env (Mail:Gmail:RefreshToken)
-            // üzerinden çalışır. Startup raw SQL tablo oluşturur (idempotent); ancak
-            // DB upsert AuthEndpoints'te de geçici olarak kaldırıldı.
-            return null;
+            var rec = _db.GmailRefreshTokens.AsNoTracking().FirstOrDefault(t => t.Id == 1);
+            if (rec is null) return null;
+            return _sifreleme.CozGmail(rec.EncryptedRefreshToken);
         }
         catch (Exception ex)
         {

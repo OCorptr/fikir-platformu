@@ -145,7 +145,13 @@ public static class MfaEndpoints
             var tip = (cfg["Mail:Type"] ?? "").ToLowerInvariant();
             var gmailMode = tip == GmailApiEmailSender.SaglayiciTipi; // "gmail"
             var envHasToken = !string.IsNullOrWhiteSpace(cfg["Mail:Gmail:RefreshToken"]);
-            var hasRefreshToken = envHasToken; // DB persist Sprint 11 cleanup
+            var dbHasToken = false;
+            if (gmailMode && !envHasToken)
+            {
+                dbHasToken = await veritabani.GmailRefreshTokens.AsNoTracking()
+                    .AnyAsync(t => t.Id == 1 && !string.IsNullOrEmpty(t.EncryptedRefreshToken));
+            }
+            var hasRefreshToken = envHasToken || dbHasToken;
             var providerReady = !gmailMode || hasRefreshToken;
             // Doğrusu: Gmail mode'da + RefreshToken yok → OAuth handshake zorunlu.
             var needsGmailOAuth = gmailMode && !hasRefreshToken;

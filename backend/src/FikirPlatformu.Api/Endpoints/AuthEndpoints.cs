@@ -496,7 +496,8 @@ public static class AuthEndpoints
                 HttpContext http,
                 IConfiguration cfg,
                 IHttpClientFactory httpFactory,
-                FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani) =>
+                FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
+                HassasVeriSifreleme sifreleme) =>
             {
                 var code = http.Request.Query["code"].ToString();
                 var rawState = http.Request.Query["state"].ToString();
@@ -546,9 +547,33 @@ public static class AuthEndpoints
                 var json = System.Text.Json.JsonDocument.Parse(govde).RootElement;
                 var refreshToken = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
 
-                // Sprint 10.7+++ DB persist devre dışı: EF migration cleanup Sprint 11'de.
-                // Startup'ta raw SQL tablo oluşturur; ancak DB upsert burada YAPILMIYOR.
-                // Sprint 11'de tamamlanacak — env fallback manuel kalır.
+                // Sprint 10.7+++ (Onur feedback "otomatik kaydolmalı"): refresh_token
+                // ENV variable'a değil DB'ye otomatik kaydedilir. gmail_refresh_tokens
+                // tablosu Id=1 singleton row (Sistem Sabit Gmail'i pattern). Tablo
+                // zaten Program.cs startup'ta CREATE TABLE IF NOT EXISTS ile idempotent
+                // oluşturulur. HassasVeriSifreleme ile encrypted saklanır — Data
+                // Protection key ayrı (DB leak'inde attacker OAuth yetkisi kazanamaz).
+                // ONUR: Restart gerekmez, restart sonrası persiste kalır, Manuel env yok.
+                if (!string.IsNullOrWhiteSpace(refreshToken))
+                {
+                    var mevcut = await veritabani.GmailRefreshTokens.FindAsync(1L);
+                    var encrypted = sifreleme.SifreleGmail(refreshToken);
+                    if (mevcut is null)
+                    {
+                        veritabani.GmailRefreshTokens.Add(new FikirPlatformu.Infrastructure.Auth.GmailRefreshToken
+                        {
+                            Id = 1,
+                            EncryptedRefreshToken = encrypted,
+                            UpdatedAt = DateTime.UtcNow,
+                        });
+                    }
+                    else
+                    {
+                        mevcut.EncryptedRefreshToken = encrypted;
+                        mevcut.UpdatedAt = DateTime.UtcNow;
+                    }
+                    await veritabani.SaveChangesAsync(http.RequestAborted);
+                }
 
                 // Onur feedback (Sprint 10.7+++): relative path redirect browser'da
                 // current origin (backend) ile resolve olur → 404. Absolute frontend

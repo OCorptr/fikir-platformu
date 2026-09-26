@@ -32,6 +32,8 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<ImplementationReport> ImplementationReports => Set<ImplementationReport>();
     public DbSet<ProvinceUserAssignment> ProvinceUserAssignments => Set<ProvinceUserAssignment>();
     public DbSet<AuthEvent> AuthEvents => Set<AuthEvent>();
+    public DbSet<FikirPlatformu.Infrastructure.Auth.GmailRefreshToken> GmailRefreshTokens
+        => Set<FikirPlatformu.Infrastructure.Auth.GmailRefreshToken>();
     // Microsoft.AspNetCore.DataProtection.EntityFrameworkCore paketinden gelen tip
     // — IDataProtectionKeyContext kontratı bu tipi bekler.
     public DbSet<Microsoft.AspNetCore.DataProtection.EntityFrameworkCore.DataProtectionKey> DataProtectionKeys
@@ -53,6 +55,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
         modelBuilder.ApplyConfiguration(new ImplementationReportConfiguration());
         modelBuilder.ApplyConfiguration(new ProvinceUserAssignmentConfiguration());
         modelBuilder.ApplyConfiguration(new AuthEventConfiguration());
+        modelBuilder.ApplyConfiguration(new GmailRefreshTokenConfiguration());
         base.OnModelCreating(modelBuilder);
     }
 }
