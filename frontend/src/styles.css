@@ -919,3 +919,73 @@ input[type="range"] {
 .mfa-dev-banner b {
   color: #16355C;
 }
+
+/* === YetkiliGirisModal — aktif oturum banner (Sprint 10.2) === */
+.yg-aktif-oturum {
+  background: linear-gradient(180deg, #f5f8fc 0%, #ffffff 100%);
+  border: 1px solid #1f4a7a;
+  border-radius: 0.7rem;
+  padding: 0.9rem 1rem;
+  margin: 0.5rem 0 1.2rem 0;
+}
+.yg-aktif-oturum__baslik {
+  font-family: "Nunito", "Baloo 2", sans-serif;
+  font-weight: 800;
+  color: #16355C;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin-bottom: 0.6rem;
+}
+.yg-aktif-oturum__baslik small {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #555;
+}
+.yg-aktif-oturum__butonlar {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+.yg-aktif-oturum__not {
+  margin: 0.3rem 0 0 0;
+  font-size: 0.78rem;
+  color: #666;
+  line-height: 1.4;
+}
+.yg-ikincil {
+  background: #fff;
+  border: 0.14rem solid var(--lacivert, #16355C);
+  color: var(--lacivert, #16355C);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-family: "Nunito", "Baloo 2", sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.yg-ikincil:hover {
+  background: var(--lacivert, #16355C);
+  color: #fff;
+}
+.yg-cikis {
+  background: transparent;
+  border: 0.14rem solid #c0392b;
+  color: #c0392b;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  font-family: "Nunito", "Baloo 2", sans-serif;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.yg-cikis:hover:not(:disabled) {
+  background: #c0392b;
+  color: #fff;
+}
+.yg-cikis:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

@@ -1,13 +1,15 @@
 // Yetkili Giriş Modalı — İl AR-GE personeli ve Bakanlık için (admin teması, sade).
 // Çocuk temalı sarı/kayıt özellikleri yok — sadece e-posta + şifre.
-// Açıldığında /me kontrol edilir: zaten province/ministry session varsa modal açılmadan
-// doğrudan ilgili panele yönlendirilir (plan §49: "çıkış sonrası aynı sayfada kal" kuralı
-// pasif session için geçerli — aktif oturum varsa yönlendir).
+// Onur feedback (Sprint 10.2):
+//   Otomatik /bakanlik veya /il-panel'e yönlendirme KALDIRILDI.
+//   Authenticated kullanıcı her açılışta login modalini gorur
+//   (farkli hesap test etmek veya 'Cikis' yapmak icin).
+//   Modal icinde 'Oturum Acik' banner + 'Panele Git' + 'Cikis Yap' butonlari.
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { login, me, type LoginContext } from "../services/auth";
+import { login, logout, me, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
 import { CaptchaField } from "./CaptchaField";
 
@@ -24,28 +26,48 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [captchaCevap, setCaptchaCevap] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
+  const [aktifOturum, setAktifOturum] = useState<LoginContext | null>(null);
 
-  // Modal açıldığında: zaten il/bakanlık oturumu varsa ilgili sayfaya yönlendir
+  // Modal açıldığında: /me ile mevcut oturumu kontrol et.
+  // Onur feedback: mevcut oturum Varsa bile otomatik yönlendirme YAPMA.
+  // Sadece bilgi olarak banner + 'Panele Git' + 'Çıkış Yap' butonlari göster.
   useEffect(() => {
-    if (!acik) return;
+    if (!acik) {
+      setAktifOturum(null);
+      return;
+    }
     const controller = new AbortController();
     me(controller.signal)
       .then((cevap) => {
-        const ministrySession = sessionForContext(cevap, "ministry");
-        const provinceSession = sessionForContext(cevap, "province");
-        if (ministrySession) {
-          navigate("/bakanlik");
-          onKapat();
-        } else if (provinceSession) {
-          navigate("/il-panel");
-          onKapat();
-        }
+        if (sessionForContext(cevap, "ministry")) setAktifOturum("ministry");
+        else if (sessionForContext(cevap, "province")) setAktifOturum("province");
+        else setAktifOturum(null);
       })
-      .catch(() => { /* oturum yoksa modal açık kalsın */ });
+      .catch(() => setAktifOturum(null));
     return () => controller.abort();
-  }, [acik, navigate, onKapat]);
+  }, [acik]);
 
   if (!acik) return null;
+
+  function paneleGit() {
+    if (aktifOturum === "ministry") navigate("/bakanlik");
+    else if (aktifOturum === "province") navigate("/il-panel");
+    onKapat();
+  }
+
+  async function cikisYap() {
+    try {
+      await logout();
+    } catch {
+      // yine de modalı kapat
+    }
+    setAktifOturum(null);
+    setEposta("");
+    setSifre("");
+    setCaptchaCevap("");
+    setCaptchaId("");
+    setHata(null);
+  }
 
   async function handleGiris(olay: FormEvent) {
     olay.preventDefault();
@@ -123,6 +145,26 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
         <p className="yg-alt">
           İl AR-GE birimi veya bakanlık yetkilisiyseniz hesabınızla giriş yapın.
         </p>
+
+        {aktifOturum && (
+          <div className="yg-aktif-oturum" role="status">
+            <div className="yg-aktif-oturum__baslik">
+              ✓ Bu tarayıcıda oturum açık
+              <small>({aktifOturum === "ministry" ? "Bakanlık" : "İl AR-GE"})</small>
+            </div>
+            <div className="yg-aktif-oturum__butonlar">
+              <button type="button" className="yg-ikincil" onClick={paneleGit}>
+                {aktifOturum === "ministry" ? "Bakanlık paneline git →" : "İl paneline git →"}
+              </button>
+              <button type="button" className="yg-cikis" onClick={cikisYap} disabled={calisiyor}>
+                Çıkış yap
+              </button>
+            </div>
+            <p className="yg-aktif-oturum__not">
+              ℹ️ Farklı hesapla girmek için aşağıya yeni bilgileri yazabilir veya "Çıkış yap"a basabilirsiniz.
+            </p>
+          </div>
+        )}
 
         {hata && (
           <div className="status-banner status-banner--error" role="alert">
