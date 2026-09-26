@@ -8,16 +8,17 @@
 //     o panele yönlendiren buton gösterilir.
 //   * Hiç oturum yoksa form gösterilir (normal login akışı).
 //
-// Sprint 10.7++ düzeltme:
-//   * React Router v7 useNavigate() declarative modda bazen Modal render
-//     döngüsünde tetiklenmiyor (imperative navigate SPA history'yi
-//     güncellemediği raporlandı). Çözüm: declarative <Navigate> bileşeni
-//     kullan. setYonlendir state'i set edilir, Modal render'da
-//     <Navigate to={yonlendir} replace /> return eder → React Router
-//     Routes otomatik route match yapar.
+// Sprint 10.7+++ fix:
+//   * useNavigate() imperative + <Navigate> declarative navigation Modal
+//     içinde SPA history.pushState tetiklemiyor (React Router v7 +
+//     React 19 + Modal render loop uyumsuz). Hem imperatif hem
+//     deklaratif denedik: SPA nav çağrıldı ama URL değişmedi.
+//   * Çözüm: window.location.href ile full page navigation. SPA davranışı
+//     hafif kaybeder (kısa beyaz ekran), ama Onur'un hesabıyla
+//     doğru route'a ULAŞMA garantilenir. Daha sonra Router v8 upgrade
+//     veya React Router'ın data router pattern'i denenecek.
 
 import { useEffect, useState, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { login, logout, me, mfaGetMethod, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
@@ -26,6 +27,13 @@ import { CaptchaField } from "./CaptchaField";
 interface Props {
   acik: boolean;
   onKapat: () => void;
+}
+
+// SPA navigasyon YetkiliGirisModal içinde çalışmadığı için window.location
+// kullanıyoruz. Hedef route'u yumuşak path belirler (replace=false → back
+// çalışır).
+function fullPageNav(hedef: string) {
+  window.location.href = hedef;
 }
 
 export function YetkiliGirisModal({ acik, onKapat }: Props) {
@@ -40,10 +48,6 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   // useEffect mount olunca setOturumYukleniyor(false) ancak me() cevabı ile.
   const [oturumYukleniyor, setOturumYukleniyor] = useState(true);
 
-  // Sprint 10.7++: declarative redirect. setYonlendir set edilince render
-  // döngüsünde <Navigate> return edilir, React Router Routes otomatik güncellenir.
-  const [yonlendir, setYonlendir] = useState<string | null>(null);
-
   // Modal açıldığında: önce PreMfa cookie var mı kontrol et (MFA halfway
   // state). Varsa → /mfa-login'e yönlendir (Onur feedback: MFA devam
   // ederken yetkili login yapılabilmesin). Yoksa /me ile mevcut oturumun
@@ -52,8 +56,7 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   useEffect(() => {
     if (!acik) {
       setAktifOturum(null);
-      setOturumYukleniyor(true); // Modal açıldığında yeniden true (initial state gibi)
-      setYonlendir(null); // reset redirect flag when modal closed
+      setOturumYukleniyor(true);
       return;
     }
     const controller = new AbortController();
@@ -61,9 +64,9 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     mfaGetMethod()
       .then(() => {
         // PreMfa cookie mevcut → MFA akışı devam ediyor, login yapılamaz.
-        // Modal'ı kapat ve declarative redirect tetikle.
+        // Modal'ı kapat ve full page navigation tetikle.
         onKapat();
-        setYonlendir("/mfa-login");
+        fullPageNav("/mfa-login");
       })
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
@@ -81,14 +84,6 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
       });
     return () => controller.abort();
   }, [acik]);
-
-  // Sprint 10.7++: declarative redirect — onKapat'tan ÖNCE <Navigate>
-  // return edilirse Routes otomatik güncellenir, Modal parent route'tan
-  // düşer. useNavigate imperative navigation burada ÇALIŞMIYORDU (Modal
-  // içinde history.pushState tetiklenmedi).
-  if (yonlendir) {
-    return <Navigate to={yonlendir} replace />;
-  }
 
   if (!acik) return null;
 
@@ -118,15 +113,14 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     : null;
 
   function paneleGit() {
-    // Sprint 10.7++: declarative redirect — direkt navigate yerine
-    // state flag set et. State update → re-render → <Navigate> jump.
+    // Modal içinde SPA nav çalışmıyor — fullPageNav kullan.
     const hedef =
       aktifOturum === "ministry" ? "/bakanlik"
       : aktifOturum === "province" ? "/il-panel"
       : aktifOturum === "student" ? "/fikir"
       : null;
     if (hedef) {
-      setYonlendir(hedef);
+      fullPageNav(hedef);
     }
   }
 
@@ -165,26 +159,21 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
         captchaAnswer: captchaCevap,
       });
       // MFA setup gerekiyor → /mfa-setup sayfasına yönlendir (Sprint 9).
-      // Sprint 10.7++: declarative redirect (useNavigate Modal içinde
-      // güvenilir değil —<Navigate> component Render loop'ta işleniyor).
+      // Sprint 10.7+++ Modal içinde SPA nav çalışmıyor; full page load.
       if (sonuc.mfaSetupRequired) {
-        onKapat();
-        setYonlendir("/mfa-setup");
+        fullPageNav("/mfa-setup");
         return;
       }
       // MFA code gerekiyor → /mfa-login sayfasına yönlendir (Sprint 9).
       if (sonuc.mfaRequired) {
-        onKapat();
-        setYonlendir("/mfa-login");
+        fullPageNav("/mfa-login");
         return;
       }
       const ctx: LoginContext | undefined = sonuc.context as LoginContext | undefined;
       if (ctx === "province") {
-        onKapat();
-        setYonlendir("/il-panel");
+        fullPageNav("/il-panel");
       } else if (ctx === "ministry") {
-        onKapat();
-        setYonlendir("/bakanlik");
+        fullPageNav("/bakanlik");
       } else {
         // Öğrenci veya bilinmeyen → bu modal öğrenci girişi için değil
         setHata("Bu giriş yalnızca il AR-GE personeli ve bakanlık yetkilileri içindir. Öğrenci girişi için 'Fikrimi Yaz'ı kullanın.");
