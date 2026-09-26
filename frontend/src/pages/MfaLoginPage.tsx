@@ -157,7 +157,7 @@ export function MfaLoginPage() {
         </div>
 
         <button type="button" className="btn-link" onClick={() => navigate("/")}>
-          İptal — ana sayfaya dön
+          Çıkış - Ana Sayfa
         </button>
       </main>
     );

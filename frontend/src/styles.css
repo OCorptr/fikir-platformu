@@ -791,8 +791,11 @@ input[type="range"] {
   color: var(--lacivert, #1a3a6c);
   text-decoration: underline;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-family: "Nunito", "Baloo 2", system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
   padding: 0.3rem 0.6rem;
+  letter-spacing: 0.01em;
 }
 .btn-link:hover:not(:disabled) {
   color: var(--vurgu, #c0392b);
