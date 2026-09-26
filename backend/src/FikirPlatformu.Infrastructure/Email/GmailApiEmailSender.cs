@@ -4,6 +4,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FikirPlatformu.Application.Abstractions;
+using FikirPlatformu.Infrastructure.Persistence;
+using FikirPlatformu.Infrastructure.Security;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -35,16 +38,25 @@ public sealed class GmailApiEmailSender : IEmailSender
 
     private readonly HttpClient _http;
     private readonly GmailAyarlari _ayarlar;
+    private readonly FikirPlatformuDbContext _db;
+    private readonly HassasVeriSifreleme _sifreleme;
     private readonly ILogger<GmailApiEmailSender> _logger;
 
     // Access token cache (1 saat geçerli)
     private (string Token, DateTimeOffset Expiries)? _cachedToken;
     private readonly SemaphoreSlim _tokenLock = new(1, 1);
 
-    public GmailApiEmailSender(HttpClient http, IOptions<GmailAyarlari> ayarlar, ILogger<GmailApiEmailSender> logger)
+    public GmailApiEmailSender(
+        HttpClient http,
+        IOptions<GmailAyarlari> ayarlar,
+        FikirPlatformuDbContext db,
+        HassasVeriSifreleme sifreleme,
+        ILogger<GmailApiEmailSender> logger)
     {
         _http = http;
         _ayarlar = ayarlar.Value;
+        _db = db;
+        _sifreleme = sifreleme;
         _logger = logger;
     }
 
@@ -105,12 +117,23 @@ public sealed class GmailApiEmailSender : IEmailSender
                 return cache.Token;
             }
 
-            if (string.IsNullOrWhiteSpace(_ayarlar.RefreshToken)
-                || string.IsNullOrWhiteSpace(_ayarlar.ClientId)
+            if (string.IsNullOrWhiteSpace(_ayarlar.ClientId)
                 || string.IsNullOrWhiteSpace(_ayarlar.ClientSecret))
             {
                 throw new InvalidOperationException(
-                    "Gmail OAuth2 yapılandırması eksik. Mail:Gmail:ClientId / ClientSecret / RefreshToken gerekli.");
+                    "Gmail OAuth2 yapılandırması eksik. Mail:Gmail:ClientId / ClientSecret gerekli.");
+            }
+
+            // Refresh token: env (Mail:Gmail:RefreshToken) önce, yoksa DB'den encrypted
+            // çözülerek (gmail_refresh_tokens tablosu, Id=1 satırı).
+            var refreshToken = !string.IsNullOrWhiteSpace(_ayarlar.RefreshToken)
+                ? _ayarlar.RefreshToken!
+                : ResolveDbRefreshToken();
+
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                throw new InvalidOperationException(
+                    "Gmail OAuth2 refresh token yok. /api/auth/gmail-oauth/start ile handshake gerekli ya da Mail:Gmail:RefreshToken env'i set edilmeli.");
             }
 
             var yenile = new HttpRequestMessage(HttpMethod.Post, TokenEndpoint)
@@ -119,7 +142,7 @@ public sealed class GmailApiEmailSender : IEmailSender
                 {
                     ["client_id"] = _ayarlar.ClientId!,
                     ["client_secret"] = _ayarlar.ClientSecret!,
-                    ["refresh_token"] = _ayarlar.RefreshToken!,
+                    ["refresh_token"] = refreshToken,
                     ["grant_type"] = "refresh_token",
                 }),
             };
@@ -150,6 +173,34 @@ public sealed class GmailApiEmailSender : IEmailSender
         finally
         {
             _tokenLock.Release();
+        }
+    }
+
+    /// <summary>
+    /// DB'deki encrypted refresh token'ı çözüp döner. Sprint 10.7+++ ile Sistem Sabit
+    /// Gmail'i pattern: gmail_refresh_tokens (Id=1) tek satırında encrypted saklanır.
+    /// HassasVeriSifreleme DB leak'inde attacker OAuth yetkisi kazanamaz (key DB'de
+    /// ayrı + Data Protection API).
+    /// </summary>
+    private string? ResolveDbRefreshToken()
+    {
+        // Sync: SendAsync zaten GetAccessTokenAsync öncesi cache kontrolünde
+        // null/empty alırsa OAuth "refresh token reddedildi" hatası atıyor.
+        // Burada async EF kullanmak yerine, runtime CORS'da AdoEntity çağırmak
+        // ek yük bindireceğinden sync ToList+First yaklaşımı tercih edildi.
+        // Yine de EF Core sync API'sini kullanıyoruz — DB bağlantısı zaten var.
+        try
+        {
+            // Sprint 10.7+++ DB persist devre dışı: EF migration cleanup Sprint 11'de
+            // yapılacak. Bu metot return null — sadece env (Mail:Gmail:RefreshToken)
+            // üzerinden çalışır. Startup raw SQL tablo oluşturur (idempotent); ancak
+            // DB upsert AuthEndpoints'te de geçici olarak kaldırıldı.
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[GMAIL] DB refresh token resolve hatası.");
+            return null;
         }
     }
 

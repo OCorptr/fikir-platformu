@@ -6,6 +6,7 @@ using FikirPlatformu.Domain.Students;
 using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
+using FikirPlatformu.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -545,11 +546,10 @@ public static class AuthEndpoints
                 var json = System.Text.Json.JsonDocument.Parse(govde).RootElement;
                 var refreshToken = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
 
-                // Onur feedback: refresh_token'i ENV variable'a yazmak zahmetli.
-                // DB'ye kaydet: ilk SystemAdmin user'inin GmailAyarlari'na.
-                // Sprint 10.5 (Sprint 11'i beklet) - environment variable zorunlu
-                // oldugu icin yine de env var olarak da yazilmasi gerekiyor.
-                // Burada sadece bir basari redirect'i donduruyoruz.
+                // Sprint 10.7+++ DB persist devre dışı: EF migration cleanup Sprint 11'de.
+                // Startup'ta raw SQL tablo oluşturur; ancak DB upsert burada YAPILMIYOR.
+                // Sprint 11'de tamamlanacak — env fallback manuel kalır.
+
                 var basariPath = !string.IsNullOrWhiteSpace(returnTo)
                     ? returnTo
                     : "/";

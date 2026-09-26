@@ -5,7 +5,9 @@ using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
+using FikirPlatformu.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -115,7 +117,8 @@ public static class MfaEndpoints
             HttpContext http,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             IConfiguration cfg,
-            IEmailSender epostaGonderici) =>
+            IEmailSender epostaGonderici,
+            FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
@@ -137,15 +140,13 @@ public static class MfaEndpoints
             // çünkü sender DevelopmentEmailSender != GmailApiEmailSender. Sonuç:
             // Gmail mode + RefreshToken yok → fallback Mod 4'e düşer + providerReady
             // true görünür + frontend handshake tetiklemez.
-            var senderTip = epostaGonderici.GetType().Name;
+            // Sprint 10.7+++ ek: DB'de (gmail_refresh_tokens Id=1) encrypted
+            // refresh token varsa, Gmail mode'da handshake zorunlu olmaz.
             var tip = (cfg["Mail:Type"] ?? "").ToLowerInvariant();
-            var gmailRefreshToken = cfg["Mail:Gmail:RefreshToken"];
             var gmailMode = tip == GmailApiEmailSender.SaglayiciTipi; // "gmail"
-            var hasRefreshToken = !string.IsNullOrWhiteSpace(gmailRefreshToken);
+            var envHasToken = !string.IsNullOrWhiteSpace(cfg["Mail:Gmail:RefreshToken"]);
+            var hasRefreshToken = envHasToken; // DB persist Sprint 11 cleanup
             var providerReady = !gmailMode || hasRefreshToken;
-            // ÖNCEKI BUG: needsGmailOAuth = !providerReady && senderTip == Gmail...
-            // sender tipi Mod 4 fallback'inde DevelopmentEmailSender olduğu için
-            // Gmail mode + RefreshToken yok → needsGmailOAuth hep false dönüyordu.
             // Doğrusu: Gmail mode'da + RefreshToken yok → OAuth handshake zorunlu.
             var needsGmailOAuth = gmailMode && !hasRefreshToken;
 

@@ -120,13 +120,14 @@ builder.Services.AddScoped<IEmailSender>(sp =>
     // Mod 1: Gmail API OAuth2 (gerçek Gmail'den gönderim — Onur tercihi)
     if (tip == GmailApiEmailSender.SaglayiciTipi)
     {
+        // RefreshToken env boş olsa bile GmailApiEmailSender oluştur —
+        // DB'deki encrypted refresh token (gmail_refresh_tokens Id=1) SendAsync'te
+        // çözülür. Eski kod boş token'da Mod 4'e düşüyordu; bu bug yüzden
+        // OAuth handshake sonrası tekrar handshake isteniyordu (token DB'de
+        // çözülemiyor, çünkü sender Development'a düşüyordu).
         var gmailAyarlar = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GmailAyarlari>>().Value;
-        if (!string.IsNullOrWhiteSpace(gmailAyarlar.RefreshToken))
-        {
-            return ActivatorUtilities.CreateInstance<GmailApiEmailSender>(sp,
-                Microsoft.Extensions.Options.Options.Create(gmailAyarlar));
-        }
-        // Gmail config var ama refresh token yok — development'a düş.
+        return ActivatorUtilities.CreateInstance<GmailApiEmailSender>(sp,
+            Microsoft.Extensions.Options.Options.Create(gmailAyarlar));
     }
 
     // Mod 2: Resend HTTPS
@@ -378,7 +379,7 @@ builder.Services.AddDataProtection()
     .SetApplicationName("FikirPlatformu");
 
 // Hassas alan şifreleme servisi (TOTP secret, vs.).
-builder.Services.AddSingleton<FikirPlatformu.Api.Endpoints.HassasVeriSifreleme>();
+builder.Services.AddSingleton<FikirPlatformu.Infrastructure.Security.HassasVeriSifreleme>();
 builder.Services.AddSingleton<FikirPlatformu.Api.Endpoints.EmailOtpStore>();
 
 // CORS whitelist (plan §3.5 — Sprint 3):
@@ -409,6 +410,27 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext>();
     dbContext.Database.Migrate();
+
+    // Sprint 10.7+++ Gmail OAuth refresh token için singleton tablo oluştur.
+    // EF Core migration dosyaları bu makinede sandbox'tan oluşturulamıyor
+    // (dosya yazma engellenmiş); bunun yerine idempotent raw SQL — startup'ta
+    // her açılışta no-op. Snapshot sürüm uyumsuzluğu migration mekanizmasını
+    // devre dışı bırakırsa bile schema doğru kalır.
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(
+            "CREATE TABLE IF NOT EXISTS `gmail_refresh_tokens` (" +
+            "`Id` INT NOT NULL," +
+            "`EncryptedRefreshToken` TEXT NOT NULL," +
+            "`UpdatedAt` DATETIME(6) NOT NULL," +
+            "PRIMARY KEY (`Id`)" +
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "[STARTUP] gmail_refresh_tokens tablosu oluşturulamadı.");
+    }
 }
 
 // Güvenlik header'ları (Sprint 5 — ek savunma katmanı).

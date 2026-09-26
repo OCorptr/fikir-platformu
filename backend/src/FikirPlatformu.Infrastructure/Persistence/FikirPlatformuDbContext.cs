@@ -7,6 +7,8 @@ using FikirPlatformu.Domain.Implementations;
 using FikirPlatformu.Domain.Ministry;
 using FikirPlatformu.Domain.Moderation;
 using FikirPlatformu.Domain.Students;
+using FikirPlatformu.Infrastructure.Auth;
+using FikirPlatformu.Infrastructure.Persistence.Configurations;
 using FikirPlatformu.Infrastructure.Identity;
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
