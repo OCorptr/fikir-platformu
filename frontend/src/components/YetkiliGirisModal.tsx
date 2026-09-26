@@ -29,15 +29,18 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
   const [aktifOturum, setAktifOturum] = useState<LoginContext | null>(null);
+  const [oturumYukleniyor, setOturumYukleniyor] = useState(false);
 
   // Modal açıldığında: /me ile mevcut oturumun context'ini bul.
   // province / ministry / student — hangisi varsa form gizlenir.
   useEffect(() => {
     if (!acik) {
       setAktifOturum(null);
+      setOturumYukleniyor(false);
       return;
     }
     const controller = new AbortController();
+    setOturumYukleniyor(true); // Onur feedback: /me cevabı gelene kadar form GÖSTERİLMEZ
     me(controller.signal)
       .then((cevap) => {
         // Sıralı kontrol — province/ministry öncelik alır.
@@ -46,11 +49,31 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
         else if (sessionForContext(cevap, "student")) setAktifOturum("student");
         else setAktifOturum(null);
       })
-      .catch(() => setAktifOturum(null));
+      .catch(() => setAktifOturum(null))
+      .finally(() => setOturumYukleniyor(false));
     return () => controller.abort();
   }, [acik]);
 
   if (!acik) return null;
+
+  // /me cevabı bekleniyor — form banner gösterme (yanıltıcı olur).
+  if (oturumYukleniyor && aktifOturum === null) {
+    return (
+      <div className="yg-lightbox" role="dialog" aria-modal="true">
+        <div className="yg-kart">
+          <div className="yg-marka">
+            <img src="/assets/img/gencarge_logo.webp" alt="Genç AR-GE" />
+            <div>
+              <b>GELECEĞİN FİKRİ</b>
+              <small>Yetkili Girişi</small>
+            </div>
+          </div>
+          <h2 className="yg-baslik">Oturum kontrol ediliyor…</h2>
+          <p className="yg-alt">Lütfen bekleyin.</p>
+        </div>
+      </div>
+    );
+  }
 
   const oturumEtiketi =
     aktifOturum === "ministry" ? "Bakanlık"

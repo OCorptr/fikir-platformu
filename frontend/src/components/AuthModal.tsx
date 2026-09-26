@@ -60,22 +60,26 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
   const [yetkiliOturumAcik, setYetkiliOturumAcik] = useState<LoginContext | null>(null);
+  const [yetkiliOturumYukleniyor, setYetkiliOturumYukleniyor] = useState(false);
 
   // Cross-context guard: Modal her açılışında /me çağırır. Province/ministry
   // session varsa öğrenci login yapılamaz — banner + logout butonu göster.
   useEffect(() => {
     if (!acik) {
       setYetkiliOturumAcik(null);
+      setYetkiliOturumYukleniyor(false);
       return;
     }
     const controller = new AbortController();
+    setYetkiliOturumYukleniyor(true); // Onur feedback: /me cevabı gelene kadar form gösterilmez
     me(controller.signal)
       .then((cevap) => {
         if (sessionForContext(cevap, "ministry")) setYetkiliOturumAcik("ministry");
         else if (sessionForContext(cevap, "province")) setYetkiliOturumAcik("province");
         else setYetkiliOturumAcik(null);
       })
-      .catch(() => setYetkiliOturumAcik(null));
+      .catch(() => setYetkiliOturumAcik(null))
+      .finally(() => setYetkiliOturumYukleniyor(false));
     return () => controller.abort();
   }, [acik]);
 
@@ -111,6 +115,26 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   }, [acik]);
 
   if (!acik) return null;
+
+  // Onur feedback (Sprint 10.4): /me cevabı bekleniyorsa spinner göster,
+  // form VEYA banner gösterme (yanıltıcı olur).
+  if (yetkiliOturumYukleniyor && yetkiliOturumAcik === null) {
+    return (
+      <div
+        className={`af-lightbox ${arkadaMi ? "af-lightbox-arkada" : ""}`}
+        role="dialog"
+        aria-modal="true"
+      >
+        <div className="fikir-karti auth-modal-kart">
+          <h1 className="auth-modal-baslik">
+            <span style={{ color: "#1f9fa4" }}>Fikrine</span>{" "}
+            <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
+          </h1>
+          <p className="balon">Oturum kontrol ediliyor…</p>
+        </div>
+      </div>
+    );
+  }
 
   // Onur feedback (Sprint 10.3): Yetkili oturum açıksa öğrenci login yapılamaz.
   // Sadece banner + 'Çıkış yap' göster, normal auth akışını render etme.

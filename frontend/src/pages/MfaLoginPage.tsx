@@ -220,14 +220,10 @@ export function MfaLoginPage() {
       <h1>{baslik}</h1>
       <p className="mfa-aciklama">{aciklama}</p>
 
-      {/* Development modunda backend OTP kodunu response'a koyar — input otomatik dolar;
-          üretim SMTP aktifse bu banner hiç gösterilmez (devCode null gelir). */}
-      {emailModu && emailGonderildi && kod.length === 6 && (
-        <div className="mfa-dev-banner" role="status">
-          🛠️ Demo ortamı: SMTP yapılandırılmamış, kod otomatik input'a yazıldı.
-          Doğrudan <b>Giriş yap</b>'a tıklayabilirsiniz.
-        </div>
-      )}
+      {/* Onur feedback (Sprint 10.4): Demo banner kaldırıldı.
+          Kod otomatik input'a yazılsa bile kullanıcı "Demo" yazısını görmesin.
+          Gerekmez — Production SMTP aktifse zaten bu blok render edilmez.
+          devCode kullanımı input auto-fill için kullanılır, banner için değil. */}
 
       <form className="mfa-form" onSubmit={handleOnayla}>
         <label className="mfa-alan">
