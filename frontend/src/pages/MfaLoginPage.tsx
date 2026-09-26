@@ -7,11 +7,16 @@
 // Koruma: giriş yapmamış kullanıcı bu sayfayı açamaz.
 // Kullanıcı /me veya /api/auth/mfa/method 401/403 alırsa /giris'e
 // yönlendirilir (Yetkili Girişi modalı orada açılır).
+//
+// Deployment test (Sprint 10.7): yeni bundle hash çıkması için
+// canonical değişiklik.
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { mfaCancel, mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
+
+/* Deployment test (Sprint 10.7) */
 
 type Method = "Totp" | "Email" | "Bilinmiyor";
 type Ekran = "secim" | "giris";
@@ -21,6 +26,8 @@ type Ekran = "secim" | "giris";
 function authHatasiMi(hata: unknown): boolean {
   return hata instanceof ApiHttpError && (hata.status === 401 || hata.status === 403);
 }
+
+// Sprint 10.7 deployment marker — bundle hash should be different from Bpou4Cts
 
 export function MfaLoginPage() {
   const navigate = useNavigate();
@@ -35,6 +42,11 @@ export function MfaLoginPage() {
   const [cooldown, setCooldown] = useState(0); // saniye
   const [providerReady, setProviderReady] = useState(true);
   const [needsGmailOAuth, setNeedsGmailOAuth] = useState(false);
+  // Onur feedback (Sprint 10.7+): initial state TRUE. /method cevabı gelene
+  // kadar form render ETME — yoksa PreMfa cookie yokken bile sayfa açılıyor
+  // (1-2 frame flash) ve Çıkış - Ana Sayfa sonrası URL'den yazınca yine
+  // giriyor (gerçekten giriyor, sadece sonra yönlendiriliyor).
+  const [yukleniyor, setYukleniyor] = useState(true);
 
   // Sayfa açıldığında: PreMfa cookie'si var mı? Backend'e method sor.
   // 401/403 → kullanıcı authenticated değil veya MFA cookie süresi dolmuş
@@ -48,6 +60,7 @@ export function MfaLoginPage() {
         // Onur feedback (Sprint 10.5): Gmail OAuth handshake durumunu da al.
         if (typeof m.providerReady === "boolean") setProviderReady(m.providerReady);
         if (typeof m.needsGmailOAuth === "boolean") setNeedsGmailOAuth(m.needsGmailOAuth);
+        setYukleniyor(false);
       })
       .catch((e) => {
         if (authHatasiMi(e)) {
@@ -57,6 +70,7 @@ export function MfaLoginPage() {
         }
         // Ağ hatası vb. → seçim ekranı yine de açılsın (rozet olmadan).
         setKayitliYontem(null);
+        setYukleniyor(false);
       });
     return () => controller.abort();
   }, [navigate]);
@@ -177,6 +191,18 @@ export function MfaLoginPage() {
     } finally {
       setCalisiyor(false);
     }
+  }
+
+  // === YÜKLENİYOR (auth kontrol ediliyor) ===
+  // Onur feedback (Sprint 10.7+): /method cevabı gelmeden form render
+  // ETME. PreMfa cookie yoksa 401 → /giris'e yönlendirilecek; bu ekran
+  // kullanıcıya hiç gösterilmemeli (race condition + form flash yok).
+  if (yukleniyor) {
+    return (
+      <main className="sayfa-ortak mfa-login">
+        <p className="mfa-aciklama">Oturum kontrol ediliyor…</p>
+      </main>
+    );
   }
 
   // === SEÇİM EKRANI ===

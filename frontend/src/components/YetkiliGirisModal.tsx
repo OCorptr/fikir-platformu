@@ -33,8 +33,11 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   // useEffect mount olunca setOturumYukleniyor(false) ancak me() cevabı ile.
   const [oturumYukleniyor, setOturumYukleniyor] = useState(true);
 
-  // Modal açıldığında: /me ile mevcut oturumun context'ini bul.
-  // province / ministry / student — hangisi varsa form gizlenir.
+  // Modal açıldığında: önce PreMfa cookie var mı kontrol et (MFA halfway
+  // state). Varsa → /mfa-login'e yönlendir (Onur feedback: MFA devam
+  // ederken yetkili login yapılabilmesin). Yoksa /me ile mevcut oturumun
+  // context'ini bul. province / ministry / student — hangisi varsa form
+  // gizlenir.
   useEffect(() => {
     if (!acik) {
       setAktifOturum(null);
@@ -42,15 +45,27 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
       return;
     }
     const controller = new AbortController();
-    me(controller.signal)
-      .then((cevap) => {
-        if (sessionForContext(cevap, "ministry")) setAktifOturum("ministry");
-        else if (sessionForContext(cevap, "province")) setAktifOturum("province");
-        else if (sessionForContext(cevap, "student")) setAktifOturum("student");
-        else setAktifOturum(null);
+    // Önce MFA halfway kontrolü: PreMfa cookie varsa /mfa-login'e at.
+    mfaGetMethod()
+      .then(() => {
+        // PreMfa cookie mevcut → MFA akışı devam ediyor, login yapılamaz.
+        onKapat();
+        navigate("/mfa-login", { replace: true });
       })
-      .catch(() => setAktifOturum(null))
-      .finally(() => setOturumYukleniyor(false));
+      .catch((e) => {
+        if (!(e instanceof DOMException && e.name === "AbortError")) {
+          // PreMfa cookie yok veya hata — /me ile mevcut oturumu kontrol et.
+          me(controller.signal)
+            .then((cevap) => {
+              if (sessionForContext(cevap, "ministry")) setAktifOturum("ministry");
+              else if (sessionForContext(cevap, "province")) setAktifOturum("province");
+              else if (sessionForContext(cevap, "student")) setAktifOturum("student");
+              else setAktifOturum(null);
+            })
+            .catch(() => setAktifOturum(null))
+            .finally(() => setOturumYukleniyor(false));
+        }
+      });
     return () => controller.abort();
   }, [acik]);
 
