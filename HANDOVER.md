@@ -71,7 +71,15 @@ Frontend__BaseUrl=https://fikir-platformu-web.onrender.com
 
 ---
 
-## 📜 Sprint Tarihçesi (HEAD: `b9361ae`)
+## 📜 Sprint Tarihçesi (HEAD: `69b14dd`)
+
+### Sprint 10.7++ — CORS fix + Modal close/reopen
+- **`69b14dd`** Backend: CORS middleware order + default origins fallback
+  - Root cause: `Cors__AllowedOrigins` Render env'de YOK'tu → `UseCors()` hiç çağrılmıyor, cross-origin 401 (CORS)
+  - Fix 1: env yoksa development=localhost:5173/5174, production=https://fikir-platformu-web.onrender.com
+  - Fix 2: `app.UseCors(...)` satırı `app.UseAuthentication()`'dan **ÖNCE** taşındı (Microsoft Learn: UseCors after UseRouting, before UseAuthorization)
+  - Dogrulama: playwright-cli /api/auth/mfa/method OPTIONS preflight artik basarili, 401 response donuyor (PreMfa yok, expected)
+  - Modal yetkili flow: 1. tiklama → acildi, Kapat → kapandi, 2. tiklama → acildi (bug yok)
 
 ### Sprint 9 — SystemAdmin + MFA setup/verify
 - Commits: `a3b276d`, `3da1276`, `c909db1`, `c28e1ad`, `fceee50`, `0f2092a`, `c8772a3`, `b81f044`
@@ -210,6 +218,17 @@ Onur test makinesinde:
 | 🟢 Düşük | Sprint 4 T36 (GUI per-volume selector) — O-Freeze legacy | Backlog |
 
 ---
+
+## 🧰 Yüklü Araçlar (Sprint 10.7++)
+
+- **OpenCode skills (`.claude/skills/`, gitignored):**
+  - `image-to-code` — taste-skill (Leonxlnx)
+  - `playwright-cli` — microsoft (binary: `@playwright/cli` v0.1.21 global)
+  - `web-design-guidelines` — vercel-labs
+- **Referans klonlar (`.tools/`, gitignored):**
+  - `taste-skill/` `agent-skills/` `awesome-design-md/` `playwright-cli/` 
+
+Kullanım: `playwright-cli open`/`goto`/`click eN`/`fill eN "x"`/`snapshot`/`close`.
 
 ## 🛠️ Yaygın Komutlar (Cheat Sheet)
 
