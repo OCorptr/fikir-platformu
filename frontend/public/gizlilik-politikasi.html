@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gizlilik Politikası — Geleceğin Fikri</title>
+<meta name="description" content="Geleceğin Fikri platformu gizlilik politikası — kişisel verilerin nasıl toplandığı, işlendiği ve korunduğu hakkında bilgilendirme.">
+<style>
+:root {
+  --lacivert: #16355C;
+  --vurgu: #c0392b;
+  --arka: #f6f8fb;
+  --metin: #1a1a1a;
+  --acik: #555;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif;
+  line-height: 1.65;
+  color: var(--metin);
+  background: var(--arka);
+}
+header {
+  background: var(--lacivert);
+  color: #fff;
+  padding: 1.4rem 1rem;
+  text-align: center;
+  box-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.15);
+}
+header h1 { margin: 0; font-size: 1.4rem; font-weight: 800; }
+header small { display: block; margin-top: 0.3rem; opacity: 0.85; font-size: 0.85rem; }
+main {
+  max-width: 52rem;
+  margin: 2rem auto;
+  padding: 0 1rem 2rem;
+}
+h2 {
+  color: var(--lacivert);
+  border-bottom: 0.1rem solid rgba(22,53,92,0.18);
+  padding-bottom: 0.4rem;
+  margin-top: 2rem;
+  font-size: 1.2rem;
+}
+h3 { color: var(--lacivert); margin-top: 1.4rem; font-size: 1rem; }
+p, li { font-size: 0.95rem; color: var(--metin); }
+ul, ol { padding-left: 1.4rem; }
+.cta {
+  margin-top: 2rem;
+  background: #fff;
+  border-left: 0.3rem solid var(--vurgu);
+  padding: 1rem 1.2rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.geri {
+  display: inline-block;
+  margin-top: 1.6rem;
+  color: var(--lacivert);
+  text-decoration: none;
+  font-weight: 700;
+  border: 0.1rem solid var(--lacivert);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+}
+.geri:hover { background: var(--lacivert); color: #fff; }
+@media (max-width: 32rem) {
+  header h1 { font-size: 1.15rem; }
+  main { margin-top: 1rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Gizlilik Politikası</h1>
+  <small>Son güncelleme: Eylül 2026 · Geleceğin Fikri</small>
+</header>
+<main>
+
+<h2>1. Veri Sorumlusu</h2>
+<p>
+Bu politika, Türkiye Cumhuriyeti Millî Eğitim Bakanlığı bünyesinde
+yürütülen <strong>"Geleceğin Fikri"</strong> dijital fikir paylaşım
+platformu kapsamında kişisel verilerin işlenmesine ilişkin
+yükümlülükleri kapsar.
+</p>
+
+<h2>2. Toplanan Kişisel Veriler</h2>
+<p>Platform aşağıdaki kişisel verileri yalnızca hizmetin sunulabilmesi için toplar:</p>
+<ul>
+  <li><strong>Kimlik</strong>: ad, soyad</li>
+  <li><strong>İletişim</strong>: e-posta adresi (kimlik doğrulama + MFA OTP bildirimleri)</li>
+  <li><strong>Okul bilgisi</strong>: okul adı, sınıf, okul numarası (öğrenci hesapları için)</li>
+  <li><strong>Giriş kayıtları</strong>: IP adresi, tarayıcı bilgisi, giriş zamanı, MFA yöntemi (güvenlik denetimi için)</li>
+  <li><strong>Fikir içeriği</strong>: öğrencilerin gönderdiği fikir metinleri</li>
+</ul>
+
+<h2>3. Verilerin İşlenme Amaçları</h2>
+<ul>
+  <li>Yetkili giriş ve kimlik doğrulama (şifre + MFA)</li>
+  <li>İki adımlı doğrulama (TOTP veya e-posta OTP) bildirimleri</li>
+  <li>Fikir değerlendirme ve atama süreçleri</li>
+  <li>Güvenlik denetimi ve kötüye kullanımın önlenmesi</li>
+  <li>Yasal yükümlülüklerin yerine getirilmesi (6698 sayılı KVKK kapsamında)</li>
+</ul>
+
+<h2>4. Verilerin Saklanma Süresi</h2>
+<ul>
+  <li>Hesap verileri: hesap aktif olduğu sürece + silindikten 2 yıl sonra</li>
+  <li>Giriş kayıtları (auth_events): 2 yıl (güvenlik denetimi için)</li>
+  <li>Fikir içerikleri: dönem sonuna kadar + arşiv (onaylı fikirler için 5 yıl)</li>
+</ul>
+
+<h2>5. Verilerin Paylaşımı</h2>
+<p>
+Veriler <strong>üçüncü taraflarla paylaşılmaz</strong>; yalnızca platformun
+barındırıldığı altyapı sağlayıcısı (Render Inc. - Frankfurt) ve e-posta
+iletimi için kullanılan SMTP / Gmail API sağlayıcısı ile sınırlı
+ölçüde paylaşılır. Veri sorumlusu yasal zorunluluk hâli hariç veri
+aktarımı yapmaz.
+</p>
+
+<h2>6. MFA ve E-posta Bildirimleri</h2>
+<p>
+İki adımlı doğrulama için kullanılan e-posta OTP bildirimleri,
+yapılandırılmış SMTP / Gmail API (OAuth2) üzerinden iletilir.
+Bu süreçte e-posta adresiniz ve gönderim zamanı işlenir.
+OTP kodunuz <strong>5 dakika</strong> geçerlidir ve yalnızca sizin
+tarafınızdan görülebilir.
+</p>
+
+<h2>7. Çerezler (Cookies)</h2>
+<p>
+Platform, kimlik doğrulama için zorunlu çerezler kullanır:
+</p>
+<ul>
+  <li><code>.AspNetCore.Identity.Application</code> — öğrenci oturumu</li>
+  <li><code>.FikirProvince.Auth</code> — il yöneticisi oturumu</li>
+  <li><code>.FikirMinistry.Auth</code> — bakanlık oturumu</li>
+  <li><code>.FikirPreMfa.Auth</code> — MFA öncesi geçici oturum (10dk)</li>
+  <li><code>.FikirOAuthState</code> — OAuth2 handshake CSRF koruması</li>
+</ul>
+<p>Üçüncü taraf analitik/reklam çerezi kullanılmaz.</p>
+
+<h2>8. Haklarınız (KVKK Madde 11)</h2>
+<p>Veri sahibi olarak aşağıdaki haklara sahipsiniz:</p>
+<ul>
+  <li>Kişisel verilerinizin işlenip işlenmediğini öğrenme</li>
+  <li>İşlenmişse buna ilişkin bilgi talep etme</li>
+  <li>İşlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme</li>
+  <li>Yurt içinde/dışında aktarıldığı tarafları öğrenme</li>
+  <li>Eksik/yanlış işlenen verilerin düzeltilmesini isteme</li>
+  <li>Şartlar oluştuğunda silinmesini/yok edilmesini isteme</li>
+</ul>
+
+<h2>9. İletişim</h2>
+<p>
+Gizlilikle ilgili sorularınız için sistem yöneticinizle iletişime geçin.
+Fikir Platformu <code>fikir.platformu.iletisim@gmail.com</code> adresinden
+yönetilir.
+</p>
+
+<div class="cta">
+ℹ️ Bu politika, 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK)
+ve ilgili mevzuat çerçevesinde hazırlanmıştır.
+</div>
+
+<a class="geri" href="/">← Ana sayfaya dön</a>
+</main>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kullanım Koşulları — Geleceğin Fikri</title>
+<meta name="description" content="Geleceğin Fikri platformu kullanım koşulları — hesap sorumlulukları, MFA zorunluluğu, kabul edilebilir kullanım kuralları.">
+<style>
+:root {
+  --lacivert: #16355C;
+  --vurgu: #c0392b;
+  --arka: #f6f8fb;
+  --metin: #1a1a1a;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Nunito', 'Segoe UI', Tahoma, sans-serif;
+  line-height: 1.65;
+  color: var(--metin);
+  background: var(--arka);
+}
+header {
+  background: var(--lacivert);
+  color: #fff;
+  padding: 1.4rem 1rem;
+  text-align: center;
+  box-shadow: 0 0.2rem 0.8rem rgba(0,0,0,0.15);
+}
+header h1 { margin: 0; font-size: 1.4rem; font-weight: 800; }
+header small { display: block; margin-top: 0.3rem; opacity: 0.85; font-size: 0.85rem; }
+main { max-width: 52rem; margin: 2rem auto; padding: 0 1rem 2rem; }
+h2 {
+  color: var(--lacivert);
+  border-bottom: 0.1rem solid rgba(22,53,92,0.18);
+  padding-bottom: 0.4rem;
+  margin-top: 2rem;
+  font-size: 1.2rem;
+}
+p, li { font-size: 0.95rem; color: var(--metin); }
+ul, ol { padding-left: 1.4rem; }
+.uyari {
+  margin-top: 1.6rem;
+  background: #fff7e1;
+  border-left: 0.3rem solid #f4c542;
+  padding: 1rem 1.2rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.geri {
+  display: inline-block;
+  margin-top: 1.6rem;
+  color: var(--lacivert);
+  text-decoration: none;
+  font-weight: 700;
+  border: 0.1rem solid var(--lacivert);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.9rem;
+}
+.geri:hover { background: var(--lacivert); color: #fff; }
+code { background: rgba(22,53,92,0.07); padding: 0.05rem 0.3rem; border-radius: 0.2rem; font-family: ui-monospace, monospace; }
+@media (max-width: 32rem) {
+  header h1 { font-size: 1.15rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Kullanım Koşulları</h1>
+  <small>Son güncelleme: Eylül 2026 · Geleceğin Fikri</small>
+</header>
+<main>
+
+<h2>1. Kabul</h2>
+<p>
+Bu platform (<strong>"Geleceğin Fikri"</strong>) Türkiye Cumhuriyeti
+Millî Eğitim Bakanlığı bünyesinde öğrenci, il yöneticisi ve bakanlık
+yetkililerinin kullanımına sunulmuştur. Platforma giriş yaparak aşağıdaki
+koşulları kabul etmiş sayılırsınız.
+</p>
+
+<h2>2. Hesap Türleri ve MFA Zorunluluğu</h2>
+<ul>
+  <li><strong>Öğrenci hesabı</strong>: MFA isteğe bağlıdır, ancak etkinleştirilmesi önerilir.</li>
+  <li><strong>İl yöneticisi / Bakanlık yetkilisi hesabı</strong>: MFA <strong>zorunludur</strong> (yetkili rolleri için iki adımlı doğrulama mevzuat gereği zorunludur).</li>
+  <li>MFA yöntemi olarak TOTP (Google / Microsoft Authenticator) veya e-posta OTP kullanılabilir.</li>
+  <li>MFA secret'ları AES-256 ile şifrelenmiş biçimde veritabanında saklanır.</li>
+</ul>
+
+<h2>3. CAPTCHA Doğrulama</h2>
+<p>
+Tüm girişlerde CAPTCHA doğrulaması zorunludur (bot saldırılarına karşı).
+CAPTCHA 5 dakika geçerlidir; tek doğru cevap ile geçilir.
+</p>
+
+<h2>4. Kabul Edilebilir Kullanım</h2>
+<p>Kullanıcılar aşağıdakileri yapmamalıdır:</p>
+<ol>
+  <li>Başka kullanıcıların hesaplarına yetkisiz erişim girişimi (5 deneme/dakika rate-limit uygulanır).</li>
+  <li>Zararlı içerik, hakaret, küfür yayınlanması (profanity filter otomatik engelleme yapar).</li>
+  <li>Sahte kimlik veya okul bilgisi ile kayıt açılması.</li>
+  <li>Platformu otomatik araçlarla (bot) taramaya veya yük binmeye çalışmak.</li>
+  <li>Brute-force veya credential stuffing saldırıları.</li>
+</ol>
+
+<h2>5. Hesap Güvenliği</h2>
+<ul>
+  <li>Şifreniz 8+ karakter, büyük/küçük harf, rakam ve özel karakter içermelidir.</li>
+  <li>MFA secret'larınız <strong>kimseyle paylaşmayın</strong>. Platform yetkilileri dahi bu bilgileri talep etmez.</li>
+  <li>Şüpheli giriş tespit edilirse hesap otomatik kilitlenir (Identity lockout, 5 dakika).</li>
+</ul>
+
+<h2>6. Hesap Askıya Alma</h2>
+<p>
+Aşağıdaki durumlarda hesabınız sistem yöneticisi tarafından askıya alınabilir:
+</p>
+<ul>
+  <li>90 gün üst üste giriş yapılmadığında otomatik pasifleştirme (kilitleme, değil silme değil).</li>
+  <li>Yasal ihlal veya kötüye kullanım tespitinde.</li>
+  <li>Kişisel veri ihlali tespitinde geçici askıya alma.</li>
+</ul>
+
+<h2>7. Sorumluluk Sınırı</h2>
+<p>
+Platform "olduğu gibi" sunulmaktadır. Altyapı kesintisi, bakım veya
+mücbir sebeplerle erişim kesintilerinden dolayı sorumluluk kabul
+edilmez. Veri kaybını önlemek için giriş kayıtları ve fikir
+içerikleri düzenli olarak yedeklenir.
+</p>
+
+<h2>8. İletişim ve Destek</h2>
+<p>
+Teknik destek ve hesap sorunları için:
+<code>fikir.platformu.iletisim@gmail.com</code>
+</p>
+
+<div class="uyari">
+⚠️ <strong>MFA secret'ınızı kaybettiyseniz:</strong> Sistem yöneticisine
+<code>fikir.platformu.iletisim@gmail.com</code> üzerinden kimlik
+doğrulama ile başvurun. MFA reset işlemi kimlik doğrulama sonrası
+yapılır.
+</div>
+
+<a class="geri" href="/">← Ana sayfaya dön</a>
+</main>
+</body>
+</html>
