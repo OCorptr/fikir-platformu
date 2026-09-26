@@ -803,6 +803,8 @@ input[type="range"] {
 }
 
 /* === MFA login — method choice screen (Sprint 10 fix) === */
+/* Yetkili Girişi lacivert temasıyla uyumlu: koyu lacivert kartlar,
+   beyaz yazı, altın "Önerilen" rozeti. */
 .mfa-secim {
   max-width: 36rem;
 }
@@ -820,57 +822,76 @@ input[type="range"] {
 .mfa-yontem-kart {
   position: relative;
   text-align: left;
-  background: #fff;
-  border: 2px solid #d0d7de;
-  border-radius: 0.7rem;
-  padding: 1.2rem 1rem;
+  background: var(--lacivert, #16355C);
+  color: #fff;
+  border: 2px solid #1f4a7a;
+  border-radius: 0.85rem;
+  padding: 1.25rem 1.1rem;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.45rem;
   font: inherit;
-  color: inherit;
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+  transition: transform 0.08s, box-shadow 0.15s, border-color 0.15s;
+  box-shadow: 0 0.25rem 0.7rem rgba(22, 53, 92, 0.18);
 }
 .mfa-yontem-kart:hover:not(:disabled) {
-  border-color: var(--lacivert, #1a3a6c);
-  box-shadow: 0 0.2rem 0.8rem rgba(26, 58, 108, 0.12);
+  transform: translateY(-2px);
+  border-color: #2c5d96;
+  box-shadow: 0 0.5rem 1.1rem rgba(22, 53, 92, 0.32);
 }
 .mfa-yontem-kart:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(0);
 }
 .mfa-yontem-kart:focus-visible {
-  outline: 2px solid var(--lacivert, #1a3a6c);
+  outline: 2px solid #fff;
   outline-offset: 2px;
 }
+/* Önerilen kart — koyu lacivertten açık laciverte gradient,
+   beyaz yazı + altın vurgu rozeti. */
 .mfa-yontem-kart.onerilen {
-  border-color: var(--lacivert, #1a3a6c);
-  background: linear-gradient(180deg, #f5f8fc 0%, #ffffff 60%);
+  background: linear-gradient(155deg, #1f4a7a 0%, #16355C 65%, #0d2440 100%);
+  border-color: #f4c542;
+  box-shadow: 0 0.5rem 1.4rem rgba(244, 197, 66, 0.18), 0 0.25rem 0.7rem rgba(22, 53, 92, 0.25);
+}
+.mfa-yontem-kart.onerilen::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(244, 197, 66, 0.5);
 }
 .mfa-yontem-ikon {
-  font-size: 1.8rem;
+  font-size: 1.85rem;
   line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.25));
 }
 .mfa-yontem-baslik {
-  font-weight: 600;
-  font-size: 1.05rem;
-  color: #1a3a6c;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.01em;
 }
 .mfa-yontem-aciklama {
   font-size: 0.82rem;
-  color: #555;
-  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.4;
 }
 .mfa-yontem-rozet {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
-  background: var(--lacivert, #1a3a6c);
-  color: #fff;
-  font-size: 0.7rem;
-  padding: 0.15rem 0.5rem;
+  top: -0.55rem;
+  right: 0.7rem;
+  background: #f4c542;
+  color: #16355C;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.7rem;
   border-radius: 999px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 0.15rem 0.4rem rgba(0, 0, 0, 0.2);
 }
 
 /* === MFA login — giriş ekranı (method seçildikten sonra) === */
