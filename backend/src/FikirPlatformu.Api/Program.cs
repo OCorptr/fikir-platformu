@@ -96,22 +96,41 @@ builder.Services.AddScoped<SubmitImplementationReportService>();
 builder.Services.AddScoped<IImplementationSummaryQueryService, ImplementationSummaryQueryService>();
 builder.Services.AddScoped<IProfanityFilter, DatabaseProfanityFilter>();
 builder.Services.AddScoped<SubmitIdeaService>();
-// E-posta gönderici seçimi — 3 mod:
-//   1) Mail__Type=resend + Mail__Pass=API_KEY → ResendHttpEmailSender (HTTPS 443, garantili)
-//   2) Mail__Host (veya SMTP_HOST) → SmtpEmailSender (SMTP 587)
-//   3) Hiçbiri yok → DevelopmentEmailSender (log'a düşer, demo için)
+// E-posta gönderici seçimi — 4 mod:
+//   1) Mail__Type=gmail + Mail__Gmail__* config → GmailApiEmailSender (OAuth2 HTTPS 443)
+//   2) Mail__Type=resend + Mail__Pass=API_KEY → ResendHttpEmailSender (HTTPS 443)
+//   3) Mail__Host (veya SMTP_HOST) → SmtpEmailSender (SMTP 587 — Render free'de bloklu)
+//   4) Hiçbiri yok → DevelopmentEmailSender (log'a düşer, demo için)
 builder.Services.AddHttpClient<ResendHttpEmailSender>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(15);
     client.DefaultRequestHeaders.UserAgent.ParseAdd("FikirPlatformu/1.0");
 });
+builder.Services.AddHttpClient<GmailApiEmailSender>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(15);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("FikirPlatformu/1.0");
+});
+builder.Services.Configure<GmailAyarlari>(builder.Configuration.GetSection("Mail:Gmail"));
 builder.Services.AddScoped<IEmailSender>(sp =>
 {
     var yeni = builder.Configuration.GetSection("Mail");
     var tip = (yeni["Type"] ?? "").ToLowerInvariant();
-    var pass = yeni["Pass"] ?? builder.Configuration["SMTP_PASS"];
 
-    // Mod 1: Resend HTTPS (önerilen — SMTP port bloklaması yok)
+    // Mod 1: Gmail API OAuth2 (gerçek Gmail'den gönderim — Onur tercihi)
+    if (tip == GmailApiEmailSender.SaglayiciTipi)
+    {
+        var gmailAyarlar = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<GmailAyarlari>>().Value;
+        if (!string.IsNullOrWhiteSpace(gmailAyarlar.RefreshToken))
+        {
+            return ActivatorUtilities.CreateInstance<GmailApiEmailSender>(sp,
+                Microsoft.Extensions.Options.Options.Create(gmailAyarlar));
+        }
+        // Gmail config var ama refresh token yok — development'a düş.
+    }
+
+    // Mod 2: Resend HTTPS
+    var pass = yeni["Pass"] ?? builder.Configuration["SMTP_PASS"];
     if (tip == ResendHttpEmailSender.SaglayiciTipi && !string.IsNullOrWhiteSpace(pass))
     {
         var ayarlar = Microsoft.Extensions.Options.Options.Create(new MailAyarlari
@@ -124,7 +143,7 @@ builder.Services.AddScoped<IEmailSender>(sp =>
         return ActivatorUtilities.CreateInstance<ResendHttpEmailSender>(sp, ayarlar);
     }
 
-    // Mod 2: SMTP (Mail__Host veya SMTP_HOST varsa)
+    // Mod 3: SMTP (Render free'de port bloklu, fallback olarak duruyor)
     var host = yeni["Host"] ?? builder.Configuration["SMTP_HOST"];
     if (!string.IsNullOrWhiteSpace(host))
     {
@@ -144,7 +163,7 @@ builder.Services.AddScoped<IEmailSender>(sp =>
         return ActivatorUtilities.CreateInstance<SmtpEmailSender>(sp, mailOpts);
     }
 
-    // Mod 3: Development fallback
+    // Mod 4: Development fallback
     return ActivatorUtilities.CreateInstance<DevelopmentEmailSender>(sp);
 });
 // Background job: auth_events 2 yıl retention (plan §1.7).

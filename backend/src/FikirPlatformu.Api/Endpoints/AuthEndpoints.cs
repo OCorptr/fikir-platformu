@@ -3,6 +3,7 @@ using System.Security.Claims;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Domain.Students;
+using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication;
@@ -448,6 +449,94 @@ public static class AuthEndpoints
                     .GroupBy(e => e.Code)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
         });
+
+        // ===== Gmail OAuth2 (Sprint 10.1) — SystemAdmin-only tek seferlik kurulum =====
+        // /api/auth/gmail-oauth/start → Google OAuth URL'ine redirect eder.
+        //  Kullanici Google'da onay verince /api/auth/gmail-oauth/callback'e döner,
+        //  refresh_token JSON response olarak verilir (Render env var'a yapistirilir).
+        var gmailAyarlari = app.ServiceProvider.GetService<Microsoft.Extensions.Options.IOptions<GmailAyarlari>>();
+        var gmailClientId = gmailAyarlari?.Value.ClientId;
+
+        if (!string.IsNullOrWhiteSpace(gmailClientId))
+        {
+            // OAuth2 authorize URL (gmail.send scope)
+            grup.MapGet("/gmail-oauth/start", (HttpContext http, IConfiguration cfg) =>
+            {
+                var clientId = cfg["Mail:Gmail:ClientId"];
+                var redirectUri = cfg["Mail:Gmail:RedirectUri"]
+                    ?? $"{http.Request.Scheme}://{http.Request.Host}/api/auth/gmail-oauth/callback";
+                var state = Guid.NewGuid().ToString("N"); // basit CSRF token
+                http.Response.Cookies.Append(".FikirOAuthState", state, new CookieOptions
+                {
+                    HttpOnly = true,
+                    SameSite = SameSiteMode.Lax,
+                    Secure = http.Request.IsHttps,
+                    Expires = DateTimeOffset.UtcNow.AddMinutes(10),
+                    Path = "/",
+                });
+                var authUrl = "https://accounts.google.com/o/oauth2/v2/auth"
+                    + $"?client_id={Uri.EscapeDataString(clientId!)}"
+                    + $"&redirect_uri={Uri.EscapeDataString(redirectUri)}"
+                    + "&response_type=code"
+                    + "&scope=" + Uri.EscapeDataString("https://www.googleapis.com/auth/gmail.send")
+                    + "&access_type=offline"
+                    + "&prompt=consent" // her seferinde refresh_token almak için
+                    + $"&state={state}";
+                return Results.Redirect(authUrl);
+            });
+
+            // OAuth2 callback — code'u refresh_token ile degis tokun
+            grup.MapGet("/gmail-oauth/callback", async (
+                HttpContext http,
+                IConfiguration cfg,
+                IHttpClientFactory httpFactory) =>
+            {
+                var code = http.Request.Query["code"].ToString();
+                var state = http.Request.Query["state"].ToString();
+                var stateCookie = http.Request.Cookies[".FikirOAuthState"];
+
+                if (string.IsNullOrWhiteSpace(code))
+                {
+                    return Results.Json(new { error = "code parametresi yok — Google onay iptal edilmiş." }, statusCode: 400);
+                }
+                if (string.IsNullOrWhiteSpace(state) || state != stateCookie)
+                {
+                    return Results.Json(new { error = "state uyumsuz — CSRF koruması." }, statusCode: 400);
+                }
+
+                var clientId = cfg["Mail:Gmail:ClientId"];
+                var clientSecret = cfg["Mail:Gmail:ClientSecret"];
+                var redirectUri = cfg["Mail:Gmail:RedirectUri"]
+                    ?? $"{http.Request.Scheme}://{http.Request.Host}/api/auth/gmail-oauth/callback";
+
+                var client = httpFactory.CreateClient();
+                var tokenYanit = await client.PostAsync(
+                    "https://oauth2.googleapis.com/token",
+                    new FormUrlEncodedContent(new Dictionary<string, string>
+                    {
+                        ["client_id"] = clientId!,
+                        ["client_secret"] = clientSecret!,
+                        ["code"] = code,
+                        ["grant_type"] = "authorization_code",
+                        ["redirect_uri"] = redirectUri,
+                    }));
+
+                var govde = await tokenYanit.Content.ReadAsStringAsync();
+                if (!tokenYanit.IsSuccessStatusCode)
+                {
+                    return Results.Json(new { error = "Google token exchange başarısız.", detail = govde }, statusCode: 500);
+                }
+
+                var json = System.Text.Json.JsonDocument.Parse(govde).RootElement;
+                return Results.Json(new
+                {
+                    message = "OAuth2 basarili — su degerleri Render env var olarak ekle:",
+                    refresh_token = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null,
+                    access_token_expires_in = json.TryGetProperty("expires_in", out var ei) ? ei.GetInt32() : 0,
+                    scope = json.TryGetProperty("scope", out var sc) ? sc.GetString() : null,
+                }, statusCode: 200);
+            });
+        }
 
         return app;
     }
