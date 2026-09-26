@@ -56,15 +56,6 @@ export function MfaLoginPage() {
   // backend'e hiç gitme, sayfa ASLA açılmamalı. "Çıkış - Ana Sayfa"
   // sonrası URL'den yazınca bile spinner göstermeden direkt /giris'e at.
   useEffect(() => {
-    // HttpOnly=false cookie olduğu için document.cookie ile okunabilir.
-    // PreMfa scheme name: ".FikirPreMfa.Auth".
-    const premfaVar = document.cookie
-      .split("; ")
-      .some((c) => c.startsWith(".FikirPreMfa.Auth="));
-    if (!premfaVar) {
-      navigate("/", { replace: true });
-      return;
-    }
     const controller = new AbortController();
     mfaGetMethod()
       .then((m) => {
@@ -77,8 +68,9 @@ export function MfaLoginPage() {
       })
       .catch((e) => {
         if (authHatasiMi(e)) {
-          // Giriş yapılmamış veya MFA cookie süresi dolmuş → login'e at.
-          navigate("/", { replace: true });
+          // 401/403 = PreMfa cookie yok / süresi dolmuş → /. SPA nav
+          // Modal içinde bozulduğu için window.location kullanıyoruz.
+          window.location.href = "/";
           return;
         }
         // Ağ hatası vb. → seçim ekranı yine de açılsın (rozet olmadan).
@@ -86,7 +78,7 @@ export function MfaLoginPage() {
         setYukleniyor(false);
       });
     return () => controller.abort();
-  }, [navigate]);
+  }, []);
 
   // Onur feedback (Sprint 10.5): Email yöntemi için Gmail OAuth handshake
   // zorunlu ve otomatik tetiklenmeli — kullanıcı manuel URL'e girmesin.
