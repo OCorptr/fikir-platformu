@@ -79,8 +79,11 @@ public static class MfaEndpoints
             {
                 // E-posta OTP: test kodu gönder, kullanıcı doğrular.
                 var code = otpStore.IssueCode(kullanici.Id);
+                // EmailMessage.Recipient null olamaz olarak kontrol edildi
+                // (yukarıda IsNullOrWhiteSpace ile) — null-forgiving (!) ile
+                // compiler warning (CS8604) önlenir.
                 var eposta = new EmailMessage(
-                    kullanici.Email,
+                    kullanici.Email!,
                     "Geleceğin Fikri — MFA Kurulum Doğrulama",
                     $"<p>Merhaba {kullanici.FirstName},</p><p>İki adımlı doğrulama kurulumunu tamamlamak için aşağıdaki 6 haneli kodu uygulamaya girin:</p><h2 style='font-family:monospace;letter-spacing:0.3em;'>{code}</h2><p>Bu kod 5 dakika geçerlidir.</p>");
                 await epostaGonderici.SendAsync(eposta, cancellationToken);
@@ -165,7 +168,7 @@ public static class MfaEndpoints
 
             var code = otpStore.IssueCode(kullanici.Id);
             var eposta = new EmailMessage(
-                kullanici.Email,
+                kullanici.Email!,
                 "Geleceğin Fikri — Giriş Doğrulama Kodu",
                 $"<p>Merhaba {kullanici.FirstName},</p><p>Hesabınıza giriş yapmak için aşağıdaki 6 haneli kodu uygulamaya girin:</p><h2 style='font-family:monospace;letter-spacing:0.3em;'>{code}</h2><p>Bu kod 5 dakika geçerlidir. Talep etmediyseniz bu e-postayı yok sayabilirsiniz.</p>");
             await epostaGonderici.SendAsync(eposta, cancellationToken);

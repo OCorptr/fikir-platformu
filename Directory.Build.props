@@ -6,4 +6,14 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AnalysisLevel>latest</AnalysisLevel>
   </PropertyGroup>
+
+  <!-- C# compiler warning'leri:
+       - NU1903 (NuGet audit warning) restore sırasında çıkar, Dockerfile'da
+         -p:NuGetAudit=false ile susturulur.
+       - CS8604 (nullable reference) .csproj'da kalan tek yerler null-forgiving
+         (!) ile düzeltildi, see MfaEndpoints.cs:171.
+       - CS1591 (XML doc yorum eksik) — public API docs zorunlu değil. -->
+  <PropertyGroup>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
 </Project>

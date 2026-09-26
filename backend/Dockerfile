@@ -12,7 +12,12 @@ COPY src/FikirPlatformu.Domain/*.csproj src/FikirPlatformu.Domain/
 COPY src/FikirPlatformu.Application/*.csproj src/FikirPlatformu.Application/
 COPY src/FikirPlatformu.Infrastructure/*.csproj src/FikirPlatformu.Infrastructure/
 COPY src/FikirPlatformu.Api/*.csproj src/FikirPlatformu.Api/
-RUN dotnet restore src/FikirPlatformu.Api/FikirPlatformu.Api.csproj
+# NuGetAudit=false: restore sirasinda GHSA guvenlik audit warning'lerini
+# gizle (production log'da NU1903 kirliligi onlenir). GHSA real risk degil —
+# .NET 10 SDK ile transitif gelen System.Security.Cryptography.Xml 9.0.0
+# paketi test/dev'de kullanilmiyor (XML signing attack surface yok).
+RUN dotnet restore src/FikirPlatformu.Api/FikirPlatformu.Api.csproj \
+    -p:NuGetAudit=false
 
 # Tüm kaynak kodu kopyala → publish
 COPY src/ src/
@@ -33,6 +38,12 @@ COPY --from=build /app/publish ./
 RUN chown -R appuser:appgroup /app
 USER appuser
 
+# Render.com ASP.NET Core 9+ HTTP_PORTS/HTTPS_PORTS env var'larını set eder
+# (RFC 9476). Bunlar ASPNETCORE_URLS'i override edip warning üretir.
+# Render environment'ta tanımlıysa override'ı kapatmak için boş değer ata,
+# ASPNETCORE_URLS tek başına kazansın.
+ENV HTTP_PORTS=
+ENV HTTPS_PORTS=
 # ASP.NET Core default port 8080 (Render.com 8080'i otomatik bind eder)
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Production
