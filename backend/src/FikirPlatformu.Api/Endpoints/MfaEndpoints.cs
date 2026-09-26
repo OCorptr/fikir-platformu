@@ -141,7 +141,13 @@ public static class MfaEndpoints
             var tip = (cfg["Mail:Type"] ?? "").ToLowerInvariant();
             var gmailRefreshToken = cfg["Mail:Gmail:RefreshToken"];
             var gmailMode = tip == GmailApiEmailSender.SaglayiciTipi; // "gmail"
-            var providerReady = !gmailMode || !string.IsNullOrWhiteSpace(gmailRefreshToken);
+            var hasRefreshToken = !string.IsNullOrWhiteSpace(gmailRefreshToken);
+            var providerReady = !gmailMode || hasRefreshToken;
+            // ÖNCEKI BUG: needsGmailOAuth = !providerReady && senderTip == Gmail...
+            // sender tipi Mod 4 fallback'inde DevelopmentEmailSender olduğu için
+            // Gmail mode + RefreshToken yok → needsGmailOAuth hep false dönüyordu.
+            // Doğrusu: Gmail mode'da + RefreshToken yok → OAuth handshake zorunlu.
+            var needsGmailOAuth = gmailMode && !hasRefreshToken;
 
             // TOTP user için providerReady kontrolü gereksiz — yine de döndür (frontend kullanır).
             return Results.Ok(new
@@ -150,7 +156,7 @@ public static class MfaEndpoints
                 enabled = kullanici.TwoFactorEnabled,
                 email = kullanici.Email,
                 providerReady,
-                needsGmailOAuth = !providerReady && senderTip == "GmailApiEmailSender",
+                needsGmailOAuth = gmailMode && !hasRefreshToken,
             });
         }).RequireAuthorization("PreMfaOnly");
 
