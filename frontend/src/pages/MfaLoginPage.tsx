@@ -1,52 +1,43 @@
-// MFA login sayfası (Sprint 10 — method-aware + flexible verify).
-// Login sonrası backend mfaRequired:true döndürdüğünde yönlendirilir.
-// Kullanıcının kayıtlı yöntemi (TOTP veya Email) ne olursa olsun,
-// bu sayfada HER İKİ yöntemi de kullanabilir:
-//   - TOTP: Authenticator uygulamasından 6 haneli kod
-//   - Email: e-posta adresine gönderilen 6 haneli OTP (5dk TTL)
-// İlk açılışta kullanıcının kayıtlı yöntemi seçili gelir (daha az tıklama).
+// MFA login sayfası (Sprint 10 — method-aware + method-choice UI).
+// İki adım:
+//   1) SEÇİM: kullanıcı yöntem seçer (Authenticator / E-posta).
+//   2) GİRİŞ: seçilen yöntem için 6 haneli kod input.
+// Kayıtlı yöntem "önerilen" rozetiyle işaretlenir (useEffect).
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
 
-type Method = "Totp" | "Email" | "Yukleniyor" | "Bilinmiyor";
+type Method = "Totp" | "Email" | "Bilinmiyor";
+type Ekran = "secim" | "giris";
 
 export function MfaLoginPage() {
   const navigate = useNavigate();
+  const [ekran, setEkran] = useState<Ekran>("secim");
+  const [kayitliYontem, setKayitliYontem] = useState<Method | null>(null);
+  const [seciliYontem, setSeciliYontem] = useState<Method | null>(null);
   const [kod, setKod] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
-  const [aktifYontem, setAktifYontem] = useState<Method>("Yukleniyor");
-  const [kayitliYontem, setKayitliYontem] = useState<Method>("Bilinmiyor");
   const [emailGonderildi, setEmailGonderildi] = useState(false);
   const [gonderimHatasi, setGonderimHatasi] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0); // saniye
 
   // Sayfa açıldığında: kullanıcının kayıtlı MFA method'unu /api/auth/mfa/method'dan al.
+  // Hata olursa seçim ekranı yine de açılır (kullanıcı kendi seçebilir).
   useEffect(() => {
     const controller = new AbortController();
     mfaGetMethod()
-      .then(async (m) => {
+      .then((m) => {
         const yontem: Method = m.method === "Email" ? "Email" : "Totp";
         setKayitliYontem(yontem);
-        setAktifYontem(yontem);
-        // Email method ise otomatik kod gönder.
-        if (yontem === "Email") {
-          await trySendEmailOtp();
-          setEmailGonderildi(true);
-        }
       })
-      .catch((e) => {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-        setHata(e instanceof ApiHttpError ? e.message : "MFA yöntemi algılanamadı.");
-        // Yine de kullanıcıya fallback: TOTP ekranını aç (yöntem seçimi olmadan).
-        setKayitliYontem("Bilinmiyor");
-        setAktifYontem("Totp");
+      .catch(() => {
+        // Sessizce geç — seçim ekranı rozet olmadan görünür.
+        setKayitliYontem(null);
       });
     return () => controller.abort();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Cooldown geri sayım
@@ -56,32 +47,42 @@ export function MfaLoginPage() {
     return () => clearTimeout(timer);
   }, [cooldown]);
 
-  async function trySendEmailOtp(sessiz: boolean = true): Promise<boolean> {
-    try {
-      await mfaSendEmailOtp();
-      if (!sessiz) setEmailGonderildi(true);
-      return true;
-    } catch {
-      return false;
+  function yontemSec(yontem: Method) {
+    setSeciliYontem(yontem);
+    setKod("");
+    setHata(null);
+    setGonderimHatasi(null);
+    setEmailGonderildi(false);
+    setEkran("giris");
+    // Email seçildiyse otomatik OTP gönder.
+    if (yontem === "Email") {
+      void emailOtpGonder(true);
     }
   }
 
-  async function handleEmailKoduGonder() {
+  function geriDonSecim() {
+    setEkran("secim");
+    setSeciliYontem(null);
+    setKod("");
+    setHata(null);
+    setGonderimHatasi(null);
+    setEmailGonderildi(false);
+    setCooldown(0);
+  }
+
+  async function emailOtpGonder(ilkGonderim: boolean): Promise<boolean> {
     setCalisiyor(true);
     setGonderimHatasi(null);
-    setHata(null);
     try {
-      const ok = await mfaSendEmailOtp();
-      if (ok) {
-        setEmailGonderildi(true);
-        setAktifYontem("Email");
-        setKod("");
-        setCooldown(60);
-      } else {
-        setGonderimHatasi("Kod gönderilemedi, tekrar deneyin.");
-      }
+      await mfaSendEmailOtp();
+      setEmailGonderildi(true);
+      if (!ilkGonderim) setCooldown(60);
+      return true;
     } catch (e) {
-      setGonderimHatasi(e instanceof ApiHttpError ? e.message : "Kod gönderilemedi.");
+      setGonderimHatasi(
+        e instanceof ApiHttpError ? e.message : "Kod gönderilemedi, tekrar deneyin."
+      );
+      return false;
     } finally {
       setCalisiyor(false);
     }
@@ -89,29 +90,7 @@ export function MfaLoginPage() {
 
   async function handleTekrarGonder() {
     if (cooldown > 0) return;
-    setCalisiyor(true);
-    setGonderimHatasi(null);
-    try {
-      await mfaSendEmailOtp();
-      setEmailGonderildi(true);
-      setCooldown(60);
-    } catch (e) {
-      setGonderimHatasi(e instanceof ApiHttpError ? e.message : "Kod gönderilemedi.");
-    } finally {
-      setCalisiyor(false);
-    }
-  }
-
-  function handleYontemDegistir(yeniYontem: Method) {
-    if (aktifYontem === yeniYontem) return;
-    setAktifYontem(yeniYontem);
-    setKod("");
-    setHata(null);
-    setGonderimHatasi(null);
-    // Email'e geçtiyse otomatik kod gönder (eğer daha önce gönderilmemişse).
-    if (yeniYontem === "Email" && !emailGonderildi) {
-      void handleEmailKoduGonder();
-    }
+    await emailOtpGonder(false);
   }
 
   async function handleOnayla(olay: FormEvent) {
@@ -135,26 +114,66 @@ export function MfaLoginPage() {
     }
   }
 
-  // Yükleniyor durumu
-  if (aktifYontem === "Yukleniyor") {
+  // === SEÇİM EKRANI ===
+  if (ekran === "secim") {
     return (
-      <main className="sayfa-ortak mfa-login">
-        <p>MFA yöntemi algılanıyor…</p>
+      <main className="sayfa-ortak mfa-login mfa-secim">
+        <h1>🔐 İki adımlı doğrulama</h1>
+        <p className="mfa-aciklama">
+          Girişinizi tamamlamak için bir doğrulama yöntemi seçin.
+        </p>
+
+        <div className="mfa-yontem-secim">
+          <button
+            type="button"
+            className={`mfa-yontem-kart${kayitliYontem === "Totp" ? " onerilen" : ""}`}
+            onClick={() => yontemSec("Totp")}
+          >
+            <span className="mfa-yontem-ikon">📱</span>
+            <span className="mfa-yontem-baslik">Authenticator Uygulaması</span>
+            <span className="mfa-yontem-aciklama">
+              Telefonunuzdaki Google Authenticator / Microsoft Authenticator
+              uygulamasında görünen 6 haneli kodu girin.
+            </span>
+            {kayitliYontem === "Totp" && (
+              <span className="mfa-yontem-rozet">Önerilen</span>
+            )}
+          </button>
+
+          <button
+            type="button"
+            className={`mfa-yontem-kart${kayitliYontem === "Email" ? " onerilen" : ""}`}
+            onClick={() => yontemSec("Email")}
+          >
+            <span className="mfa-yontem-ikon">📧</span>
+            <span className="mfa-yontem-baslik">E-posta kodu</span>
+            <span className="mfa-yontem-aciklama">
+              E-posta adresinize 6 haneli bir kod gönderelim (5 dakika geçerli).
+            </span>
+            {kayitliYontem === "Email" && (
+              <span className="mfa-yontem-rozet">Önerilen</span>
+            )}
+          </button>
+        </div>
+
+        <button type="button" className="btn-link" onClick={() => navigate("/")}>
+          İptal — ana sayfaya dön
+        </button>
       </main>
     );
   }
 
-  // Aktif yöntem başlığı
-  const baslik = aktifYontem === "Email" ? "📧 E-posta doğrulama" : "📱 İki adımlı doğrulama";
-  const aciklama =
-    aktifYontem === "Email"
-      ? emailGonderildi
-        ? "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin."
-        : "E-posta kodu hazırlanıyor…"
-      : "Authenticator uygulamanızda görünen 6 haneli kodu girin.";
+  // === GİRİŞ EKRANI ===
+  const emailModu = seciliYontem === "Email";
+  const baslik = emailModu ? "📧 E-posta doğrulama" : "📱 Authenticator kodu";
+  const aciklama = emailModu
+    ? emailGonderildi
+      ? "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin."
+      : "E-posta kodu hazırlanıyor…"
+    : "Authenticator uygulamanızda görünen 6 haneli kodu girin.";
 
   return (
-    <main className="sayfa-ortak mfa-login">
+    <main className="sayfa-ortak mfa-login mfa-giris">
       <h1>{baslik}</h1>
       <p className="mfa-aciklama">{aciklama}</p>
 
@@ -184,42 +203,18 @@ export function MfaLoginPage() {
         </button>
       </form>
 
-      {/* Yöntem değiştirme bağlantıları — her iki yöntem de deneyebilir */}
-      <div className="mfa-yontem-degistir">
-        {aktifYontem === "Totp" ? (
+      <div className="mfa-yontem-yardimci">
+        {emailModu && (
           <button
             type="button"
             className="btn-link"
-            onClick={() => handleYontemDegistir("Email")}
-            disabled={calisiyor}
+            onClick={handleTekrarGonder}
+            disabled={cooldown > 0 || calisiyor}
           >
-            {cooldown > 0 && emailGonderildi
+            {cooldown > 0
               ? `Kodu tekrar gönder (${cooldown}sn)`
-              : "E-posta kodu gönder"}
+              : "Kodu tekrar gönder"}
           </button>
-        ) : (
-          <>
-            {emailGonderildi && (
-              <button
-                type="button"
-                className="btn-link"
-                onClick={handleTekrarGonder}
-                disabled={cooldown > 0 || calisiyor}
-              >
-                {cooldown > 0 ? `Kodu tekrar gönder (${cooldown}sn)` : "Kodu tekrar gönder"}
-              </button>
-            )}
-            {kayitliYontem === "Totp" && (
-              <button
-                type="button"
-                className="btn-link"
-                onClick={() => handleYontemDegistir("Totp")}
-                disabled={calisiyor}
-              >
-                Bunun yerine Authenticator kodu kullan
-              </button>
-            )}
-          </>
         )}
         {gonderimHatasi && (
           <div
@@ -230,11 +225,10 @@ export function MfaLoginPage() {
             <span>{gonderimHatasi}</span>
           </div>
         )}
+        <button type="button" className="btn-link" onClick={geriDonSecim}>
+          ← Yöntem seçimine dön
+        </button>
       </div>
-
-      <button type="button" className="btn-link" onClick={() => navigate("/")}>
-        Ana sayfaya dön
-      </button>
     </main>
   );
 }

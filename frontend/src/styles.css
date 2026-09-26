@@ -801,3 +801,83 @@ input[type="range"] {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* === MFA login — method choice screen (Sprint 10 fix) === */
+.mfa-secim {
+  max-width: 36rem;
+}
+.mfa-yontem-secim {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.2rem 0 1.5rem 0;
+}
+@media (max-width: 32rem) {
+  .mfa-yontem-secim {
+    grid-template-columns: 1fr;
+  }
+}
+.mfa-yontem-kart {
+  position: relative;
+  text-align: left;
+  background: #fff;
+  border: 2px solid #d0d7de;
+  border-radius: 0.7rem;
+  padding: 1.2rem 1rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font: inherit;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.05s;
+}
+.mfa-yontem-kart:hover:not(:disabled) {
+  border-color: var(--lacivert, #1a3a6c);
+  box-shadow: 0 0.2rem 0.8rem rgba(26, 58, 108, 0.12);
+}
+.mfa-yontem-kart:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.mfa-yontem-kart:focus-visible {
+  outline: 2px solid var(--lacivert, #1a3a6c);
+  outline-offset: 2px;
+}
+.mfa-yontem-kart.onerilen {
+  border-color: var(--lacivert, #1a3a6c);
+  background: linear-gradient(180deg, #f5f8fc 0%, #ffffff 60%);
+}
+.mfa-yontem-ikon {
+  font-size: 1.8rem;
+  line-height: 1;
+}
+.mfa-yontem-baslik {
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #1a3a6c;
+}
+.mfa-yontem-aciklama {
+  font-size: 0.82rem;
+  color: #555;
+  line-height: 1.35;
+}
+.mfa-yontem-rozet {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  background: var(--lacivert, #1a3a6c);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+
+/* === MFA login — giriş ekranı (method seçildikten sonra) === */
+.mfa-giris .mfa-yontem-yardimci {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: center;
+}
