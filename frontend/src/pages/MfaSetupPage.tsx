@@ -30,6 +30,12 @@ export function MfaSetupPage() {
   const [kod, setKod] = useState("");
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
+  // Onur feedback (Sprint 10.7+): Gmail OAuth handshake durumu.
+  // /method response'undan providerReady/needsGmailOAuth alınır; Email
+  // yöntemi seçilince RefreshToken yoksa OAuth flow'u otomatik tetiklenir
+  // — kullanıcı OAuth URL'sini kendisi bilmez.
+  const [providerReady, setProviderReady] = useState(true);
+  const [needsGmailOAuth, setNeedsGmailOAuth] = useState(false);
 
   // Sayfa mount: /me ile doğrula — giriş yapılmamışsa /giris'e at.
   useEffect(() => {
@@ -37,7 +43,10 @@ export function MfaSetupPage() {
     // Hafif bir probe: /api/auth/mfa/method PreMfaOnly gerektiriyor;
     // 401/403 dönerse authenticated değil demektir.
     mfaGetMethod()
-      .then(() => { /* PreMfa scheme geçerli — sayfada kal */ })
+      .then((m) => {
+        if (typeof m.providerReady === "boolean") setProviderReady(m.providerReady);
+        if (typeof m.needsGmailOAuth === "boolean") setNeedsGmailOAuth(m.needsGmailOAuth);
+      })
       .catch((e) => {
         if (authHatasiMi(e)) {
           navigate("/giris", { replace: true });
@@ -47,6 +56,20 @@ export function MfaSetupPage() {
   }, [navigate]);
 
   async function methodSecimVeBaslat(method: MfaMethod) {
+    // Onur feedback (Sprint 10.7+): E-posta seçildi ama Gmail OAuth handshake
+    // tamamlanmamışsa → doğrudan OAuth flow'una yönlendir. Kullanıcı Google'da
+    // consent verince refresh token kaydedilir, callback sonrası /mfa-setup'a
+    // geri döner, böylece Email OTP kurulumu tamamlanır.
+    if (method === "Email" && needsGmailOAuth) {
+      setHata(
+        "E-posta sağlayıcısı henüz bağlı değil. Gmail hesabınızla bağlamak için Google'a yönlendiriliyorsunuz…"
+      );
+      const returnTo = encodeURIComponent("/mfa-setup");
+      window.location.assign(
+        `/api/auth/gmail-oauth/start?returnTo=${returnTo}`
+      );
+      return;
+    }
     setYontem(method);
     setCalisiyor(true);
     setHata(null);
