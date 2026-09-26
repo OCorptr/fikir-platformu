@@ -345,6 +345,30 @@ public static class MfaEndpoints
             return Results.Ok(new { message = "İki adımlı doğrulama kapatıldı." });
         }).RequireAuthorization("MfaCompleted");
 
+        // 5) MFA akışından çıkış — kullanıcı vazgeçti.
+        // PreMfaScheme cookie'sini temizler (yarım kalan MFA oturumu sunucuda kalmasın).
+        // Identity tüm scheme cookie'lerini de siler (defense in depth).
+        grup.MapPost("/cancel", async (
+            HttpContext http,
+            SignInManager<ApplicationUser> girisYoneticisi,
+            FikirPlatformuDbContext veritabani) =>
+        {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var email = http.User.FindFirst(ClaimTypes.Email)?.Value;
+
+            // PreMfa cookie'yi temizle.
+            await http.SignOutAsync("PreMfaScheme");
+            // Identity default scheme'i de temizle (IdentityConstants.ApplicationScheme).
+            // 1. adımda SignInAsync bu scheme'le authenticate olmuş olabilir.
+            await girisYoneticisi.SignOutAsync();
+
+            // Oturum kapatma eventi logla (güvenlik denetimi için).
+            await AuthEventKaydet(veritabani, http, email, userId,
+                AuthEventType.Logout, success: true, reason: "mfa_akisi_iptal");
+
+            return Results.Ok(new { message = "MFA oturumu iptal edildi." });
+        }).RequireAuthorization("PreMfaOnly");
+
         return app;
     }
 

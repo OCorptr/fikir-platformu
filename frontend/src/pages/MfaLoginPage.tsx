@@ -11,7 +11,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
+import { mfaCancel, mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
 
 type Method = "Totp" | "Email" | "Bilinmiyor";
 type Ekran = "secim" | "giris";
@@ -84,6 +84,20 @@ export function MfaLoginPage() {
     setGonderimHatasi(null);
     setEmailGonderildi(false);
     setCooldown(0);
+  }
+
+  // 'Çıkış - Ana Sayfa' — MFA akışını iptal et, PreMfa cookie'yi temizle, ana sayfaya dön.
+  async function handleCikis() {
+    setCalisiyor(true);
+    try {
+      // Backend best-effort çağrı: başarısız olsa bile ana sayfaya git (cookie kendi expire olur).
+      await mfaCancel();
+    } catch {
+      // Sessizce yut — kullanıcı zaten çıkmak istiyor, hata gösterme.
+    } finally {
+      navigate("/", { replace: true });
+      setCalisiyor(false);
+    }
   }
 
   async function emailOtpGonder(ilkGonderim: boolean): Promise<boolean> {
@@ -185,8 +199,8 @@ export function MfaLoginPage() {
           </button>
         </div>
 
-        <button type="button" className="btn-link" onClick={() => navigate("/")}>
-          Çıkış - Ana Sayfa
+        <button type="button" className="btn-link" onClick={handleCikis} disabled={calisiyor}>
+          {calisiyor ? "Çıkış yapılıyor…" : "Çıkış - Ana Sayfa"}
         </button>
       </main>
     );

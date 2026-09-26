@@ -135,3 +135,9 @@ export async function mfaGetMethod(): Promise<{ method: "Totp" | "Email" | "None
 export async function mfaSendEmailOtp(): Promise<{ message: string; devCode?: string | null }> {
   return apiRequest("/api/auth/mfa/send-email-otp", { method: "POST" });
 }
+
+/** MFA akışını iptal et — 'Çıkış - Ana Sayfa' tıklandığında çağrılır.
+ *  PreMfaScheme + Identity cookie temizlenir, sunucuda yarım oturum kalmaz. */
+export async function mfaCancel(): Promise<{ message: string }> {
+  return apiRequest("/api/auth/mfa/cancel", { method: "POST" });
+}

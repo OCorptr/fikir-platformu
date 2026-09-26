@@ -13,7 +13,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { mfaSetupBaslat, mfaVerifyKod, mfaGetMethod, type MfaMethod } from "../services/auth";
+import { mfaSetupBaslat, mfaVerifyKod, mfaGetMethod, mfaCancel, type MfaMethod } from "../services/auth";
 import type { MfaSetupResponse } from "../services/auth";
 
 type Adim = "secim" | "kurulum" | "dogrulama" | "tamamlandi";
@@ -61,6 +61,19 @@ export function MfaSetupPage() {
       }
       setHata(e instanceof ApiHttpError ? e.message : "Kurulum başlatılamadı.");
     } finally {
+      setCalisiyor(false);
+    }
+  }
+
+  // 'Çıkış - Ana Sayfa' — MFA akışını iptal et, PreMfa cookie temizle, ana sayfaya dön.
+  async function handleCikis() {
+    setCalisiyor(true);
+    try {
+      await mfaCancel();
+    } catch {
+      // Best-effort — başarısız olsa bile ana sayfaya git (cookie kendi expire olur).
+    } finally {
+      navigate("/", { replace: true });
       setCalisiyor(false);
     }
   }
@@ -131,6 +144,12 @@ export function MfaSetupPage() {
             <span>{hata}</span>
           </div>
         )}
+
+        <div className="mfa-setup-cikis" style={{ marginTop: "1.5rem" }}>
+          <button type="button" className="btn-link" onClick={handleCikis}>
+            Çıkış - Ana Sayfa
+          </button>
+        </div>
       </main>
     );
   }
