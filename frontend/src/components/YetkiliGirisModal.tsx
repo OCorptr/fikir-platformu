@@ -7,9 +7,17 @@
 //     context'te login yapılamaz. Hangi context'te oturum açıksa
 //     o panele yönlendiren buton gösterilir.
 //   * Hiç oturum yoksa form gösterilir (normal login akışı).
+//
+// Sprint 10.7++ düzeltme:
+//   * React Router v7 useNavigate() declarative modda bazen Modal render
+//     döngüsünde tetiklenmiyor (imperative navigate SPA history'yi
+//     güncellemediği raporlandı). Çözüm: declarative <Navigate> bileşeni
+//     kullan. setYonlendir state'i set edilir, Modal render'da
+//     <Navigate to={yonlendir} replace /> return eder → React Router
+//     Routes otomatik route match yapar.
 
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { login, logout, me, mfaGetMethod, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
@@ -21,7 +29,6 @@ interface Props {
 }
 
 export function YetkiliGirisModal({ acik, onKapat }: Props) {
-  const navigate = useNavigate();
   const [eposta, setEposta] = useState("");
   const [sifre, setSifre] = useState("");
   const [captchaId, setCaptchaId] = useState("");
@@ -33,6 +40,10 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   // useEffect mount olunca setOturumYukleniyor(false) ancak me() cevabı ile.
   const [oturumYukleniyor, setOturumYukleniyor] = useState(true);
 
+  // Sprint 10.7++: declarative redirect. setYonlendir set edilince render
+  // döngüsünde <Navigate> return edilir, React Router Routes otomatik güncellenir.
+  const [yonlendir, setYonlendir] = useState<string | null>(null);
+
   // Modal açıldığında: önce PreMfa cookie var mı kontrol et (MFA halfway
   // state). Varsa → /mfa-login'e yönlendir (Onur feedback: MFA devam
   // ederken yetkili login yapılabilmesin). Yoksa /me ile mevcut oturumun
@@ -42,6 +53,7 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     if (!acik) {
       setAktifOturum(null);
       setOturumYukleniyor(true); // Modal açıldığında yeniden true (initial state gibi)
+      setYonlendir(null); // reset redirect flag when modal closed
       return;
     }
     const controller = new AbortController();
@@ -49,8 +61,9 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     mfaGetMethod()
       .then(() => {
         // PreMfa cookie mevcut → MFA akışı devam ediyor, login yapılamaz.
+        // Modal'ı kapat ve declarative redirect tetikle.
         onKapat();
-        navigate("/mfa-login", { replace: true });
+        setYonlendir("/mfa-login");
       })
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
@@ -68,6 +81,14 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
       });
     return () => controller.abort();
   }, [acik]);
+
+  // Sprint 10.7++: declarative redirect — onKapat'tan ÖNCE <Navigate>
+  // return edilirse Routes otomatik güncellenir, Modal parent route'tan
+  // düşer. useNavigate imperative navigation burada ÇALIŞMIYORDU (Modal
+  // içinde history.pushState tetiklenmedi).
+  if (yonlendir) {
+    return <Navigate to={yonlendir} replace />;
+  }
 
   if (!acik) return null;
 
@@ -97,10 +118,16 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     : null;
 
   function paneleGit() {
-    if (aktifOturum === "ministry") navigate("/bakanlik");
-    else if (aktifOturum === "province") navigate("/il-panel");
-    else if (aktifOturum === "student") navigate("/fikir");
-    onKapat();
+    // Sprint 10.7++: declarative redirect — direkt navigate yerine
+    // state flag set et. State update → re-render → <Navigate> jump.
+    const hedef =
+      aktifOturum === "ministry" ? "/bakanlik"
+      : aktifOturum === "province" ? "/il-panel"
+      : aktifOturum === "student" ? "/fikir"
+      : null;
+    if (hedef) {
+      setYonlendir(hedef);
+    }
   }
 
   async function cikisYap() {
@@ -138,22 +165,26 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
         captchaAnswer: captchaCevap,
       });
       // MFA setup gerekiyor → /mfa-setup sayfasına yönlendir (Sprint 9).
+      // Sprint 10.7++: declarative redirect (useNavigate Modal içinde
+      // güvenilir değil —<Navigate> component Render loop'ta işleniyor).
       if (sonuc.mfaSetupRequired) {
-        navigate("/mfa-setup");
         onKapat();
+        setYonlendir("/mfa-setup");
         return;
       }
       // MFA code gerekiyor → /mfa-login sayfasına yönlendir (Sprint 9).
       if (sonuc.mfaRequired) {
-        navigate("/mfa-login");
         onKapat();
+        setYonlendir("/mfa-login");
         return;
       }
       const ctx: LoginContext | undefined = sonuc.context as LoginContext | undefined;
       if (ctx === "province") {
-        navigate("/il-panel");
+        onKapat();
+        setYonlendir("/il-panel");
       } else if (ctx === "ministry") {
-        navigate("/bakanlik");
+        onKapat();
+        setYonlendir("/bakanlik");
       } else {
         // Öğrenci veya bilinmeyen → bu modal öğrenci girişi için değil
         setHata("Bu giriş yalnızca il AR-GE personeli ve bakanlık yetkilileri içindir. Öğrenci girişi için 'Fikrimi Yaz'ı kullanın.");
