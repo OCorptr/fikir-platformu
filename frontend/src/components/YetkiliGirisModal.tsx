@@ -11,7 +11,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { login, logout, me, type LoginContext } from "../services/auth";
+import { login, logout, me, mfaGetMethod, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
 import { CaptchaField } from "./CaptchaField";
 
