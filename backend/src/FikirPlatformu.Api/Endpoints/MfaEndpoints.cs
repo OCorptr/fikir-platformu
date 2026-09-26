@@ -385,7 +385,7 @@ public static class MfaEndpoints
                 AuthEventType.Logout, success: true, reason: "mfa_akisi_iptal");
 
             return Results.Ok(new { message = "MFA oturumu iptal edildi." });
-        }).RequireAuthorization("PreMfaOnly");
+        }).AllowAnonymous();  // Sprint 10.7: PreMfa cookie yokken bile logout çalışsın
 
         return app;
     }
