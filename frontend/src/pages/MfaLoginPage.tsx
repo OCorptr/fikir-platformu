@@ -105,6 +105,19 @@ export function MfaLoginPage() {
   }, [cooldown]);
 
   function yontemSec(yontem: Method) {
+    // Onur feedback (Sprint 10.7+++): Email seçildi ve Gmail OAuth handshake
+    // tamamlanmamışsa → OTP göndermeden önce OAuth flow'a yönlendir.
+    // Backend `mfaSendEmailOtp` RefreshToken yoksa "Gmail OAuth yapılandırması
+    // eksik" hatası atar — bu durumda kullanıcıyı E-posta ekranına sokmak
+    // kötü UX, doğrudan handshake'e at.
+    if (yontem === "Email" && needsGmailOAuth) {
+      setHata(
+        "E-posta sağlayıcısı henüz bağlı değil. Gmail hesabınızla doğrulama için Google'a yönlendiriliyorsunuz…"
+      );
+      const returnTo = encodeURIComponent(window.location.pathname);
+      window.location.assign(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`);
+      return;
+    }
     setSeciliYontem(yontem);
     setKod("");
     setHata(null);
