@@ -550,11 +550,19 @@ public static class AuthEndpoints
                 // Startup'ta raw SQL tablo oluşturur; ancak DB upsert burada YAPILMIYOR.
                 // Sprint 11'de tamamlanacak — env fallback manuel kalır.
 
-                var basariPath = !string.IsNullOrWhiteSpace(returnTo)
-                    ? returnTo
-                    : "/";
+                // Onur feedback (Sprint 10.7+++): relative path redirect browser'da
+                // current origin (backend) ile resolve olur → 404. Absolute frontend
+                // URL ile SPA /mfa-login'e yönlendir. Frontend:BaseUrl env'de set edilmeli.
+                var frontendBase = FrontendAdresi(cfg).TrimEnd('/');
+                var basariPath = string.IsNullOrWhiteSpace(returnTo) ? "/" : returnTo;
+                // Eğer returnTo zaten absolute (https://...) ise olduğu gibi kullan,
+                // değilse frontend base ile birleştir. Hem local dev hem prod destekler.
+                var absoluteTarget = basariPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                    || basariPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                    ? basariPath
+                    : $"{frontendBase}{basariPath}";
                 return Results.Redirect(
-                    $"{basariPath}?gmail_oauth=ok{(refreshToken != null ? "&has_token=1" : "&has_token=0")}");
+                    $"{absoluteTarget}?gmail_oauth=ok{(refreshToken != null ? "&has_token=1" : "&has_token=0")}");
             });
         }
 
