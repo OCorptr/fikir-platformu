@@ -19,6 +19,7 @@ import { UserListPage } from "./pages/admin/UserListPage";
 import { UserCreatePage } from "./pages/admin/UserCreatePage";
 import { UserEditPage } from "./pages/admin/UserEditPage";
 import { UserBulkPage } from "./pages/admin/UserBulkPage";
+import { OAuthAyarlaPage } from "./pages/admin/OAuthAyarlaPage";
 import { AdminAuthGuard } from "./components/AdminAuthGuard";
 import { SifremiUnuttumPage } from "./pages/SifremiUnuttumPage";
 import { SifreSifirlaPage } from "./pages/SifreSifirlaPage";
@@ -92,6 +93,7 @@ export default function App() {
             <Route path="users/new" element={<UserCreatePage />} />
             <Route path="users/bulk" element={<UserBulkPage />} />
             <Route path="users/:id" element={<UserEditPage />} />
+            <Route path="oauth" element={<OAuthAyarlaPage />} />
           </Route>
         </Route>
         <Route path="*" element={<SayfaBulunamadi />} />
