@@ -6,6 +6,7 @@
 
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
+import { rolAdi } from "../../services/roles";
 import { ApiHttpError } from "../../services/api";
 
 interface BulkResultRow {
@@ -95,9 +96,13 @@ ahmet@example.com,Ahmet,Yılmaz,ProvinceManager,34,GeciciSifre1`}</pre>
           temporaryPassword. <strong>Opsiyonel:</strong> provinceCode (il plaka kodu, 34 = İstanbul).
         </p>
         <p>
-          <strong>İzinli roller:</strong> SystemAdmin, MinistryOfficial,
-          ProvinceManager, ProvinceEvaluator. <strong>Student rolü kabul edilmez</strong>{" "}
-          (Sistem Admin öğrenci kayıtlarına erişemez — gizlilik).
+          <strong>İzinli roller (Identity adı — CSV'de bu kullanılır):</strong>{" "}
+          <code>SystemAdmin</code> ({rolAdi("SystemAdmin")}),{" "}
+          <code>MinistryOfficial</code> ({rolAdi("MinistryOfficial")}),{" "}
+          <code>ProvinceManager</code> ({rolAdi("ProvinceManager")}),{" "}
+          <code>ProvinceEvaluator</code> ({rolAdi("ProvinceEvaluator")}).{" "}
+          <strong>Student rolü kabul edilmez</strong> (Sistem Admin öğrenci
+          kayıtlarına erişemez — gizlilik).
         </p>
         <p>
           <strong>Şifre kuralları:</strong> minimum 8 karakter. Kullanıcı ilk girişte

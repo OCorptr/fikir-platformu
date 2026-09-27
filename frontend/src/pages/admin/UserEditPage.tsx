@@ -5,6 +5,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { getUser, updateUser, type AdminUserDetail } from "../../services/admin";
+import { rolAdi } from "../../services/roles";
 import { ApiHttpError } from "../../services/api";
 
 export function UserEditPage() {
@@ -70,7 +71,7 @@ export function UserEditPage() {
     <form onSubmit={gonder} className="admin-form">
       <h2>{user.email}</h2>
       <p className="admin-form-meta">
-        Roller: {user.roles.length > 0 ? user.roles.join(", ") : "(yok)"} · MFA:{" "}
+        Roller: {user.roles.length > 0 ? user.roles.map(rolAdi).join(", ") : "(yok)"} · MFA:{" "}
         {user.twoFactorEnabled ? "etkin" : "kapalı"} · Son giriş:{" "}
         {user.sonGirisAt ? new Date(user.sonGirisAt).toLocaleString("tr-TR") : "—"}
       </p>

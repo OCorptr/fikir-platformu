@@ -28,6 +28,7 @@ import {
   type AdminUserIlAtamasi,
 } from "../../services/admin";
 import { getProvinces } from "../../services/references";
+import { rolAdi } from "../../services/roles";
 import type { ProvinceRef } from "../../types";
 import { ApiHttpError } from "../../services/api";
 
@@ -35,8 +36,8 @@ type GrupKodu = "Yonetim" | "IlManager" | "IlEvaluator";
 
 const GRUP_BASLIKLARI: Record<GrupKodu, string> = {
   Yonetim: "Yönetim",
-  IlManager: "İl AR-GE Yöneticileri",
-  IlEvaluator: "İl AR-GE Değerlendiricileri",
+  IlManager: "ArgeManager",
+  IlEvaluator: "ArgeEvaluator",
 };
 
 const GRUP_ACIKLAMALARI: Record<GrupKodu, string> = {
@@ -497,7 +498,7 @@ function KullaniciKarti({
         <div className="admin-kart-meta">
           {roller.map((r) => (
             <span key={r} className={`badge badge-rol badge-${r.toLowerCase()}`}>
-              {r}
+              {rolAdi(r)}
             </span>
           ))}
           {u.twoFactorEnabled ? (

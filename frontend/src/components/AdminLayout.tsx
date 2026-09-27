@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { logout, type LoginContext } from "../services/auth";
+import { rolAdi } from "../services/roles";
 import type { MeSession } from "../types";
 
 interface AdminLayoutProps {
@@ -111,13 +112,9 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
 
   const kullaniciAdi = ben ? `${ben.firstName} ${ben.lastName}` : "Kullanıcı";
   const kullaniciBen = kullaniciAdi;
-  // Rol etiketleri Türkçe
-  const rolAdi = ben?.roles
-    .map((r) => r === "ProvinceManager" ? "İl AR-GE Yönetici"
-      : r === "ProvinceEvaluator" ? "İl AR-GE Değerlendirici"
-      : r === "MinistryOfficial" ? "Bakanlık Yetkilisi"
-      : r)
-    .join(" · ") ?? "";
+  // Sprint 11.10 — Rol etiketleri. Identity DB adı korunur (MinistryOfficial vb.),
+  // UI gösterimi services/roles.ts'deki ROLE_DISPLAY ile çevrilir (ArgeMinistry vb.).
+  const rolEtiket = ben?.roles.map(rolAdi).join(" · ") ?? "";
   const avatarBasHarf = kullaniciAdi
     .split(/\s+/)
     .filter(Boolean)
@@ -170,7 +167,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
             <span className="k-avatar">{avatarBasHarf}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <b>{kullaniciAdi}</b>
-              <small style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#9FB4CC", fontWeight: 700, fontSize: "0.75rem" }}>{rolAdi}</small>
+              <small style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#9FB4CC", fontWeight: 700, fontSize: "0.75rem" }}>{rolEtiket}</small>
             </div>
           </div>
           <button type="button" className="btn-ikincil" onClick={cikis} style={{ marginTop: "0.6rem", width: "100%", justifyContent: "center" }}>
@@ -205,7 +202,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
                   <div className="km-dropdown" role="menu">
                     <div className="km-dropdown-baslik">
                       <b>{kullaniciBen}</b>
-                      <small>{rolAdi}</small>
+                      <small>{rolEtiket}</small>
                       <small className="km-eposta">{ben.email}</small>
                     </div>
                     <button type="button" className="km-dropdown-oge cikis" role="menuitem" onClick={cikis}>
