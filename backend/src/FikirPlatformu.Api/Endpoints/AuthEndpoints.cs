@@ -583,6 +583,37 @@ grup.MapPost("/logout", async (
                     .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
         });
 
+        // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
+        // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
+        // icin" gostermek icin). Identity token dogrulamasi YAPILMAZ — sadece
+        // kullanici bilgisi. Reset isleminde token yine zorunlu.
+        grup.MapGet("/reset-password-info", async (
+            [FromQuery] string? userId,
+            [FromQuery] string? email,
+            UserManager<ApplicationUser> kullaniciYoneticisi) =>
+        {
+            ApplicationUser? kullanici = null;
+            if (!string.IsNullOrWhiteSpace(userId))
+            {
+                kullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
+            }
+            else if (!string.IsNullOrWhiteSpace(email))
+            {
+                kullanici = await kullaniciYoneticisi.FindByEmailAsync(email);
+            }
+            if (kullanici is null)
+            {
+                return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+            }
+            return Results.Ok(new
+            {
+                id = kullanici.Id,
+                email = kullanici.Email,
+                firstName = kullanici.FirstName,
+                lastName = kullanici.LastName,
+            });
+        });
+
         // ===== Gmail OAuth2 (Sprint 10.1) — SystemAdmin-only tek seferlik kurulum =====
         // /api/auth/gmail-oauth/start → Google OAuth URL'ine redirect eder.
         //  Kullanici Google'da onay verince /api/auth/gmail-oauth/callback'e döner,

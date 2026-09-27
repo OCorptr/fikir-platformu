@@ -1551,3 +1551,278 @@ input[type="range"] {
     scroll-behavior: auto !important;
   }
 }
+/* ============================================================
+   Sprint 11.17 — Sifre Sifirlama sayfasi
+   Onur feedback: "Form özenli olsun, userId gösterme".
+   ============================================================ */
+
+.sayfa-sifre-sifirla {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 3vw, 2rem);
+  background:
+    radial-gradient(circle at 20% 0%, #dbeafe 0%, transparent 35%),
+    radial-gradient(circle at 80% 100%, #fce7f3 0%, transparent 35%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+}
+
+@media (prefers-color-scheme: dark) {
+  .sayfa-sifre-sifirla {
+    background:
+      radial-gradient(circle at 20% 0%, #1e3a8a 0%, transparent 40%),
+      radial-gradient(circle at 80% 100%, #831843 0%, transparent 40%),
+      linear-gradient(180deg, #0e1320 0%, #1a2233 100%);
+  }
+}
+
+.ss-kart {
+  width: min(480px, 100%);
+  background: var(--adn-yuzey);
+  border: 1px solid var(--adn-cerceve);
+  border-radius: 16px;
+  padding: clamp(1.5rem, 4vw, 2.25rem);
+  box-shadow: 0 12px 40px rgba(15, 23, 42, 0.08), 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.ss-baslik-alani { text-align: center; margin-bottom: 1.5rem; }
+.ss-baslik-alani h2 {
+  font-size: clamp(1.4rem, 3vw, 1.7rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  margin: 0 0 0.35rem 0;
+  text-wrap: balance;
+  color: var(--adn-metin);
+}
+.ss-alt {
+  color: var(--adn-metin-2);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.ss-kullanici-bilgi {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.85rem 1rem;
+  background: var(--adn-bilgi-bg);
+  border: 1px solid var(--adn-bilgi-bd);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+.ss-avatar {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--adn-vurgu), var(--adn-vurgu-2));
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.ss-kullanici-metin { min-width: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.ss-kullanici-isim {
+  font-weight: 600;
+  font-size: 0.98rem;
+  color: var(--adn-metin);
+}
+.ss-kullanici-eposta {
+  font-size: 0.85rem;
+  color: var(--adn-metin-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ss-kullanici-hata {
+  font-size: 0.85rem;
+  color: var(--adn-tehlike);
+}
+
+.ss-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.ss-alan { display: flex; flex-direction: column; gap: 0.4rem; }
+.ss-etiket {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--adn-metin-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ss-input-sarmal {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.ss-input-sarmal input {
+  flex: 1;
+  padding: 0.7rem 2.8rem 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--adn-cerceve);
+  background: var(--adn-bg);
+  color: var(--adn-metin);
+  font: inherit;
+  font-size: 0.95rem;
+  width: 100%;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.ss-input-sarmal input:focus-visible {
+  outline: 2px solid var(--adn-vurgu);
+  outline-offset: 1px;
+  border-color: var(--adn-vurgu);
+}
+.ss-alan input:not(.ss-input-sarmal input) {
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--adn-cerceve);
+  background: var(--adn-bg);
+  color: var(--adn-metin);
+  font: inherit;
+  font-size: 0.95rem;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.ss-alan input:not(.ss-input-sarmal input):focus-visible {
+  outline: 2px solid var(--adn-vurgu);
+  outline-offset: 1px;
+  border-color: var(--adn-vurgu);
+}
+.ss-input-uyumsuz { border-color: var(--adn-tehlike) !important; }
+
+.ss-input-toggle {
+  position: absolute;
+  right: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.3rem 0.5rem;
+  font-size: 1.05rem;
+  border-radius: 6px;
+  line-height: 1;
+  color: var(--adn-metin-2);
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.ss-input-toggle:hover { background: var(--adn-yuzey-2); color: var(--adn-metin); }
+.ss-input-toggle:focus-visible { outline: 2px solid var(--adn-vurgu); outline-offset: 1px; }
+
+.ss-guc {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.2rem;
+}
+.ss-guc-cubuk {
+  display: flex;
+  flex: 1;
+  gap: 4px;
+}
+.ss-guc-cubuk span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--adn-cerceve);
+  transition: background-color 120ms ease;
+}
+.ss-guc-0 .ss-guc-cubuk span:nth-child(-n+0) { background: var(--adn-cerceve); }
+.ss-guc-1 span:nth-child(1) { background: var(--adn-tehlike); }
+.ss-guc-2 span:nth-child(1),
+.ss-guc-2 span:nth-child(2) { background: var(--adn-uyari); }
+.ss-guc-3 span:nth-child(1),
+.ss-guc-3 span:nth-child(2),
+.ss-guc-3 span:nth-child(3) { background: var(--adn-vurgu); }
+.ss-guc-4 span { background: var(--adn-basari); }
+.ss-guc-etiket {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--adn-metin-2);
+  min-width: 3.5rem;
+  text-align: right;
+}
+
+.ss-uyari {
+  font-size: 0.82rem;
+  color: var(--adn-tehlike);
+  font-weight: 500;
+}
+
+.ss-btn-gonder {
+  margin-top: 0.4rem;
+  padding: 0.8rem 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.ss-hata-mesaj {
+  background: #fff5f5;
+  color: var(--adn-tehlike);
+  border: 1px solid #fbd0d0;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+
+.ss-yardim {
+  margin: 1.5rem 0 0 0;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--adn-metin-2);
+}
+.ss-yardim a {
+  color: var(--adn-vurgu);
+  text-decoration: none;
+  font-weight: 500;
+}
+.ss-yardim a:hover { text-decoration: underline; }
+
+.ss-basarili {
+  text-align: center;
+  padding: 1rem 0;
+}
+.ss-basarili .ss-ikon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--adn-basari);
+  color: #fff;
+  font-size: 1.8rem;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 1rem;
+  font-weight: 700;
+}
+.ss-basarili h3 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+  color: var(--adn-metin);
+}
+.ss-basarili p { color: var(--adn-metin-2); margin: 0 0 1.5rem 0; }
+
+.ss-hata .ss-ikon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--adn-uyari);
+  color: #fff;
+  font-size: 1.8rem;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 1rem;
+}
+.ss-hata {
+  text-align: center;
+}
+.ss-aksiyonlar {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
