@@ -566,9 +566,24 @@ app.MapPost("/api/__maintenance/admin-reset", async (
         };
         // Identity validator pipeline'ı bypass: önce dummy şifre ile INSERT, sonra
         // IPasswordHasher ile doğru hash'i set et.
-        await userManager.CreateAsync(sistemAdmin, "__dummy_bypass__");
+        logger.LogInformation("[MAINT] CreateAsync başlıyor...");
+        var createResult = await userManager.CreateAsync(sistemAdmin, "__dummy_bypass__");
+        logger.LogInformation("[MAINT] CreateAsync result: succeeded={S}, errors={E}",
+            createResult.Succeeded,
+            string.Join(",", createResult.Errors.Select(e => e.Description)));
+        if (!createResult.Succeeded)
+        {
+            // Hata varsa rapor et — detaylı bilgi için.
+            return Results.Json(new
+            {
+                message = "Identity CreateAsync başarısız.",
+                identityErrors = createResult.Errors.Select(e => e.Description).ToArray()
+            }, statusCode: 500);
+        }
         sistemAdmin.PasswordHash = passwordHasher.HashPassword(sistemAdmin, hedefSifre);
-        await userManager.UpdateAsync(sistemAdmin);
+        logger.LogInformation("[MAINT] PasswordHash computed (length={L})", sistemAdmin.PasswordHash?.Length ?? 0);
+        var updateResult = await userManager.UpdateAsync(sistemAdmin);
+        logger.LogInformation("[MAINT] UpdateAsync succeeded={S}", updateResult.Succeeded);
 
         if (!await roleManager.RoleExistsAsync("SystemAdmin"))
             await roleManager.CreateAsync(new IdentityRole("SystemAdmin"));
