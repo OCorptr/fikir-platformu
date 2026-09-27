@@ -577,34 +577,48 @@ using (var kapsam = app.Services.CreateScope())
     }
     else
     {
-        // Idempotent update: Eğer user var ama Identity CreateAsync başarısız
-        // olduğundan PasswordHash boş/basarisiz kaldıysa, RemovePasswordAsync (varsa)
-        // sonra AddPasswordAsync ile şifreyi set et. Sprint 10.7++ sonrası Identity
-        // 9 default + Project policy (RequireDigit=false, RequireNonAlphanumeric=false)
-        // bu şifreyi 'Bilisim35sse' kabul eder.
+        // Sprint 11.5 bugfix — önceki attempt'larda Identity framework Policy
+        // nedeniyle (default RequireDigit) AddPasswordAsync/ResetPasswordAsync
+        // başarısız oluyor; user PasswordHash boş kalıyordu.
+        // Kesin fix: mevcut user'ı sil + Identity CreateAsync ile yeniden oluştur.
+        // Identity framework yeni oluşturulan user için default RateLimit/Lockout
+        // kuralı uygular ama validator policy gevşetildi.
+        // Sprint 11.5+ sonrası Identity 9 default validators: min 8 + küçük/büyük harf
+        // artık geçerli.
         try
         {
-            var hashBosMu = string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash) || mevcutSistemAdmin.PasswordHash!.Length < 50;
-            if (hashBosMu)
-            {
-                if (!string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash))
-                {
-                    var kaldir = await kullaniciYoneticisi.RemovePasswordAsync(mevcutSistemAdmin);
-                    Console.WriteLine($"[SEED] removePassword: success={kaldir.Succeeded}, errors={string.Join(",", kaldir.Errors.Select(e => e.Description))}");
-                }
-                var sonuc = await kullaniciYoneticisi.AddPasswordAsync(mevcutSistemAdmin, sistemAdminSifre);
-                Console.WriteLine($"[SEED] addPassword: success={sonuc.Succeeded}, errors={string.Join(",", sonuc.Errors.Select(e => e.Description))}");
-            }
-            // Roller tam olsun (idempotent).
-            if (!await kullaniciYoneticisi.IsInRoleAsync(mevcutSistemAdmin, "SystemAdmin"))
-                await kullaniciYoneticisi.AddToRoleAsync(mevcutSistemAdmin, "SystemAdmin");
-            if (!await kullaniciYoneticisi.IsInRoleAsync(mevcutSistemAdmin, "MinistryOfficial"))
-                await kullaniciYoneticisi.AddToRoleAsync(mevcutSistemAdmin, "MinistryOfficial");
-            Console.WriteLine($"[SEED] Sistem Admin hazır: {sistemAdminEposta} (passwordHash length={(string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash) ? 0 : mevcutSistemAdmin.PasswordHash!.Length)})");
+            var silmeSonuc = await kullaniciYoneticisi.DeleteAsync(mevcutSistemAdmin);
+            Console.WriteLine($"[SEED] mevcut Sistem Admin silindi: success={silmeSonuc.Succeeded}, errors={string.Join(",", silmeSonuc.Errors.Select(e => e.Description))}");
+            // Silinen user referansı stale, fresh fetch gerekir.
+            mevcutSistemAdmin = null;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[SEED] Sistem Admin update exception: {ex.GetType().Name}: {ex.Message}");
+            Console.WriteLine($"[SEED] silme exception: {ex.GetType().Name}: {ex.Message}");
+        }
+    }
+
+    // Yeniden oluşturma (silindiyse ya da zaten null ise).
+    if (mevcutSistemAdmin is null)
+    {
+        var sistemAdmin = new ApplicationUser
+        {
+            UserName = sistemAdminEposta,
+            Email = sistemAdminEposta,
+            FirstName = "Sistem",
+            LastName = "Yöneticisi",
+            EmailConfirmed = true,
+        };
+        var olusturma = await kullaniciYoneticisi.CreateAsync(sistemAdmin, sistemAdminSifre);
+        if (olusturma.Succeeded)
+        {
+            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "SystemAdmin");
+            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
+            Console.WriteLine($"[SEED] Sistem Admin oluşturuldu: {sistemAdminEposta}");
+        }
+        else
+        {
+            Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: {string.Join(", ", olusturma.Errors.Select(e => e.Description))}");
         }
     }
 }
