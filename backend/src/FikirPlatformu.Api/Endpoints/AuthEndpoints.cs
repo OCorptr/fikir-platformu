@@ -581,6 +581,8 @@ grup.MapPost("/logout", async (
                 {
                     logger.LogWarning("[SIFRE-RESET] Kullanici bulunamadi (userId={UserId}, email={Email})",
                         istek.UserId, istek.Email);
+                    SifreResetDebug.Kaydet(false, "Kullanıcı bulunamadı", istek.UserId, istek.Email,
+                        istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                     return KimlikHatasi("Sıfırlama bağlantısı geçersiz.");
                 }
 
@@ -593,19 +595,50 @@ grup.MapPost("/logout", async (
                     var mesaj = sonuc.Errors.Any(e => e.Code == "InvalidToken")
                         ? "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş."
                         : $"Şifre reddedildi: {detay}";
+                    SifreResetDebug.Kaydet(false, mesaj, kullanici.Id, kullanici.Email,
+                        istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                     return Results.Json(new { message = mesaj }, statusCode: 400);
                 }
                 logger.LogInformation("[SIFRE-RESET] BASARILI: UserId={UserId}, Email={Email}",
                     kullanici.Id, kullanici.Email);
+                SifreResetDebug.Kaydet(true, "Şifreniz güncellendi", kullanici.Id, kullanici.Email,
+                    istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                 return Results.Ok(new { message = "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz." });
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "[SIFRE-RESET] EXCEPTION: UserId={UserId}, Email={Email}",
                     istek.UserId, istek.Email);
+                SifreResetDebug.Kaydet(false, "EXCEPTION", istek.UserId, istek.Email,
+                    istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0,
+                    ex.GetType().Name + ": " + ex.Message);
                 return Results.Json(new { message = "Sunucu hatası: " + ex.GetType().Name + " — " + ex.Message }, statusCode: 500);
             }
         });
+
+        // Sprint 11.22: Server-side debug endpoint — Onur DevTools acamiyor,
+        // Render log'una erisemiyor. Bu endpoint son sifre sifirlama denemesinin
+        // sonucunu JSON olarak doner. SystemAdmin policy ile korunur.
+        grup.MapGet("/__debug/last-sifre-reset", () =>
+        {
+            var deneme = SifreResetDebug.SonDeneme;
+            if (deneme is null)
+            {
+                return Results.Ok(new { denemeVar = false, message = "Henüz hiç şifre sıfırlama denemesi yapılmadı." });
+            }
+            return Results.Ok(new
+            {
+                denemeVar = true,
+                deneme.Zaman,
+                deneme.Basarili,
+                deneme.Mesaj,
+                deneme.UserId,
+                deneme.Email,
+                deneme.TokenLen,
+                deneme.PwdLen,
+                deneme.Exception,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
 
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
         // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
@@ -998,3 +1031,39 @@ grup.MapPost("/logout", async (
         [Required, StringLength(128)] string CurrentPassword,
         [Required, StringLength(128, MinimumLength = 8)] string NewPassword);
 }
+
+// Sprint 11.22: Server-side debug — son şifre sıfırlama denemesinin sonucu
+// burada tutulur. Onur DevTools açamadığı için /api/__debug/last-sifre-reset
+// endpoint'i ile log göndermeden bilgi alabilir. Sprint 12'de kaldırılır.
+public static class SifreResetDebug
+{
+    private static readonly object _lock = new();
+    public static SifreResetDenemesi? SonDeneme { get; private set; }
+
+    public static void Kaydet(bool basarili, string mesaj, string? userId, string? email, int tokenLen, int pwdLen, string? exception = null)
+    {
+        lock (_lock)
+        {
+            SonDeneme = new SifreResetDenemesi(
+                DateTimeOffset.UtcNow,
+                basarili,
+                mesaj,
+                userId,
+                email,
+                tokenLen,
+                pwdLen,
+                exception);
+        }
+    }
+}
+
+public sealed record SifreResetDenemesi(
+    DateTimeOffset Zaman,
+    bool Basarili,
+    string Mesaj,
+    string? UserId,
+    string? Email,
+    int TokenLen,
+    int PwdLen,
+    string? Exception);
+
