@@ -595,7 +595,7 @@ public static class AuthEndpoints
                     // ONUR: Restart gerekmez, restart sonrası persiste kalır, Manuel env yok.
                     if (!string.IsNullOrWhiteSpace(refreshToken))
                     {
-                        var mevcut = await veritabani.GmailRefreshTokens.FindAsync(1L);
+                        var mevcut = await veritabani.GmailRefreshTokens.FindAsync((object)1);
                         var encrypted = sifreleme.SifreleGmail(refreshToken);
                         if (mevcut is null)
                         {
