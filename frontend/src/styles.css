@@ -1233,6 +1233,29 @@ input[type="range"] {
   color: inherit;
   transition: background-color 120ms ease;
 }
+.admin-grup-baslik-satir {
+  display: flex;
+  align-items: stretch;
+  gap: 0.75rem;
+  border-bottom: 1px solid var(--adn-cerceve);
+}
+.admin-grup-baslik-satir .admin-grup-baslik {
+  flex: 1;
+  border-bottom: none;
+}
+.btn-ekle {
+  align-self: center;
+  margin-right: 1.15rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.btn-ekle-sm {
+  margin-left: auto;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
 .admin-grup-baslik:hover { background: var(--adn-yuzey-2); }
 .admin-grup-baslik:focus-visible { outline: 2px solid var(--adn-vurgu); outline-offset: -2px; }
 .admin-grup-toggle {
@@ -1330,9 +1353,9 @@ input[type="range"] {
   list-style: none;
   padding: 0;
   margin: 0.75rem 0 0 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 .admin-kullanici-kart { display: block; }
 .admin-kart {

@@ -23,7 +23,6 @@ import {
   deleteUser,
   resetUserMfa,
   resetUserPassword,
-  changeUserRole,
   type AdminUserListItem,
   type AdminUserIlAtamasi,
 } from "../../services/admin";
@@ -36,8 +35,14 @@ type GrupKodu = "Yonetim" | "IlManager" | "IlEvaluator";
 
 const GRUP_BASLIKLARI: Record<GrupKodu, string> = {
   Yonetim: "Yönetim",
-  IlManager: "ArgeManager",
-  IlEvaluator: "ArgeEvaluator",
+  IlManager: "İl AR-GE Yöneticileri",
+  IlEvaluator: "İl AR-GE Değerlendiricileri",
+};
+
+const GRUP_ROLLERI: Record<GrupKodu, AllowedRole> = {
+  Yonetim: "SystemAdmin", // grup + butonu SystemAdmin açar (Sistem Yöneticisi + Bakanlık için ortak)
+  IlManager: "ProvinceManager",
+  IlEvaluator: "ProvinceEvaluator",
 };
 
 const GRUP_ACIKLAMALARI: Record<GrupKodu, string> = {
@@ -182,13 +187,25 @@ export function UserListPage() {
     catch (err) { setHata(err instanceof ApiHttpError ? err.message : "Şifre sıfırlanamadı."); }
   }
 
-  async function rolDegistir(item: AdminUserListItem, newRole: AllowedRole) {
-    if (!confirm(`"${item.email}" rolü "${newRole}" olarak değiştirilsin mi?`)) return;
-    try { await changeUserRole(item.id, { newRole }); await yukle(); }
-    catch (err) { setHata(err instanceof ApiHttpError ? err.message : "Rol atanamadı."); }
+  async function rolDegistir(_item: AdminUserListItem, _newRole: AllowedRole) {
+    // Sprint 11.12: "Rol Ata" akışı kaldırıldı. Rol atama artık sadece /admin/users/new
+    // sayfasından yapılır. Burada bilinçli olarak no-op.
   }
 
   const filtreTemizle = () => setSearchParams(new URLSearchParams());
+
+  // Her grup başlığındaki "+ Yönetici Ekle" + il alt grubundaki "+ Ekle" bu
+  // handler'ı tetikler. /admin/users/new sayfasına role ve ilKodu query ile
+  // yönlendirilir; UserCreatePage URL parametrelerini okuyup formu preset eder.
+  function kullaniciEkleNavi(kod: GrupKodu, ilKodu?: number) {
+    const params = new URLSearchParams();
+    // Yönetim grubu için özel: SystemAdmin default. Bakanlık Yetkilisi ayrı
+    // istenirse dropdown ile değiştirilebilir.
+    const rol = GRUP_ROLLERI[kod];
+    params.set("role", rol);
+    if (ilKodu) params.set("ilKodu", String(ilKodu));
+    navigate(`/admin/users/new?${params.toString()}`);
+  }
 
   return (
     <section className="admin-panel">
@@ -292,7 +309,7 @@ export function UserListPage() {
                 onSil={silKullanici}
                 onMfaReset={mfaReset}
                 onSifreReset={sifreReset}
-                onRolDegistir={rolDegistir}
+                onKullaniciEkle={kullaniciEkleNavi}
                 ilGruplariHazirla={ilGruplariOlustur}
               />
             );
@@ -312,7 +329,7 @@ interface GrupKartiProps {
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
+  onKullaniciEkle: (kod: GrupKodu, ilKodu?: number) => void;
   ilGruplariHazirla: (items: AdminUserListItem[]) => {
     iller: { ilKodu: number; ilAdi: string; kullanicilar: AdminUserListItem[] }[];
     atamamis: AdminUserListItem[];
@@ -321,7 +338,7 @@ interface GrupKartiProps {
 
 function GrupKarti({
   kod, kullanicilar, acik, onToggle,
-  onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+  onDuzenle, onSil, onMfaReset, onSifreReset, onKullaniciEkle,
   ilGruplariHazirla,
 }: GrupKartiProps) {
   const baslikId = `grup-${kod}-baslik`;
@@ -330,25 +347,47 @@ function GrupKarti({
 
   return (
     <section className="admin-grup" aria-labelledby={baslikId}>
-      <button
-        type="button"
-        className="admin-grup-baslik"
-        aria-expanded={acik}
-        aria-controls={govdeId}
-        onClick={() => onToggle(!acik)}
-      >
-        <span className="admin-grup-toggle" aria-hidden="true">{acik ? "▾" : "▸"}</span>
-        <span className="admin-grup-isim" id={baslikId}>{GRUP_BASLIKLARI[kod]}</span>
-        <span className="admin-grup-sayi" aria-label={`${kullanicilar.length} kullanıcı`}>
-          {kullanicilar.length}
-        </span>
-        <span className="admin-grup-aciklama">{GRUP_ACIKLAMALARI[kod]}</span>
-      </button>
+      <div className="admin-grup-baslik-satir">
+        <button
+          type="button"
+          className="admin-grup-baslik"
+          aria-expanded={acik}
+          aria-controls={govdeId}
+          onClick={() => onToggle(!acik)}
+        >
+          <span className="admin-grup-toggle" aria-hidden="true">{acik ? "▾" : "▸"}</span>
+          <span className="admin-grup-isim" id={baslikId}>{GRUP_BASLIKLARI[kod]}</span>
+          <span className="admin-grup-sayi" aria-label={`${kullanicilar.length} kullanıcı`}>
+            {kullanicilar.length}
+          </span>
+          <span className="admin-grup-aciklama">{GRUP_ACIKLAMALARI[kod]}</span>
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary btn-ekle"
+          aria-label={`${GRUP_BASLIKLARI[kod]} grubuna yeni kullanıcı ekle`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onKullaniciEkle(kod);
+          }}
+        >
+          <span aria-hidden="true">＋</span> Yönetici Ekle
+        </button>
+      </div>
 
       {acik && (
         <div id={govdeId} className="admin-grup-govde">
           {kullanicilar.length === 0 ? (
-            <p className="admin-grup-bos">Bu grupta kullanıcı yok.</p>
+            <div className="admin-grup-bos">
+              <p>Bu grupta henüz kullanıcı yok.</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => onKullaniciEkle(kod)}
+              >
+                <span aria-hidden="true">＋</span> İlk Kullanıcıyı Ekle
+              </button>
+            </div>
           ) : ilGruplu ? (
             <IlAltGruplari
               kullanicilar={kullanicilar}
@@ -357,7 +396,8 @@ function GrupKarti({
               onSil={onSil}
               onMfaReset={onMfaReset}
               onSifreReset={onSifreReset}
-              onRolDegistir={onRolDegistir}
+              onKullaniciEkle={onKullaniciEkle}
+              grupKodu={kod}
             />
           ) : (
             <KullaniciListesi
@@ -366,7 +406,6 @@ function GrupKarti({
               onSil={onSil}
               onMfaReset={onMfaReset}
               onSifreReset={onSifreReset}
-              onRolDegistir={onRolDegistir}
             />
           )}
         </div>
@@ -377,7 +416,7 @@ function GrupKarti({
 
 function IlAltGruplari({
   kullanicilar, ilGruplariHazirla,
-  onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+  onDuzenle, onSil, onMfaReset, onSifreReset, onKullaniciEkle, grupKodu,
 }: {
   kullanicilar: AdminUserListItem[];
   ilGruplariHazirla: GrupKartiProps["ilGruplariHazirla"];
@@ -385,11 +424,23 @@ function IlAltGruplari({
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
+  onKullaniciEkle: (kod: GrupKodu, ilKodu?: number) => void;
+  grupKodu: GrupKodu;
 }) {
   const { iller, atamamis } = ilGruplariHazirla(kullanicilar);
   if (iller.length === 0 && atamamis.length === 0) {
-    return <p className="admin-grup-bos">Bu grupta kullanıcı yok.</p>;
+    return (
+      <div className="admin-grup-bos">
+        <p>Bu grupta henüz kullanıcı yok.</p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => onKullaniciEkle(grupKodu)}
+        >
+          <span aria-hidden="true">＋</span> İlk Kullanıcıyı Ekle
+        </button>
+      </div>
+    );
   }
   return (
     <div className="admin-il-alt-gruplar">
@@ -401,6 +452,18 @@ function IlAltGruplari({
             <span className="admin-il-sayi" aria-label={`${il.kullanicilar.length} kullanıcı`}>
               {il.kullanicilar.length}
             </span>
+            <button
+              type="button"
+              className="btn btn-primary btn-ekle-sm"
+              aria-label={`${il.ilAdi} için yeni kullanıcı ekle`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onKullaniciEkle(grupKodu, il.ilKodu);
+              }}
+            >
+              <span aria-hidden="true">＋</span> Ekle
+            </button>
           </summary>
           <KullaniciListesi
             kullanicilar={il.kullanicilar}
@@ -408,7 +471,6 @@ function IlAltGruplari({
             onSil={onSil}
             onMfaReset={onMfaReset}
             onSifreReset={onSifreReset}
-            onRolDegistir={onRolDegistir}
           />
         </details>
       ))}
@@ -417,6 +479,18 @@ function IlAltGruplari({
           <summary>
             <span className="admin-il-adi">İl ataması yapılmamış</span>
             <span className="admin-il-sayi">{atamamis.length}</span>
+            <button
+              type="button"
+              className="btn btn-primary btn-ekle-sm"
+              aria-label="İl ataması olmadan yeni kullanıcı ekle"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onKullaniciEkle(grupKodu);
+              }}
+            >
+              <span aria-hidden="true">＋</span> Ekle
+            </button>
           </summary>
           <KullaniciListesi
             kullanicilar={atamamis}
@@ -424,7 +498,6 @@ function IlAltGruplari({
             onSil={onSil}
             onMfaReset={onMfaReset}
             onSifreReset={onSifreReset}
-            onRolDegistir={onRolDegistir}
           />
           <p className="admin-uyari">
             Bu kullanıcıların il ataması yok. İl atamak için "Düzenle" ile province_id gerekli.
@@ -436,14 +509,13 @@ function IlAltGruplari({
 }
 
 function KullaniciListesi({
-  kullanicilar, onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+  kullanicilar, onDuzenle, onSil, onMfaReset, onSifreReset,
 }: {
   kullanicilar: AdminUserListItem[];
   onDuzenle: (u: AdminUserListItem) => void;
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
 }) {
   return (
     <ul className="admin-kullanici-listesi" role="list">
@@ -455,7 +527,6 @@ function KullaniciListesi({
             onSil={onSil}
             onMfaReset={onMfaReset}
             onSifreReset={onSifreReset}
-            onRolDegistir={onRolDegistir}
           />
         </li>
       ))}
@@ -465,14 +536,13 @@ function KullaniciListesi({
 
 function KullaniciKarti({
   kullanici: u,
-  onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+  onDuzenle, onSil, onMfaReset, onSifreReset,
 }: {
   kullanici: AdminUserListItem;
   onDuzenle: (u: AdminUserListItem) => void;
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
 }) {
   const initial = `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.toUpperCase() || "?";
   const roller = u.roller ?? [];
@@ -524,22 +594,6 @@ function KullaniciKarti({
         <button type="button" className="btn-icon" onClick={() => onSifreReset(u)} aria-label={`${u.email} şifre sıfırla`} title="Şifre sıfırla">
           <span aria-hidden="true">🔗</span>
         </button>
-        <select
-          className="btn-icon admin-rol-select"
-          value=""
-          onChange={(e) => {
-            const next = e.target.value as AllowedRole;
-            e.target.value = "";
-            if (next) onRolDegistir(u, next);
-          }}
-          aria-label={`${u.email} rol ata`}
-          title="Rol ata"
-        >
-          <option value="">Rol ata…</option>
-          {ALLOWED_ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
-          ))}
-        </select>
         <button
           type="button"
           className="btn-icon btn-icon-danger"

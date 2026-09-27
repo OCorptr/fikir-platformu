@@ -54,6 +54,8 @@ export interface CreateUserRequest {
   firstName: string;
   lastName: string;
   role: AllowedRole;
+  /** Sprint 11.12: ProvinceManager / ProvinceEvaluator için zorunlu il kodu. Diğer roller için undefined. */
+  ilKodu?: number;
 }
 
 export interface UpdateUserRequest {

@@ -11,9 +11,9 @@
 
 export const ROLE_DISPLAY: Record<string, string> = {
   SystemAdmin: "Sistem Yöneticisi",
-  MinistryOfficial: "ArgeMinistry",
-  ProvinceManager: "ArgeManager",
-  ProvinceEvaluator: "ArgeEvaluator",
+  MinistryOfficial: "Bakanlık AR-GE Yetkilisi",
+  ProvinceManager: "İl AR-GE Yöneticisi",
+  ProvinceEvaluator: "İl AR-GE Değerlendiricisi",
   Student: "Öğrenci",
 };
 

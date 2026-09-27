@@ -65,6 +65,33 @@ public static class AdminEndpoints
 
             await kullaniciYoneticisi.AddToRoleAsync(kullanici, istek.Role);
 
+            // Sprint 11.12: ProvinceManager / ProvinceEvaluator için il ataması
+            // (ProvinceUserAssignment tablosuna INSERT). İl bilgisi UI'dan gelir;
+            // zorunlu, ama yine de defensif kontrol yapalım.
+            if (istek.Role == "ProvinceManager" || istek.Role == "ProvinceEvaluator")
+            {
+                if (!istek.IlKodu.HasValue || istek.IlKodu.Value <= 0)
+                {
+                    // Rollback: user'ı sil. Aksi halde rol atanmış ama ili olmayan user oluşur.
+                    await kullaniciYoneticisi.DeleteAsync(kullanici);
+                    return Results.Json(new
+                    {
+                        message = $"{istek.Role} rolü için il ataması zorunludur."
+                    }, statusCode: 400);
+                }
+                var ilVarmi = await veritabani.Provinces.AnyAsync(p => p.Id == istek.IlKodu.Value, http.RequestAborted);
+                if (!ilVarmi)
+                {
+                    await kullaniciYoneticisi.DeleteAsync(kullanici);
+                    return Results.Json(new { message = "Geçersiz il kodu." }, statusCode: 400);
+                }
+                var atama = Domain.Identity.ProvinceUserAssignment.Create(
+                    kullanici.Id, istek.IlKodu.Value, istek.Role,
+                    http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value,
+                    DateTimeOffset.UtcNow);
+                veritabani.Set<Domain.Identity.ProvinceUserAssignment>().Add(atama);
+            }
+
             // Audit log.
             veritabani.AuthEvents.Add(new Domain.Auth.AuthEvent
             {
@@ -75,7 +102,7 @@ public static class AdminEndpoints
                 UserAgent = http.Request.Headers.UserAgent.ToString(),
                 EventType = Domain.Auth.AuthEventType.UserCreated,
                 Success = true,
-                FailureReason = $"role={istek.Role}",
+                FailureReason = $"role={istek.Role};il={(istek.IlKodu?.ToString() ?? "-")}",
                 CreatedAt = DateTime.UtcNow
             });
             await veritabani.SaveChangesAsync(http.RequestAborted);
@@ -86,6 +113,7 @@ public static class AdminEndpoints
                 userId = kullanici.Id,
                 email = kullanici.Email,
                 role = istek.Role,
+                ilKodu = istek.IlKodu,
                 mfaSetupRequired = true // Privileged roller için MFA kurulumu zorunlu.
             }, statusCode: 201);
         }).RequireAuthorization("SystemAdminOnly");
@@ -776,5 +804,7 @@ public static class AdminEndpoints
         [Required, StringLength(100, MinimumLength = 8)] string Password,
         [Required, StringLength(50, MinimumLength = 2)] string FirstName,
         [Required, StringLength(50, MinimumLength = 2)] string LastName,
-        [Required] string Role);
+        [Required] string Role,
+        /// <summary>Sprint 11.12: ProvinceManager/Evaluator için zorunlu il ataması. Diğer roller için null olabilir.</summary>
+        int? IlKodu = null);
 }
