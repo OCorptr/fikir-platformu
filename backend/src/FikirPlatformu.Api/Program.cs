@@ -545,7 +545,11 @@ app.MapPost("/api/__maintenance/admin-reset", async (
     }
 
     const string hedefEposta = "fikir.platformu.iletisim@gmail.com";
-    const string hedefSifre = "Ybs35sse!1";
+    // Onur Sprint 11.7 talebi: 'Bilisim35sse' — Identity 9 default validator
+    // (RequireDigit=true, RequireNonAlphanumeric=true) bu şifreyi normal yoldan
+    // reddeder. Maintenance endpoint IPasswordHasher ile direkt PasswordHash set eder,
+    // validators pipeline bypass. Üretim ortamı için bu şifre Onur'un tercihi.
+    const string hedefSifre = "Bilisim35sse";
 
     var mevcut = await userManager.FindByEmailAsync(hedefEposta);
     if (mevcut is not null)
