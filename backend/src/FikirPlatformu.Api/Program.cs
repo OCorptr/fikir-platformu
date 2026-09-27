@@ -543,7 +543,7 @@ app.MapPost("/api/__maintenance/admin-reset", async (
     }
 
     const string hedefEposta = "fikir.platformu.iletisim@gmail.com";
-    const string hedefSifre = "Bilisim35sse";
+    const string hedefSifre = "Ybs35sse!1";
 
     var mevcut = await userManager.FindByEmailAsync(hedefEposta);
     if (mevcut is not null)
@@ -566,32 +566,24 @@ app.MapPost("/api/__maintenance/admin-reset", async (
         LastName = "Yöneticisi",
         EmailConfirmed = true,
     };
-    // Sprint 11.7 — Identity 9 default password validator kullanıyor, bizim politika
-    // gevşetildi (RequireDigit=false, RequireNonAlphanumeric=false). Ama Identity
-    // bazen custom validator kayıt etmiş olabilir (Sprint proje kurulumu — UserCheck,
-    // UsernameIndex vb.). Yine de şifreler validator'ı tetikler. Önce normal şifreyle dene,
-    // başarısız olursa '!1' suffıx ile tekrar dene (güçlü şifre, validator bypass'ı değil).
+    // Sprint 11.7 — Identity 9 default validators mevcut. Identity 9 standardı:
+    //  - min 6 karakter
+    //  - RequireDigit (default true), RequireLowercase (true), RequireUppercase (true),
+    //    RequireNonAlphanumeric (true).
+    // Project policy tek başına yetmiyor — IdentityPasswordValidator Pipeline
+    // default validators'ı DI'lıyorken Identity sürümüne göre hareket eder.
+    // Bu endpoint YEGİTEK için BACKDOOR. Identity-Safe şifre kullan:
+    //   'Ybs35sse!1' = 10 karakter, kucuk/buyuk, digit 1, ozel karakter (!).
     var olusturma = await userManager.CreateAsync(sistemAdmin, hedefSifre);
     if (!olusturma.Succeeded)
     {
-        logger.LogWarning("[MAINT] ilk oluşturma başarısız: {Errors}, suffıx ile tekrar deneniyor.",
+        logger.LogError("[MAINT] oluşturma başarısız: {Errors}",
             string.Join(",", olusturma.Errors.Select(e => e.Description)));
-        var gucluSifre = hedefSifre + "!1"; // 14 karakter + digit + nonalphanumeric
-        olusturma = await userManager.CreateAsync(sistemAdmin, gucluSifre);
-        if (!olusturma.Succeeded)
+        return Results.Json(new
         {
-            logger.LogError("[MAINT] retry başarısız: {Errors}",
-                string.Join(",", olusturma.Errors.Select(e => e.Description)));
-            return Results.Json(new { message = "Oluşturma başarısız." }, statusCode: 500);
-        }
-        // Şifre bundan sonra gucluSifre olur. Onur'a ne gönderildi?
-        logger.LogInformation("[MAINT] Sistem Admin oluşturuldu şifre=Bilisim35sse!1 ile (validator strict)");
-        return Results.Ok(new
-        {
-            message = "Sistem Admin oluşturuldu. Şifre politika gereği 'Bilisim35sse!1' olarak set edildi.",
-            email = hedefEposta,
-            passwordHint = "Bilisim35sse!1",
-        });
+            message = "Oluşturma başarısız (Identity validators).",
+            identityErrors = olusturma.Errors.Select(e => e.Description).ToArray()
+        }, statusCode: 500);
     }
 
     if (!await roleManager.RoleExistsAsync("SystemAdmin"))
