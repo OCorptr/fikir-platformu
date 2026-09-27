@@ -579,13 +579,20 @@ using (var kapsam = app.Services.CreateScope())
     {
         // Idempotent update: PasswordHash null veya boş karakter ise (Identity validator
         // başarısız olduğunda user var ama hash yok) şifreyi sonradan ata.
-        var hashGorunmuyor = string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash);
-        if (hashGorunmuyor || mevcutSistemAdmin.PasswordHash!.Length < 50)
+        // Identity framework GeneratePasswordResetTokenAsync bazı framework implementasyonlarında
+        // SecurityStamp ihtiyaç duyar — boş PasswordHash durumunda token üretemez. Bunu bypass
+        // için RemovePasswordAsync + AddPasswordAsync akışı kullan.
+        var hashBosMu = string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash) || mevcutSistemAdmin.PasswordHash!.Length < 50;
+        if (hashBosMu)
         {
-            // Önce eski başarısız password'u temizle, sonra yeniden ata.
-            var token = await kullaniciYoneticisi.GeneratePasswordResetTokenAsync(mevcutSistemAdmin);
-            var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(mevcutSistemAdmin, token, sistemAdminSifre);
-            Console.WriteLine($"[SEED] Mevcut Sistem Admin şifresi yenilendi: success={sonuc.Succeeded}");
+            IdentityResult sonuc = IdentityResult.Failed();
+            if (!string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash))
+            {
+                var kaldir = await kullaniciYoneticisi.RemovePasswordAsync(mevcutSistemAdmin);
+                Console.WriteLine($"[SEED] removePassword: success={kaldir.Succeeded}");
+            }
+            sonuc = await kullaniciYoneticisi.AddPasswordAsync(mevcutSistemAdmin, sistemAdminSifre);
+            Console.WriteLine($"[SEED] addPassword: success={sonuc.Succeeded}, errors={string.Join(",", sonuc.Errors.Select(e => e.Description))}");
         }
         // Roller tam olsun (idempotent).
         if (!await kullaniciYoneticisi.IsInRoleAsync(mevcutSistemAdmin, "SystemAdmin"))
