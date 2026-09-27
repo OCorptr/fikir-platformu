@@ -108,7 +108,7 @@ export async function mfaSetupBaslat(method: MfaMethod): Promise<MfaSetupRespons
 }
 
 /** MFA kodu doğrula (kurulum tamamla). Body: {code} */
-export async function mfaVerifyKod(code: string): Promise<{ message: string; method?: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
+export async function mfaVerifyKod(code: string): Promise<{ message: string; method?: string; context?: string; email?: string; firstName?: string; lastName?: string; roles?: string[] }> {
   return apiRequest("/api/auth/mfa/verify-setup", {
     method: "POST",
     body: { code },
@@ -116,7 +116,7 @@ export async function mfaVerifyKod(code: string): Promise<{ message: string; met
 }
 
 /** Login sonrası MFA code doğrula (MFA zaten enabled). Body: {code} */
-export async function mfaLoginVerify(code: string): Promise<{ message: string; method?: string; context?: string; email?: string; firstName?: string; lastName?: string }> {
+export async function mfaLoginVerify(code: string): Promise<{ message: string; method?: string; context?: string; email?: string; firstName?: string; lastName?: string; roles?: string[] }> {
   return apiRequest("/api/auth/mfa/verify", {
     method: "POST",
     body: { code },

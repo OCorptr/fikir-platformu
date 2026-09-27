@@ -185,6 +185,12 @@ export function MfaLoginPage() {
     setHata(null);
     try {
       const sonuc = await mfaLoginVerify(kod);
+      // Sprint 11.14: Sistem Yöneticisi /admin'e yönlendirilir.
+      const sistemAdminMi = sonuc.roles?.includes("SystemAdmin") ?? false;
+      if (sistemAdminMi) {
+        navigate("/admin", { replace: true });
+        return;
+      }
       const ctx = sonuc.context ?? "student";
       if (ctx === "ministry") navigate("/bakanlik");
       else if (ctx === "province") navigate("/il-panel");

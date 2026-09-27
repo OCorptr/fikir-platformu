@@ -261,6 +261,7 @@ public static class MfaEndpoints
                 firstName = kullanici.FirstName,
                 lastName = kullanici.LastName,
                 context,
+                roles = await kullaniciYoneticisi.GetRolesAsync(kullanici),
                 mfaEnabled = true
             });
         }).RequireAuthorization("PreMfaOnly");
@@ -347,6 +348,7 @@ public static class MfaEndpoints
                 lastName = kullanici.LastName,
                 method = kullanici.TwoFactorMethod.ToString(),
                 context,
+                roles = await kullaniciYoneticisi.GetRolesAsync(kullanici),
                 mfaVerified = true
             });
         }).RequireAuthorization("PreMfaOnly");

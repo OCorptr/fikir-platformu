@@ -111,6 +111,12 @@ export function MfaSetupPage() {
     setHata(null);
     try {
       const sonuc = await mfaVerifyKod(kod);
+      // Sprint 11.14: Sistem Yöneticisi /admin'e yönlendirilir.
+      const sistemAdminMi = sonuc.roles?.includes("SystemAdmin") ?? false;
+      if (sistemAdminMi) {
+        navigate("/admin", { replace: true });
+        return;
+      }
       // Scheme upgrade tamamlandı → ilgili panele yönlendir.
       const ctx = sonuc.context ?? "student";
       if (ctx === "ministry") navigate("/bakanlik");

@@ -45,6 +45,10 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
   const [aktifOturum, setAktifOturum] = useState<LoginContext | null>(null);
+  const [meCevap, setMeCevap] = useState<{ roles?: string[] } | null>(null);
+  // setMeCevap'e tüm MeResponse atanabilir; tip içinde `roles` alanı
+  // authenticated:true varyantında var. Anonim varyantta roles undefined.
+  // PaneleGit'te roles?.includes() ile null-safe okunur.
   // Sprint 10.7: initial state TRUE. İlk render'da form flash'lanmasın.
   // useEffect mount olunca setOturumYukleniyor(false) ancak me() cevabı ile.
   const [oturumYukleniyor, setOturumYukleniyor] = useState(true);
@@ -74,6 +78,7 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
           // PreMfa cookie yok veya hata — /me ile mevcut oturumu kontrol et.
           me(controller.signal)
             .then((cevap) => {
+              setMeCevap(cevap as { roles?: string[] });
               if (sessionForContext(cevap, "ministry")) setAktifOturum("ministry");
               else if (sessionForContext(cevap, "province")) setAktifOturum("province");
               else if (sessionForContext(cevap, "student")) setAktifOturum("student");
@@ -114,9 +119,12 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     : null;
 
   function paneleGit() {
-    // Modal içinde SPA nav çalışmıyor — fullPageNav kullan.
-    const hedef =
-      aktifOturum === "ministry" ? "/bakanlik"
+    // Sprint 11.14: Sistem Yöneticisi doğrudan /admin'e yönlendirilir.
+    // MinistryOfficial + SystemAdmin aynı anda olabilir; SystemAdmin öncelikli.
+    const sistemAdminMi = meCevap?.roles?.includes("SystemAdmin") ?? false;
+    const hedef = sistemAdminMi
+      ? "/admin"
+      : aktifOturum === "ministry" ? "/bakanlik"
       : aktifOturum === "province" ? "/il-panel"
       : aktifOturum === "student" ? "/fikir"
       : null;
@@ -171,6 +179,12 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
         return;
       }
       const ctx: LoginContext | undefined = sonuc.context as LoginContext | undefined;
+      const sistemAdminMi = sonuc.roles?.includes("SystemAdmin") ?? false;
+      // Sprint 11.14: Sistem Yöneticisi öncelikli olarak /admin'e yönlendirilir.
+      if (sistemAdminMi) {
+        fullPageNav("/admin");
+        return;
+      }
       if (ctx === "province") {
         fullPageNav("/il-panel");
       } else if (ctx === "ministry") {
