@@ -18,6 +18,7 @@ import { AdminLayout } from "./pages/admin/AdminLayout";
 import { UserListPage } from "./pages/admin/UserListPage";
 import { UserCreatePage } from "./pages/admin/UserCreatePage";
 import { UserEditPage } from "./pages/admin/UserEditPage";
+import { UserBulkPage } from "./pages/admin/UserBulkPage";
 import { AdminAuthGuard } from "./components/AdminAuthGuard";
 import { SifremiUnuttumPage } from "./pages/SifremiUnuttumPage";
 import { SifreSifirlaPage } from "./pages/SifreSifirlaPage";
@@ -89,6 +90,7 @@ export default function App() {
             <Route index element={<UserListPage />} />
             <Route path="users" element={<UserListPage />} />
             <Route path="users/new" element={<UserCreatePage />} />
+            <Route path="users/bulk" element={<UserBulkPage />} />
             <Route path="users/:id" element={<UserEditPage />} />
           </Route>
         </Route>

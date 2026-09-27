@@ -135,6 +135,9 @@ export function UserListPage() {
             ))}
           </select>
         </label>
+        <Link to="/admin/users/bulk" className="btn">
+          📥 Toplu İçe Aktar
+        </Link>
         <Link to="/admin/users/new" className="btn btn-primary">
           + Yeni Kullanıcı
         </Link>

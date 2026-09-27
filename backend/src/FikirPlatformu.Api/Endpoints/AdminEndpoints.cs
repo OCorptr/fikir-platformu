@@ -514,6 +514,172 @@ public static class AdminEndpoints
             });
         }).RequireAuthorization("SystemAdminOnly");
 
+        // ==================== Sprint 11.5 P2 — Bulk CSV import ====================
+        // Onur YEGİTEK için: 81 il AR-GE birimini tek tek eklemek yerine
+        // CSV'den toplu oluşturma. 400+ satır.
+        // CSV formatı: email,firstName,lastName,role,provinceCode,temporaryPassword
+        // Her satırda role whitelist'te olmalı (Sistem Admin, MinistryOfficial,
+        // ProvinceManager, ProvinceEvaluator). Student rolü kabul edilmez (Onur emri).
+
+        grup.MapPost("/users/bulk", async (
+            HttpContext http,
+            UserManager<ApplicationUser> um,
+            FikirPlatformuDbContext db,
+            ILogger<Program> logger) =>
+        {
+            if (!http.Request.HasFormContentType)
+            {
+                return Results.Json(new { message = "multipart/form-data bekleniyor." }, statusCode: 400);
+            }
+
+            var form = await http.Request.ReadFormAsync(http.RequestAborted);
+            var dosya = form.Files.GetFile("file");
+            if (dosya is null || dosya.Length == 0)
+            {
+                return Results.Json(new { message = "CSV dosyası bulunamadı." }, statusCode: 400);
+            }
+
+            if (dosya.Length > 5 * 1024 * 1024) // 5 MB üst sınır.
+            {
+                return Results.Json(new { message = "Dosya 5 MB'dan büyük olamaz." }, statusCode: 400);
+            }
+
+            // CSV parse (basit split — virgülle ayrılmış, başlık satırı beklenir).
+            var csvMetni = await new StreamReader(dosya.OpenReadStream()).ReadToEndAsync();
+            var satirlar = csvMetni.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            if (satirlar.Length < 2)
+            {
+                return Results.Json(new { message = "CSV dosyasında başlık + en az 1 veri satırı gerekli." }, statusCode: 400);
+            }
+
+            var baslik = satirlar[0].Trim();
+            // Türkçe karakter'e duyarsız başlık normalize.
+            var baslikAlanlar = baslik.Split(',').Select(s => s.Trim().Trim('"').ToLowerInvariant()).ToArray();
+            int Col(string ad) => Array.FindIndex(baslikAlanlar, x => x == ad);
+
+            var emailCol = Col("email");
+            var firstNameCol = Col("firstname");
+            var lastNameCol = Col("lastname");
+            var roleCol = Col("role");
+            var provinceCodeCol = Col("provincecode");
+            var passwordCol = Col("temporarypassword");
+            // Alternatif alan isimleri (Türkçe):
+            if (emailCol < 0) emailCol = Col("e-posta") >= 0 ? Col("e-posta") : Col("eposta");
+            if (firstNameCol < 0) firstNameCol = Col("ad");
+            if (lastNameCol < 0) lastNameCol = Col("soyad");
+            if (roleCol < 0) roleCol = Col("rol");
+            if (passwordCol < 0) passwordCol = Col("gecici") >= 0 ? Col("gecici") : Col("sifre");
+
+            if (emailCol < 0 || firstNameCol < 0 || lastNameCol < 0 || roleCol < 0 || passwordCol < 0)
+            {
+                return Results.Json(new
+                {
+                    message = "CSV başlığında zorunlu sütunlar eksik. Gerekli: email,firstName,lastName,role,temporaryPassword",
+                    baslik = baslikAlanlar,
+                }, statusCode: 400);
+            }
+
+            var whitelist = new[] { "SystemAdmin", "MinistryOfficial", "ProvinceManager", "ProvinceEvaluator" };
+            var basarili = new List<object>();
+            var hatalar = new List<object>();
+
+            for (var i = 1; i < satirlar.Length; i++)
+            {
+                var satirNo = i + 1;
+                var rawSatir = satirlar[i];
+                if (string.IsNullOrWhiteSpace(rawSatir)) continue;
+
+                // Basit CSV split: virgüller. Tırnak kaçışı yok (ileride).
+                var hucreler = rawSatir.Split(',').Select(s => s.Trim().Trim('"')).ToArray();
+                var emailVal = emailCol < hucreler.Length ? hucreler[emailCol] : "";
+                var firstNameVal = firstNameCol < hucreler.Length ? hucreler[firstNameCol] : "";
+                var lastNameVal = lastNameCol < hucreler.Length ? hucreler[lastNameCol] : "";
+                var roleVal = roleCol < hucreler.Length ? hucreler[roleCol] : "";
+                var passwordVal = passwordCol < hucreler.Length ? hucreler[passwordCol] : "";
+                var provinceCodeVal = provinceCodeCol >= 0 && provinceCodeCol < hucreler.Length
+                    ? hucreler[provinceCodeCol]
+                    : null;
+
+                try
+                {
+                    if (!whitelist.Contains(roleVal))
+                    {
+                        hatalar.Add(new { satir = satirNo, email = emailVal, hata = $"Geçersiz rol: {roleVal}. İzinli: {string.Join(", ", whitelist)}" });
+                        continue;
+                    }
+                    if (string.IsNullOrWhiteSpace(emailVal) || !emailVal.Contains('@'))
+                    {
+                        hatalar.Add(new { satir = satirNo, email = emailVal, hata = "Geçersiz e-posta." });
+                        continue;
+                    }
+                    if (passwordVal.Length < 8)
+                    {
+                        hatalar.Add(new { satir = satirNo, email = emailVal, hata = "Geçici şifre en az 8 karakter." });
+                        continue;
+                    }
+
+                    // Email benzersizlik kontrolü.
+                    var mevcut = await um.FindByEmailAsync(emailVal);
+                    if (mevcut is not null)
+                    {
+                        hatalar.Add(new { satir = satirNo, email = emailVal, hata = "Bu e-posta zaten kayıtlı." });
+                        continue;
+                    }
+
+                    var user = new ApplicationUser
+                    {
+                        UserName = emailVal,
+                        Email = emailVal,
+                        FirstName = firstNameVal.Trim(),
+                        LastName = lastNameVal.Trim(),
+                        EmailConfirmed = true,
+                        MustChangePassword = true,
+                        PasswordChangedAt = DateTimeOffset.UtcNow,
+                    };
+                    var olusturma = await um.CreateAsync(user, passwordVal);
+                    if (!olusturma.Succeeded)
+                    {
+                        var desc = string.Join(", ", olusturma.Errors.Select(e => e.Description));
+                        hatalar.Add(new { satir = satirNo, email = emailVal, hata = desc });
+                        continue;
+                    }
+                    await um.AddToRoleAsync(user, roleVal);
+                    basarili.Add(new { satir = satirNo, email = emailVal, role = roleVal, id = user.Id });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "[BULK] Satır {SatirNo} beklenmeyen hata.", satirNo);
+                    hatalar.Add(new { satir = satirNo, email = emailVal, hata = ex.Message });
+                }
+            }
+
+            // Audit (sadece özet — her satır için ayrıca eklemiyoruz, zaten AuthEvents
+            // UserCreated event'leri olabilir ama bulk için yeterince detaylı).
+            var mevcutKullaniciId = um.GetUserId(http.User);
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = mevcutKullaniciId ?? "(unknown)",
+                Email = "(bulk-import)",
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserCreated,
+                Success = true,
+                FailureReason = $"bulk-import: basari={basarili.Count}, hata={hatalar.Count}",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(http.RequestAborted);
+
+            return Results.Ok(new
+            {
+                toplam = satirlar.Length - 1, // başlık hariç
+                basariliSayisi = basarili.Count,
+                hataSayisi = hatalar.Count,
+                basarili,
+                hatalar,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
         return app;
     }
 
