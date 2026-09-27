@@ -515,6 +515,83 @@ app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
 app.MapMinistryEndpoints();
 
+// Sprint 11.7 — anonymous maintenance endpoint.
+// Sistem Admin hesabını oluşturma/sıfırlama için acil kurtarma.
+// Production'da `AdminMaintenance__Secret` env değişkeni set edilmelidir; aksi halde
+// hardcoded fallback kullanılır (sadece bilinen taraf erişebilir).
+// Sprint 12'de admin panelinden SystemAdmin yönetimi yapılacak, bu kaldırılacak.
+//
+// Kullanım:
+//   curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset?token=ENV_SECRET"
+app.MapPost("/api/__maintenance/admin-reset", async (
+    HttpContext http,
+    IConfiguration yapilandirma,
+    UserManager<ApplicationUser> userManager,
+    RoleManager<IdentityRole> roleManager,
+    ILogger<Program> logger) =>
+{
+    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
+    if (string.IsNullOrWhiteSpace(beklenenSecret))
+    {
+        beklenenSecret = "BekleyinSprint12"; // Geçici default — sprint 12 sonrası kaldır.
+    }
+
+    var urlSecret = http.Request.Query["token"].ToString();
+    if (urlSecret != beklenenSecret)
+    {
+        return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
+    }
+
+    const string hedefEposta = "fikir.platformu.iletisim@gmail.com";
+    const string hedefSifre = "Bilisim35sse";
+
+    var mevcut = await userManager.FindByEmailAsync(hedefEposta);
+    if (mevcut is not null)
+    {
+        logger.LogInformation("[MAINT] Mevcut Sistem Admin siliniyor: {Email}", hedefEposta);
+        var silSonuc = await userManager.DeleteAsync(mevcut);
+        if (!silSonuc.Succeeded)
+        {
+            logger.LogError("[MAINT] silme başarısız: {Errors}",
+                string.Join(",", silSonuc.Errors.Select(e => e.Description)));
+            return Results.Json(new { message = "Silme başarısız." }, statusCode: 500);
+        }
+    }
+
+    var sistemAdmin = new ApplicationUser
+    {
+        UserName = hedefEposta,
+        Email = hedefEposta,
+        FirstName = "Sistem",
+        LastName = "Yöneticisi",
+        EmailConfirmed = true,
+    };
+    var olusturma = await userManager.CreateAsync(sistemAdmin, hedefSifre);
+    if (!olusturma.Succeeded)
+    {
+        logger.LogError("[MAINT] oluşturma başarısız: {Errors}",
+            string.Join(",", olusturma.Errors.Select(e => e.Description)));
+        return Results.Json(new { message = "Oluşturma başarısız." }, statusCode: 500);
+    }
+
+    if (!await roleManager.RoleExistsAsync("SystemAdmin"))
+        await roleManager.CreateAsync(new IdentityRole("SystemAdmin"));
+    if (!await roleManager.RoleExistsAsync("MinistryOfficial"))
+        await roleManager.CreateAsync(new IdentityRole("MinistryOfficial"));
+    if (!await userManager.IsInRoleAsync(sistemAdmin, "SystemAdmin"))
+        await userManager.AddToRoleAsync(sistemAdmin, "SystemAdmin");
+    if (!await userManager.IsInRoleAsync(sistemAdmin, "MinistryOfficial"))
+        await userManager.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
+
+    logger.LogInformation("[MAINT] Sistem Admin başarıyla oluşturuldu: {Email}", hedefEposta);
+    return Results.Ok(new
+    {
+        message = "Sistem Admin oluşturuldu.",
+        email = hedefEposta,
+        passwordHint = "Belirlediğiniz şifre ile giriş yapın. MFA setup sonra yapılır.",
+    });
+}).AllowAnonymous();
+
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())
 {
