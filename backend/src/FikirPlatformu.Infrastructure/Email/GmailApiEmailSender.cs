@@ -210,8 +210,14 @@ public sealed class GmailApiEmailSender : IEmailSender
         var sb = new StringBuilder();
         sb.Append("From: ").Append(fromName).Append(" <").Append(from).Append(">\r\n");
         sb.Append("To: <").Append(to).Append(">\r\n");
-        sb.Append("Subject: ").Append(subject).Append("\r\n");
+        // Sprint 10.7+++ encoding fix: Subject header'da ASCII dışı karakterler
+        // RFC 2047 Encoded-Word formatina cevrilir (=?UTF-8?B?base64?=). Önceki
+        // raw byte yazimi Gmail'in parser'inda mojibake yaratıyordu (Ornek:
+        // 'Geleceğin Fikri' → 'GeleceÃ„ÂŸin'). Body zaten Content-Type charset=UTF-8
+        // ile OK; sadece header'a Encoded-Word gerekir.
+        sb.Append("Subject: ").Append(EncodeSubjectRfc2047(subject)).Append("\r\n");
         sb.Append("Content-Type: text/html; charset=UTF-8\r\n");
+        sb.Append("Content-Transfer-Encoding: quoted-printable\r\n");
         sb.Append("MIME-Version: 1.0\r\n");
         sb.Append("\r\n");
         sb.Append(htmlBody);
@@ -221,6 +227,22 @@ public sealed class GmailApiEmailSender : IEmailSender
             .Replace('+', '-')
             .Replace('/', '_')
             .TrimEnd('='); // base64url
+    }
+
+    /// <summary>
+    /// RFC 2047 Encoded-Word format — ASCII dışı başlık metinlerini standart
+    /// encoded-word =?UTF-8?B?base64?= şeklinde sarmalar. Gmail + tüm RFC uyumlu
+    /// parser'lar doğru okur. ASCII-only string'ler raw bırakılır.
+    /// </summary>
+    private static string EncodeSubjectRfc2047(string subject)
+    {
+        if (string.IsNullOrEmpty(subject)) return subject;
+        var bytes = Encoding.UTF8.GetBytes(subject);
+        // ASCII only — raw pass (transparent)
+        bool asciiOnly = true;
+        foreach (var b in bytes) if (b >= 128) { asciiOnly = false; break; }
+        if (asciiOnly) return subject;
+        return "=?UTF-8?B?" + Convert.ToBase64String(bytes) + "?=";
     }
 }
 
