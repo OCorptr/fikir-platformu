@@ -373,6 +373,15 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                 {calisiyor ? "Giriş yapılıyor…" : "Giriş Yap 🚀"}
               </button>
             </div>
+            <div className="auth-form-alt-link">
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => navigate("/sifremi-unuttum")}
+              >
+                Şifremi Unuttum
+              </button>
+            </div>
           </form>
         )}
 

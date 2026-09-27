@@ -19,6 +19,8 @@ import { UserListPage } from "./pages/admin/UserListPage";
 import { UserCreatePage } from "./pages/admin/UserCreatePage";
 import { UserEditPage } from "./pages/admin/UserEditPage";
 import { AdminAuthGuard } from "./components/AdminAuthGuard";
+import { SifremiUnuttumPage } from "./pages/SifremiUnuttumPage";
+import { SifreSifirlaPage } from "./pages/SifreSifirlaPage";
 
 /* her rotada govde sinifi degisir:
    - /il-panel*, /bakanlik*  → sayfa-admin (sidebar + govde düzeni admin.css'ten)
@@ -61,6 +63,9 @@ export default function App() {
         <Route path="/fikir" element={<FikirPage />} />
         <Route path="/mfa-setup" element={<MfaSetupPage />} />
         <Route path="/mfa-login" element={<MfaLoginPage />} />
+        {/* Sprint 11.5 — Şifremi Unuttum akışı (Yetkili Girişi + Öğrenci Girişi modal'larından). */}
+        <Route path="/sifremi-unuttum" element={<SifremiUnuttumPage />} />
+        <Route path="/sifre-sifirla" element={<SifreSifirlaPage />} />
         <Route element={<ProtectedRoute context="province" />}>
           <Route path="/il-panel" element={<ProvinceInboxPage />} />
           <Route path="/il-panel/adaylar" element={<CandidatesPage />} />

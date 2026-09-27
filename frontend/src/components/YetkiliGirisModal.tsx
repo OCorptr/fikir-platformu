@@ -19,6 +19,7 @@
 //     veya React Router'ın data router pattern'i denenecek.
 
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { login, logout, me, mfaGetMethod, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
@@ -292,6 +293,12 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
                 {calisiyor ? "Giriş yapılıyor…" : "Giriş Yap"}
               </button>
             </form>
+
+            <div className="yg-not">
+              <Link to="/sifremi-unuttum" onClick={onKapat}>
+                Şifremi Unuttum
+              </Link>
+            </div>
 
             <div className="yg-not">
               🔒 Öğrenci hesabınızla giriş yapmak için anasayfadaki <b>Fikrimi Yaz</b> butonunu kullanın.
