@@ -1,15 +1,20 @@
-// Admin servisleri (Sprint 9 — SystemAdmin only).
-// Tüm endpoint'ler MfaCompleted + SystemAdminOnly policy ile korunuyor.
+// System Admin / Yönetim API helper'ları — Sprint 11.
+//
+// Backend: /api/admin/users* (Sprint 11 — User CRUD + MFA reset + Force password reset).
+// Tümü SystemAdminOnly policy korumalı (Identity SystemAdmin rolü + MFA verified).
 
 import { apiRequest } from "./api";
 
-export type AdminRole =
-  | "SystemAdmin"
-  | "MinistryOfficial"
-  | "ProvinceManager"
-  | "ProvinceEvaluator";
+// Whitelist roller (Sprint 11 — Onur onayı).
+export const ALLOWED_ROLES = [
+  "SystemAdmin",
+  "MinistryOfficial",
+  "ProvinceManager",
+  "ProvinceEvaluator",
+] as const;
+export type AllowedRole = (typeof ALLOWED_ROLES)[number];
 
-export interface AdminUser {
+export interface AdminUserListItem {
   id: string;
   email: string;
   firstName: string;
@@ -20,46 +25,124 @@ export interface AdminUser {
   lockoutEnabled: boolean;
 }
 
-export interface AdminUserListResponse {
+export interface AdminUserDetail extends AdminUserListItem {
+  roles: string[];
+  sonGirisAt: string | null;
+}
+
+export interface UserListResponse {
   toplam: number;
   sayfa: number;
   sayfaBasina: number;
-  kullanicilar: AdminUser[];
+  kullanicilar: AdminUserListItem[];
 }
 
-export async function adminListUsers(
-  params: { rol?: AdminRole | ""; sayfa?: number; sayfaBasina?: number } = {}
-): Promise<AdminUserListResponse> {
-  const arama = new URLSearchParams();
-  if (params.rol) arama.set("rol", params.rol);
-  if (params.sayfa) arama.set("sayfa", String(params.sayfa));
-  if (params.sayfaBasina) arama.set("sayfaBasina", String(params.sayfaBasina));
-  const query = arama.toString();
-  return apiRequest<AdminUserListResponse>(
-    `/api/admin/users${query ? `?${query}` : ""}`,
-    { method: "GET" }
-  );
-}
-
-export interface YeniKullaniciIstegi {
+export interface CreateUserRequest {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  role: AdminRole;
+  role: AllowedRole;
 }
 
-export interface YeniKullaniciCevabi {
+export interface UpdateUserRequest {
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+export interface ChangeRoleRequest {
+  newRole: AllowedRole;
+}
+
+export interface ResetPasswordResponse {
+  message: string;
+  id: string;
+  resetUrl: string;
+  expiresIn: string;
+}
+
+export interface ResetMfaResponse {
+  message: string;
+  id: string;
+}
+
+// --- API helpers -----------------------------------------------------------
+
+const ADMIN_BASE = "/api/admin";
+
+export async function listUsers(opts: {
+  role?: AllowedRole;
+  sayfa?: number;
+  sayfaBasina?: number;
+} = {}): Promise<UserListResponse> {
+  const params = new URLSearchParams();
+  if (opts.role) params.set("role", opts.role);
+  if (opts.sayfa && opts.sayfa > 0) params.set("sayfa", String(opts.sayfa));
+  if (opts.sayfaBasina && opts.sayfaBasina > 0)
+    params.set("sayfaBasina", String(opts.sayfaBasina));
+  const query = params.toString();
+  return apiRequest<UserListResponse>(`${ADMIN_BASE}/users${query ? `?${query}` : ""}`);
+}
+
+export async function getUser(id: string): Promise<AdminUserDetail> {
+  return apiRequest<AdminUserDetail>(`${ADMIN_BASE}/users/${encodeURIComponent(id)}`);
+}
+
+export async function createUser(req: CreateUserRequest): Promise<{
   message: string;
   userId: string;
   email: string;
-  role: string;
+  role: AllowedRole;
   mfaSetupRequired: boolean;
+}> {
+  return apiRequest(`${ADMIN_BASE}/users`, {
+    method: "POST",
+    body: req,
+  });
 }
 
-export async function adminCreateUser(payload: YeniKullaniciIstegi): Promise<YeniKullaniciCevabi> {
-  return apiRequest<YeniKullaniciCevabi>("/api/admin/users", {
-    method: "POST",
-    body: payload,
+export async function updateUser(
+  id: string,
+  req: UpdateUserRequest,
+): Promise<{ message: string; id: string }> {
+  return apiRequest(`${ADMIN_BASE}/users/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    body: req,
   });
+}
+
+export async function deleteUser(id: string): Promise<{ message: string; id: string }> {
+  return apiRequest(`${ADMIN_BASE}/users/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
+}
+
+export async function changeUserRole(
+  id: string,
+  req: ChangeRoleRequest,
+): Promise<{
+  message: string;
+  id: string;
+  yeniRol: AllowedRole;
+  oncekiRoller: string[];
+}> {
+  return apiRequest(`${ADMIN_BASE}/users/${encodeURIComponent(id)}/change-role`, {
+    method: "POST",
+    body: req,
+  });
+}
+
+export async function resetUserMfa(id: string): Promise<ResetMfaResponse> {
+  return apiRequest<ResetMfaResponse>(
+    `${ADMIN_BASE}/users/${encodeURIComponent(id)}/reset-mfa`,
+    { method: "POST" },
+  );
+}
+
+export async function resetUserPassword(id: string): Promise<ResetPasswordResponse> {
+  return apiRequest<ResetPasswordResponse>(
+    `${ADMIN_BASE}/users/${encodeURIComponent(id)}/reset-password`,
+    { method: "POST" },
+  );
 }

@@ -14,7 +14,11 @@ import { MinistryPage } from "./pages/MinistryPage";
 import { ProvinceReportPage } from "./pages/ProvinceReportPage";
 import { MfaSetupPage } from "./pages/MfaSetupPage";
 import { MfaLoginPage } from "./pages/MfaLoginPage";
-import { AdminUsersPage } from "./pages/AdminUsersPage";
+import { AdminLayout } from "./pages/admin/AdminLayout";
+import { UserListPage } from "./pages/admin/UserListPage";
+import { UserCreatePage } from "./pages/admin/UserCreatePage";
+import { UserEditPage } from "./pages/admin/UserEditPage";
+import { AdminAuthGuard } from "./components/AdminAuthGuard";
 
 /* her rotada govde sinifi degisir:
    - /il-panel*, /bakanlik*  → sayfa-admin (sidebar + govde düzeni admin.css'ten)
@@ -67,7 +71,21 @@ export default function App() {
         <Route element={<ProtectedRoute context="ministry" />}>
           <Route path="/bakanlik" element={<MinistryPage gorunum="adaylar" />} />
           <Route path="/bakanlik/donemler" element={<MinistryPage gorunum="donemler" />} />
-          <Route path="/admin/kullanicilar" element={<AdminUsersPage />} />
+          <Route path="/admin/kullanicilar" element={<Navigate to="/admin/users" replace />} />
+          {/* Sprint 11 — Yeni admin panel route'ları (SystemAdmin zorunlu). */}
+          <Route
+            path="/admin"
+            element={
+              <AdminAuthGuard>
+                <AdminLayout />
+              </AdminAuthGuard>
+            }
+          >
+            <Route index element={<UserListPage />} />
+            <Route path="users" element={<UserListPage />} />
+            <Route path="users/new" element={<UserCreatePage />} />
+            <Route path="users/:id" element={<UserEditPage />} />
+          </Route>
         </Route>
         <Route path="*" element={<SayfaBulunamadi />} />
       </Routes>
