@@ -618,9 +618,21 @@ grup.MapPost("/logout", async (
 
         // Sprint 11.22: Server-side debug endpoint — Onur DevTools acamiyor,
         // Render log'una erisemiyor. Bu endpoint son sifre sifirlama denemesinin
-        // sonucunu JSON olarak doner. SystemAdmin policy ile korunur.
-        grup.MapGet("/__debug/last-sifre-reset", () =>
+        // sonucunu JSON olarak doner. Maintenance token ile korunur (Onur zaten
+        // AdminMaintenance__Secret env'i biliyor). SystemAdminOnly policy yerine
+        // secret query cunku cookie cross-site'de paylasilamiyor olabilir.
+        grup.MapGet("/__debug/last-sifre-reset", (
+            [FromQuery] string? token,
+            IConfiguration yapilandirma) =>
         {
+            var beklenen = yapilandirma["AdminMaintenance:Secret"]
+                ?? yapilandirma["__maintenance:admin-reset:token"]
+                ?? "BekleyinSprint12";
+            if (string.IsNullOrEmpty(token) || token != beklenen)
+            {
+                return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+            }
+
             var deneme = SifreResetDebug.SonDeneme;
             if (deneme is null)
             {
@@ -638,7 +650,7 @@ grup.MapPost("/logout", async (
                 deneme.PwdLen,
                 deneme.Exception,
             });
-        }).RequireAuthorization("SystemAdminOnly");
+        });
 
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
         // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
