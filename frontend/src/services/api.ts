@@ -77,6 +77,12 @@ function buildMessage(status: number, body: ApiError | null): string {
       const ilk = Object.values(body.errors).flat()[0];
       if (ilk) return ilk;
     }
+    // Sprint 11.21: RFC 7807 ProblemDetails.detail desteği — global exception
+    // handler { detail: "..." } döndürdüğünde UI'da generic fallback
+    // ("Bağlantınızın süresi dolmuş olabilir") yerine gerçek hata görünür.
+    if (body.detail && body.detail.trim().length > 0) {
+      return body.detail;
+    }
     if (body.title && body.title.trim().length > 0) {
       return body.title;
     }
