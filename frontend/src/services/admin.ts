@@ -86,12 +86,14 @@ export async function listUsers(opts: {
   role?: AllowedRole;
   sayfa?: number;
   sayfaBasina?: number;
+  ilKodu?: number;
 } = {}): Promise<UserListResponse> {
   const params = new URLSearchParams();
   if (opts.role) params.set("role", opts.role);
   if (opts.sayfa && opts.sayfa > 0) params.set("sayfa", String(opts.sayfa));
   if (opts.sayfaBasina && opts.sayfaBasina > 0)
     params.set("sayfaBasina", String(opts.sayfaBasina));
+  if (opts.ilKodu && opts.ilKodu > 0) params.set("ilKodu", String(opts.ilKodu));
   const query = params.toString();
   return apiRequest<UserListResponse>(`${ADMIN_BASE}/users${query ? `?${query}` : ""}`);
 }

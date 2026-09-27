@@ -95,11 +95,12 @@ public static class AdminEndpoints
             string? role,
             int sayfa,
             int sayfaBasina,
+            int? ilKodu,
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani) =>
         {
             sayfa = sayfa <= 0 ? 1 : sayfa;
-            sayfaBasina = sayfaBasina <= 0 || sayfaBasina > 100 ? 25 : sayfaBasina;
+            sayfaBasina = sayfaBasina <= 0 || sayfaBasina > 500 ? 100 : sayfaBasina;
 
             // Sprint 11.1 whitelist: rol parametresi whitelist'te olmalı (Student filtreleme).
             var whitelistRollar = new[] { "SystemAdmin", "MinistryOfficial", "ProvinceManager", "ProvinceEvaluator" };
@@ -140,11 +141,30 @@ public static class AdminEndpoints
                     .ToListAsync();
             }
 
+            // İl filtresi — ProvinceUserAssignment join.
+            IReadOnlyCollection<string>? ilUserIds = null;
+            if (ilKodu.HasValue && ilKodu.Value > 0)
+            {
+                ilUserIds = await veritabani.Set<Domain.Identity.ProvinceUserAssignment>()
+                    .Where(p => p.ProvinceId == ilKodu.Value)
+                    .Select(p => p.UserId)
+                    .ToListAsync();
+                if (ilUserIds.Count == 0)
+                {
+                    return Results.Ok(new { toplam = 0, sayfa, sayfaBasina, kullanicilar = Array.Empty<object>() });
+                }
+            }
+
             var sorgu = kullaniciYoneticisi.Users.AsQueryable();
             if (rolUserIds is not null)
             {
                 var ids = rolUserIds; // closure için yerel değişkene al
                 sorgu = sorgu.Where(u => ids.Contains(u.Id));
+            }
+            if (ilUserIds is not null)
+            {
+                var ilIds = ilUserIds;
+                sorgu = sorgu.Where(u => ilIds.Contains(u.Id));
             }
             // Student çıkar.
             if (studentIds is { Count: > 0 })

@@ -1,13 +1,14 @@
-// Kullanıcı Yönetimi sayfası — Sprint 11.8 yeniden tasarım.
+// Kullanıcı Yönetimi — Sprint 11.9 yeniden tasarım (compact + 81 il + default kapalı).
 //
-// Vercel Web Interface Guidelines'a göre düzenlendi:
-// - Üç katmanlı grup yapısı (Sistem Yöneticileri, Bakanlık Yetkilileri,
-//   İl AR-GE Yöneticileri, İl Değerlendiricileri).
-// - İl AR-GE grupları kendi içinde şehirlere göre alt gruplara ayrılır.
-// - URL'de rol filtresi senkronize (deep-link + Cmd/Ctrl-click).
-// - Icon buttonlar aria-label, focus-visible, klavye erişilebilir.
-// - Boş durumlar açıklanmış, skeleton yükleniyor…, hata aria-live.
-// - Vercel "no transition: all", "honor prefers-reduced-motion" kuralları.
+// shadcn "Dense Table" pattern + Vercel Web Interface Guidelines:
+// - Compact rows: py 0.4rem, text-sm, gap 0.5rem
+// - 3 grup accordion (Yönetim, İl AR-GE Yöneticileri, İl AR-GE Değerlendiricileri)
+// - Default KAPALI (Onur talebi: 80 il kayıt olunca çok yer kaplıyordu)
+// - localStorage v2 key (eski v1'deki default-açık state'i sıfırla)
+// - İl filtre dropdown (81 il listesi header'da sticky)
+// - URL search params: rol, il, q
+// - Sticky grup başlığı (scroll sırasında)
+// - Empty state, hata aria-live, focus-visible, klavye erişilebilir
 
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -26,64 +27,74 @@ import {
   type AdminUserListItem,
   type AdminUserIlAtamasi,
 } from "../../services/admin";
+import { getProvinces } from "../../services/references";
+import type { ProvinceRef } from "../../types";
 import { ApiHttpError } from "../../services/api";
 
-const SAYFA_BASINA = 100;
-
-type GrupKodu = "Sistem" | "Bakanlik" | "IlManager" | "IlEvaluator";
+type GrupKodu = "Yonetim" | "IlManager" | "IlEvaluator";
 
 const GRUP_BASLIKLARI: Record<GrupKodu, string> = {
-  Sistem: "Sistem Yöneticileri",
-  Bakanlik: "Bakanlık Yetkilileri",
+  Yonetim: "Yönetim",
   IlManager: "İl AR-GE Yöneticileri",
-  IlEvaluator: "İl Değerlendiricileri",
+  IlEvaluator: "İl AR-GE Değerlendiricileri",
 };
 
 const GRUP_ACIKLAMALARI: Record<GrupKodu, string> = {
-  Sistem: "Tüm platform yönetim yetkisi (YEGİTEK için).",
-  Bakanlik: "Bakanlık düzeyinde değerlendirme ve raporlama.",
-  IlManager: "İl AR-GE birimi yöneticileri — kendi iline atanmış.",
-  IlEvaluator: "İl AR-GE değerlendiricileri — yöneticinin ekibinde.",
+  Yonetim: "Sistem yöneticileri ve bakanlık yetkilileri.",
+  IlManager: "Her il için 1 yönetici.",
+  IlEvaluator: "Yöneticilerin ekiplerinde değerlendiriciler.",
 };
 
+const STORAGE_KEY = "admin.acikGruplar.v2";
+
 function grupBelirle(roller: string[]): GrupKodu {
-  if (roller.includes("SystemAdmin")) return "Sistem";
-  if (roller.includes("MinistryOfficial")) return "Bakanlik";
   if (roller.includes("ProvinceManager")) return "IlManager";
   if (roller.includes("ProvinceEvaluator")) return "IlEvaluator";
-  return "Bakanlik"; // fallback
+  return "Yonetim"; // SystemAdmin + MinistryOfficial birlikte
 }
 
-function ilBul(roller: string[], ilAtamalari: AdminUserIlAtamasi[]): AdminUserIlAtamasi | null {
-  // İlk whitelist il atamasını döner.
+function ilBul(
+  roller: string[],
+  ilAtamalari: AdminUserIlAtamasi[],
+): AdminUserIlAtamasi | null {
   const whitelist = new Set(["ProvinceManager", "ProvinceEvaluator"]);
-  const match = ilAtamalari.find((ia) => whitelist.has(ia.role));
-  return match ?? null;
+  return ilAtamalari.find((ia) => whitelist.has(ia.role)) ?? null;
 }
 
 export function UserListPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const rolFilter = (searchParams.get("rol") ?? "") as AllowedRole | "";
+  const ilFilter = searchParams.get("il") ? Number(searchParams.get("il")) : 0;
   const searchTerm = searchParams.get("q") ?? "";
 
   const [items, setItems] = useState<AdminUserListItem[]>([]);
   const [toplam, setToplam] = useState(0);
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(true);
+  const [iller, setIller] = useState<ProvinceRef[]>([]);
 
-  // Accordion açık/kapalı (default: hepsi açık). LocalStorage'da hatırla.
+  // Default KAPALI. v2 key (eski v1'deki açık state'i bypass).
   const [acikGruplar, setAcikGruplar] = useState<Record<GrupKodu, boolean>>(() => {
     try {
-      const stored = localStorage.getItem("admin.acikGruplar");
-      if (stored) return JSON.parse(stored);
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return { Yonetim: !!parsed.Yonetim, IlManager: !!parsed.IlManager, IlEvaluator: !!parsed.IlEvaluator };
+      }
+      // Eski key'leri temizle.
+      localStorage.removeItem("admin.acikGruplar");
     } catch { /* ignore */ }
-    return { Sistem: true, Bakanlik: true, IlManager: true, IlEvaluator: true };
+    return { Yonetim: false, IlManager: false, IlEvaluator: false };
   });
 
   useEffect(() => {
-    localStorage.setItem("admin.acikGruplar", JSON.stringify(acikGruplar));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(acikGruplar));
   }, [acikGruplar]);
+
+  useEffect(() => {
+    getProvinces().then(setIller).catch(() => setIller([]));
+  }, []);
 
   async function yukle() {
     setHata(null);
@@ -91,15 +102,14 @@ export function UserListPage() {
     try {
       const sonuc = await listUsers({
         sayfa: 1,
-        sayfaBasina: SAYFA_BASINA,
+        sayfaBasina: 500,
         role: rolFilter ? (rolFilter as AllowedRole) : undefined,
+        ilKodu: ilFilter > 0 ? ilFilter : undefined,
       });
       setItems(sonuc.kullanicilar);
       setToplam(sonuc.toplam);
     } catch (err) {
-      setHata(
-        err instanceof ApiHttpError ? err.message : "Kullanıcılar yüklenemedi.",
-      );
+      setHata(err instanceof ApiHttpError ? err.message : "Kullanıcılar yüklenemedi.");
       setItems([]);
       setToplam(0);
     } finally {
@@ -110,7 +120,7 @@ export function UserListPage() {
   useEffect(() => {
     void yukle();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rolFilter]);
+  }, [rolFilter, ilFilter]);
 
   function filterGuncelle(key: string, value: string) {
     const next = new URLSearchParams(searchParams);
@@ -130,7 +140,7 @@ export function UserListPage() {
 
   const gruplar = useMemo(() => {
     const buckets: Record<GrupKodu, AdminUserListItem[]> = {
-      Sistem: [], Bakanlik: [], IlManager: [], IlEvaluator: [],
+      Yonetim: [], IlManager: [], IlEvaluator: [],
     };
     for (const u of filtrelenmis) {
       buckets[grupBelirle(u.roller ?? [])].push(u);
@@ -138,46 +148,46 @@ export function UserListPage() {
     return buckets;
   }, [filtrelenmis]);
 
+  // İl bazlı alt-gruplama (sadece manager/evaluator için).
+  function ilGruplariOlustur(items: AdminUserListItem[]) {
+    const map = new Map<number, { ilKodu: number; ilAdi: string; kullanicilar: AdminUserListItem[] }>();
+    const atamamis: AdminUserListItem[] = [];
+    for (const u of items) {
+      const il = ilBul(u.roller ?? [], u.ilAtamalari ?? []);
+      if (!il) { atamamis.push(u); continue; }
+      const mevcut = map.get(il.ilKodu);
+      if (mevcut) mevcut.kullanicilar.push(u);
+      else map.set(il.ilKodu, { ilKodu: il.ilKodu, ilAdi: il.ilAdi, kullanicilar: [u] });
+    }
+    const sirali = Array.from(map.values()).sort((a, b) => a.ilAdi.localeCompare(b.ilAdi, "tr"));
+    return { iller: sirali, atamamis };
+  }
+
   async function silKullanici(item: AdminUserListItem) {
     if (!confirm(`"${item.email}" silinsin mi? Bu geri alınamaz.`)) return;
-    try {
-      await deleteUser(item.id);
-      await yukle();
-    } catch (err) {
-      setHata(err instanceof ApiHttpError ? err.message : "Silinemedi.");
-    }
+    try { await deleteUser(item.id); await yukle(); }
+    catch (err) { setHata(err instanceof ApiHttpError ? err.message : "Silinemedi."); }
   }
 
   async function mfaReset(item: AdminUserListItem) {
-    if (!confirm(`"${item.email}" MFA sıfırlansın mı? Sonraki login'de yeniden setup yapacak.`)) return;
-    try {
-      const sonuc = await resetUserMfa(item.id);
-      alert(sonuc.message);
-      await yukle();
-    } catch (err) {
-      setHata(err instanceof ApiHttpError ? err.message : "MFA sıfırlanamadı.");
-    }
+    if (!confirm(`"${item.email}" MFA sıfırlansın mı?`)) return;
+    try { const sonuc = await resetUserMfa(item.id); alert(sonuc.message); await yukle(); }
+    catch (err) { setHata(err instanceof ApiHttpError ? err.message : "MFA sıfırlanamadı."); }
   }
 
   async function sifreReset(item: AdminUserListItem) {
-    if (!confirm(`"${item.email}" için force password reset başlatılsın mı? Reset URL'i kullanıcıya ilet.`)) return;
-    try {
-      const sonuc = await resetUserPassword(item.id);
-      prompt("Reset URL'i kopyalayıp kullanıcıya iletin:", sonuc.resetUrl);
-    } catch (err) {
-      setHata(err instanceof ApiHttpError ? err.message : "Şifre sıfırlanamadı.");
-    }
+    if (!confirm(`"${item.email}" için force password reset başlatılsın mı?`)) return;
+    try { const sonuc = await resetUserPassword(item.id); prompt("Reset URL'i kopyalayıp kullanıcıya iletin:", sonuc.resetUrl); }
+    catch (err) { setHata(err instanceof ApiHttpError ? err.message : "Şifre sıfırlanamadı."); }
   }
 
   async function rolDegistir(item: AdminUserListItem, newRole: AllowedRole) {
     if (!confirm(`"${item.email}" rolü "${newRole}" olarak değiştirilsin mi?`)) return;
-    try {
-      await changeUserRole(item.id, { newRole });
-      await yukle();
-    } catch (err) {
-      setHata(err instanceof ApiHttpError ? err.message : "Rol atanamadı.");
-    }
+    try { await changeUserRole(item.id, { newRole }); await yukle(); }
+    catch (err) { setHata(err instanceof ApiHttpError ? err.message : "Rol atanamadı."); }
   }
+
+  const filtreTemizle = () => setSearchParams(new URLSearchParams());
 
   return (
     <section className="admin-panel" aria-labelledby="panel-baslik">
@@ -199,8 +209,8 @@ export function UserListPage() {
         </div>
       </header>
 
-      <div className="admin-filtre-cubugu" role="search">
-        <label className="admin-filtre-alan">
+      <div className="admin-filtre-cubugu admin-filtre-cubugu-sticky">
+        <label className="admin-filtre-alan admin-filtre-arama">
           <span className="admin-filtre-etiket">Ara</span>
           <input
             type="search"
@@ -210,6 +220,21 @@ export function UserListPage() {
             onChange={(e) => filterGuncelle("q", e.target.value)}
             aria-label="Kullanıcı ara"
           />
+        </label>
+        <label className="admin-filtre-alan admin-filtre-il">
+          <span className="admin-filtre-etiket">İl</span>
+          <select
+            value={ilFilter > 0 ? String(ilFilter) : ""}
+            onChange={(e) => filterGuncelle("il", e.target.value)}
+            aria-label="İl filtresi"
+          >
+            <option value="">Tümü (81 il)</option>
+            {iller.map((i) => (
+              <option key={i.id} value={i.id}>
+                {String(i.id).padStart(2, "0")} — {i.name}
+              </option>
+            ))}
+          </select>
         </label>
         <div className="admin-filtre-chipleri" role="radiogroup" aria-label="Rol filtresi">
           <button
@@ -235,9 +260,7 @@ export function UserListPage() {
           ))}
         </div>
         <p className="admin-filtre-sonuc" aria-live="polite">
-          {calisiyor
-            ? "Yükleniyor…"
-            : `${filtrelenmis.length} / ${toplam} kullanıcı`}
+          {calisiyor ? "Yükleniyor…" : `${filtrelenmis.length} / ${toplam} kullanıcı`}
         </p>
       </div>
 
@@ -251,16 +274,12 @@ export function UserListPage() {
         <div className="admin-bos-durum">
           <h3>Kullanıcı bulunamadı</h3>
           <p>
-            {searchTerm || rolFilter
-              ? "Filtreye uyan kullanıcı yok. Filtreyi temizleyip tekrar deneyin."
-              : "Henüz hiç kullanıcı oluşturulmadı. \"Yeni Kullanıcı\" ile başlayabilirsiniz."}
+            {searchTerm || rolFilter || ilFilter
+              ? "Filtreye uyan kullanıcı yok."
+              : "Henüz kullanıcı oluşturulmadı."}
           </p>
-          {(searchTerm || rolFilter) && (
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => setSearchParams(new URLSearchParams())}
-            >
+          {(searchTerm || rolFilter || ilFilter) && (
+            <button type="button" className="btn btn-ghost" onClick={filtreTemizle}>
               Filtreleri temizle
             </button>
           )}
@@ -268,23 +287,21 @@ export function UserListPage() {
       ) : (
         <div className="admin-gruplar">
           {(Object.keys(GRUP_BASLIKLARI) as GrupKodu[]).map((kod) => {
-            const kullanicilar = gruplar[kod];
-            if (rolFilter && grupBelirle([rolFilter]) !== kod && kullanicilar.length === 0) {
-              return null;
-            }
+            const liste = gruplar[kod];
+            if (rolFilter && grupBelirle([rolFilter]) !== kod && liste.length === 0) return null;
             return (
               <GrupKarti
                 key={kod}
                 kod={kod}
-                kullanicilar={kullanicilar}
+                kullanicilar={liste}
                 acik={acikGruplar[kod]}
-                onToggle={(yeni) => setAcikGruplar((g) => ({ ...g, [kod]: yeni }))}
-                navigate={navigate}
+                onToggle={(y) => setAcikGruplar((g) => ({ ...g, [kod]: y }))}
                 onDuzenle={(u) => navigate(`/admin/users/${u.id}`)}
                 onSil={silKullanici}
                 onMfaReset={mfaReset}
                 onSifreReset={sifreReset}
                 onRolDegistir={rolDegistir}
+                ilGruplariHazirla={ilGruplariOlustur}
               />
             );
           })}
@@ -298,28 +315,26 @@ interface GrupKartiProps {
   kod: GrupKodu;
   kullanicilar: AdminUserListItem[];
   acik: boolean;
-  onToggle: (acik: boolean) => void;
-  navigate: ReturnType<typeof useNavigate>;
+  onToggle: (y: boolean) => void;
   onDuzenle: (u: AdminUserListItem) => void;
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, role: AllowedRole) => void;
+  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
+  ilGruplariHazirla: (items: AdminUserListItem[]) => {
+    iller: { ilKodu: number; ilAdi: string; kullanicilar: AdminUserListItem[] }[];
+    atamamis: AdminUserListItem[];
+  };
 }
 
 function GrupKarti({
-  kod,
-  kullanicilar,
-  acik,
-  onToggle,
-  onDuzenle,
-  onSil,
-  onMfaReset,
-  onSifreReset,
-  onRolDegistir,
+  kod, kullanicilar, acik, onToggle,
+  onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+  ilGruplariHazirla,
 }: GrupKartiProps) {
   const baslikId = `grup-${kod}-baslik`;
   const govdeId = `grup-${kod}-govde`;
+  const ilGruplu = kod === "IlManager" || kod === "IlEvaluator";
 
   return (
     <section className="admin-grup" aria-labelledby={baslikId}>
@@ -331,9 +346,7 @@ function GrupKarti({
         onClick={() => onToggle(!acik)}
       >
         <span className="admin-grup-toggle" aria-hidden="true">{acik ? "▾" : "▸"}</span>
-        <span className="admin-grup-isim" id={baslikId}>
-          {GRUP_BASLIKLARI[kod]}
-        </span>
+        <span className="admin-grup-isim" id={baslikId}>{GRUP_BASLIKLARI[kod]}</span>
         <span className="admin-grup-sayi" aria-label={`${kullanicilar.length} kullanıcı`}>
           {kullanicilar.length}
         </span>
@@ -344,9 +357,10 @@ function GrupKarti({
         <div id={govdeId} className="admin-grup-govde">
           {kullanicilar.length === 0 ? (
             <p className="admin-grup-bos">Bu grupta kullanıcı yok.</p>
-          ) : kod === "IlManager" || kod === "IlEvaluator" ? (
+          ) : ilGruplu ? (
             <IlAltGruplari
               kullanicilar={kullanicilar}
+              ilGruplariHazirla={ilGruplariHazirla}
               onDuzenle={onDuzenle}
               onSil={onSil}
               onMfaReset={onMfaReset}
@@ -369,54 +383,40 @@ function GrupKarti({
   );
 }
 
-function IlAltGruplari(props: {
+function IlAltGruplari({
+  kullanicilar, ilGruplariHazirla,
+  onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+}: {
   kullanicilar: AdminUserListItem[];
+  ilGruplariHazirla: GrupKartiProps["ilGruplariHazirla"];
   onDuzenle: (u: AdminUserListItem) => void;
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, role: AllowedRole) => void;
+  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
 }) {
-  // İl koduna göre grupla, alfabetik sırala.
-  const iller = useMemo(() => {
-    const map = new Map<number, { ilKodu: number; ilAdi: string; kullanicilar: AdminUserListItem[] }>();
-    for (const u of props.kullanicilar) {
-      const il = ilBul(u.roller ?? [], u.ilAtamalari ?? []);
-      if (!il) continue; // il ataması olmayanları gösterme
-      const mevcut = map.get(il.ilKodu);
-      if (mevcut) {
-        mevcut.kullanicilar.push(u);
-      } else {
-        map.set(il.ilKodu, { ilKodu: il.ilKodu, ilAdi: il.ilAdi, kullanicilar: [u] });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.ilAdi.localeCompare(b.ilAdi, "tr"));
-  }, [props.kullanicilar]);
-
-  const atamamis = props.kullanicilar.filter((u) => !ilBul(u.roller ?? [], u.ilAtamalari ?? []));
-
+  const { iller, atamamis } = ilGruplariHazirla(kullanicilar);
   if (iller.length === 0 && atamamis.length === 0) {
     return <p className="admin-grup-bos">Bu grupta kullanıcı yok.</p>;
   }
-
   return (
     <div className="admin-il-alt-gruplar">
       {iller.map((il) => (
-        <details key={il.ilKodu} className="admin-il-grup" open>
+        <details key={il.ilKodu} className="admin-il-grup">
           <summary>
             <span className="admin-il-adi">{il.ilAdi}</span>
-            <span className="admin-il-plaka">{il.ilKodu.toString().padStart(2, "0")}</span>
+            <span className="admin-il-plaka">{String(il.ilKodu).padStart(2, "0")}</span>
             <span className="admin-il-sayi" aria-label={`${il.kullanicilar.length} kullanıcı`}>
               {il.kullanicilar.length}
             </span>
           </summary>
           <KullaniciListesi
             kullanicilar={il.kullanicilar}
-            onDuzenle={props.onDuzenle}
-            onSil={props.onSil}
-            onMfaReset={props.onMfaReset}
-            onSifreReset={props.onSifreReset}
-            onRolDegistir={props.onRolDegistir}
+            onDuzenle={onDuzenle}
+            onSil={onSil}
+            onMfaReset={onMfaReset}
+            onSifreReset={onSifreReset}
+            onRolDegistir={onRolDegistir}
           />
         </details>
       ))}
@@ -428,14 +428,14 @@ function IlAltGruplari(props: {
           </summary>
           <KullaniciListesi
             kullanicilar={atamamis}
-            onDuzenle={props.onDuzenle}
-            onSil={props.onSil}
-            onMfaReset={props.onMfaReset}
-            onSifreReset={props.onSifreReset}
-            onRolDegistir={props.onRolDegistir}
+            onDuzenle={onDuzenle}
+            onSil={onSil}
+            onMfaReset={onMfaReset}
+            onSifreReset={onSifreReset}
+            onRolDegistir={onRolDegistir}
           />
           <p className="admin-uyari">
-            Bu kullanıcıların il ataması yok. İl atamak için "Düzenle" içinde province_id gerekli.
+            Bu kullanıcıların il ataması yok. İl atamak için "Düzenle" ile province_id gerekli.
           </p>
         </details>
       )}
@@ -443,25 +443,27 @@ function IlAltGruplari(props: {
   );
 }
 
-function KullaniciListesi(props: {
+function KullaniciListesi({
+  kullanicilar, onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
+}: {
   kullanicilar: AdminUserListItem[];
   onDuzenle: (u: AdminUserListItem) => void;
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, role: AllowedRole) => void;
+  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
 }) {
   return (
     <ul className="admin-kullanici-listesi" role="list">
-      {props.kullanicilar.map((u) => (
+      {kullanicilar.map((u) => (
         <li key={u.id} className="admin-kullanici-kart">
           <KullaniciKarti
             kullanici={u}
-            onDuzenle={props.onDuzenle}
-            onSil={props.onSil}
-            onMfaReset={props.onMfaReset}
-            onSifreReset={props.onSifreReset}
-            onRolDegistir={props.onRolDegistir}
+            onDuzenle={onDuzenle}
+            onSil={onSil}
+            onMfaReset={onMfaReset}
+            onSifreReset={onSifreReset}
+            onRolDegistir={onRolDegistir}
           />
         </li>
       ))}
@@ -471,26 +473,22 @@ function KullaniciListesi(props: {
 
 function KullaniciKarti({
   kullanici: u,
-  onDuzenle,
-  onSil,
-  onMfaReset,
-  onSifreReset,
-  onRolDegistir,
+  onDuzenle, onSil, onMfaReset, onSifreReset, onRolDegistir,
 }: {
   kullanici: AdminUserListItem;
   onDuzenle: (u: AdminUserListItem) => void;
   onSil: (u: AdminUserListItem) => void;
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
-  onRolDegistir: (u: AdminUserListItem, role: AllowedRole) => void;
+  onRolDegistir: (u: AdminUserListItem, r: AllowedRole) => void;
 }) {
   const initial = `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.toUpperCase() || "?";
   const roller = u.roller ?? [];
   const il = ilBul(roller, u.ilAtamalari ?? []);
 
   return (
-    <article className="admin-kart" aria-label={`${u.firstName} ${u.lastName}`}>
-      <div className="admin-kart-avatar" aria-hidden="true">
+    <article className="admin-kart admin-kart-compact" aria-label={`${u.firstName} ${u.lastName}`}>
+      <div className="admin-kart-avatar admin-kart-avatar-sm" aria-hidden="true">
         {initial}
       </div>
       <div className="admin-kart-icerik">
@@ -499,6 +497,11 @@ function KullaniciKarti({
             {u.firstName} {u.lastName}
           </span>
           <span className="admin-kart-eposta">{u.email}</span>
+          {il && (
+            <span className="badge badge-il">
+              <span aria-hidden="true">📍</span> {il.ilAdi}
+            </span>
+          )}
         </div>
         <div className="admin-kart-meta">
           {roller.map((r) => (
@@ -506,23 +509,12 @@ function KullaniciKarti({
               {r}
             </span>
           ))}
-          {il && (
-            <span className="badge badge-il">
-              <span aria-hidden="true">📍</span> {il.ilAdi}
-            </span>
-          )}
           {u.twoFactorEnabled ? (
-            <span className="badge badge-ok" title="İki adımlı doğrulama etkin">
-              <span aria-hidden="true">🔒</span> MFA
-            </span>
+            <span className="badge badge-ok" title="MFA etkin">MFA ✓</span>
           ) : (
-            <span className="badge badge-uyari" title="İki adımlı doğrulama kurulmamış">
-              <span aria-hidden="true">⚠</span> MFA yok
-            </span>
+            <span className="badge badge-uyari" title="MFA kurulmamış">MFA yok</span>
           )}
-          {u.mustChangePassword && (
-            <span className="badge badge-uyari">Şifre değişmeli</span>
-          )}
+          {u.mustChangePassword && <span className="badge badge-uyari">Şifre değişmeli</span>}
           {u.sonGirisAt && (
             <span className="admin-kart-songiris">
               Son giriş {new Date(u.sonGirisAt).toLocaleDateString("tr-TR")}
@@ -531,13 +523,13 @@ function KullaniciKarti({
         </div>
       </div>
       <div className="admin-kart-aksiyonlar">
-        <button type="button" className="btn-icon" onClick={() => onDuzenle(u)} aria-label={`${u.email} düzenle`}>
+        <button type="button" className="btn-icon" onClick={() => onDuzenle(u)} aria-label={`${u.email} düzenle`} title="Düzenle">
           <span aria-hidden="true">✎</span>
         </button>
-        <button type="button" className="btn-icon" onClick={() => onMfaReset(u)} aria-label={`${u.email} MFA sıfırla`}>
+        <button type="button" className="btn-icon" onClick={() => onMfaReset(u)} aria-label={`${u.email} MFA sıfırla`} title="MFA sıfırla">
           <span aria-hidden="true">🔑</span>
         </button>
-        <button type="button" className="btn-icon" onClick={() => onSifreReset(u)} aria-label={`${u.email} şifre sıfırla`}>
+        <button type="button" className="btn-icon" onClick={() => onSifreReset(u)} aria-label={`${u.email} şifre sıfırla`} title="Şifre sıfırla">
           <span aria-hidden="true">🔗</span>
         </button>
         <select
@@ -549,12 +541,11 @@ function KullaniciKarti({
             if (next) onRolDegistir(u, next);
           }}
           aria-label={`${u.email} rol ata`}
+          title="Rol ata"
         >
           <option value="">Rol ata…</option>
           {ALLOWED_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
+            <option key={r} value={r}>{r}</option>
           ))}
         </select>
         <button
@@ -562,6 +553,7 @@ function KullaniciKarti({
           className="btn-icon btn-icon-danger"
           onClick={() => onSil(u)}
           aria-label={`${u.email} sil`}
+          title="Sil"
         >
           <span aria-hidden="true">✕</span>
         </button>
