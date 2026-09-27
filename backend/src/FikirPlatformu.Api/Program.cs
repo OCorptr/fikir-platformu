@@ -532,6 +532,44 @@ using (var kapsam = app.Services.CreateScope())
     }
 }
 
+// Sprint 10.7+++ Sistem Sabit Admin seed: Onur tarafından YEGİTEK kendisi için
+// kullanılacak. Production dahil her ortamda idempotent — kullanıcı yoksa oluşturur,
+// varsa no-op. MFA ilk login'de setup edilir (yöntem seçim ekranı). Sistem Admin
+// hesabının MFA zorunlu (HADOVER §2.0). Şifre hash'i Identity framework tarafından
+// otomatik üretilir.
+{
+    using var sistemAdminKapsam = app.Services.CreateScope();
+    var kullaniciYoneticisi = sistemAdminKapsam.ServiceProvider
+        .GetRequiredService<UserManager<ApplicationUser>>();
+    const string sistemAdminEposta = "fikir.platformu.iletisim@gmail.com";
+    const string sistemAdminSifre = "Bilisim35sse";
+    var mevcutSistemAdmin = await kullaniciYoneticisi
+        .FindByEmailAsync(sistemAdminEposta);
+    if (mevcutSistemAdmin is null)
+    {
+        var sistemAdmin = new ApplicationUser
+        {
+            UserName = sistemAdminEposta,
+            Email = sistemAdminEposta,
+            FirstName = "Sistem",
+            LastName = "Yöneticisi",
+            EmailConfirmed = true,
+        };
+        var olusturma = await kullaniciYoneticisi
+            .CreateAsync(sistemAdmin, sistemAdminSifre);
+        if (olusturma.Succeeded)
+        {
+            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "SystemAdmin");
+            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
+            Console.WriteLine($"[SEED] Sistem Admin oluşturuldu: {sistemAdminEposta}");
+        }
+        else
+        {
+            Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: {string.Join(", ", olusturma.Errors.Select(e => e.Description))}");
+        }
+    }
+}
+
 // İl AR-GE demo seed: 1 ProvinceManager + 1 ProvinceEvaluator (İstanbul ili). Şifre "12345".
 // Bu seed sadece Development ortamında ve kullanıcı yoksa oluşturulur; idempotent.
 if (app.Environment.IsDevelopment())
