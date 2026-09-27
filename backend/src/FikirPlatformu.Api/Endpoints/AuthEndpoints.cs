@@ -559,7 +559,17 @@ grup.MapPost("/logout", async (
             SifreSifirlamaIstegi istek,
             UserManager<ApplicationUser> kullaniciYoneticisi) =>
         {
-            var kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
+            // Sprint 11.16: UserId öncelikli (admin reset), yoksa email (forgot-password).
+            ApplicationUser? kullanici = null;
+            if (!string.IsNullOrWhiteSpace(istek.UserId))
+            {
+                kullanici = await kullaniciYoneticisi.FindByIdAsync(istek.UserId);
+            }
+            else if (!string.IsNullOrWhiteSpace(istek.Email))
+            {
+                kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
+            }
+
             if (kullanici is null)
             {
                 return KimlikHatasi("Sıfırlama bağlantısı geçersiz.");
@@ -922,7 +932,10 @@ grup.MapPost("/logout", async (
         [Required, EmailAddress, StringLength(256)] string Email);
 
     public sealed record SifreSifirlamaIstegi(
-        [Required, EmailAddress, StringLength(256)] string Email,
+        // Sprint 11.16: UserId opsiyonel. Admin panelinden üretilen reset linkleri
+        // userId ile gelir; klasik forgot-password akışı email ile gelir. İkisi de kabul.
+        string? Email,
+        string? UserId,
         [Required, StringLength(512)] string Token,
         [Required, StringLength(128, MinimumLength = 8)] string NewPassword);
 

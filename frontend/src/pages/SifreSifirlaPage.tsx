@@ -1,8 +1,8 @@
-// Şifre Sıfırlama sayfası — Sprint 11.5.
+// Şifre Sıfırlama sayfası — Sprint 11.5 + 11.16.
 //
-// URL: /sifre-sifirla?token=...&email=...
+// URL: /sifre-sifirla?token=...&userId=...   (Admin Panel'den gelen — Sprint 11+)
+//   veya: /sifre-sifirla?token=...&email=... (forgot-password akışı — Sprint 11.5)
 // Kullanıcı yeni şifre girer; backend ResetPassword.
-// Identity framework UserId token üzerinden arar; user varsa OK.
 
 import { useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -12,6 +12,7 @@ export function SifreSifirlaPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const token = params.get("token") ?? "";
+  const userId = params.get("userId") ?? "";
   const email = params.get("email") ?? "";
 
   const [yeniSifre, setYeniSifre] = useState("");
@@ -20,8 +21,8 @@ export function SifreSifirlaPage() {
   const [calisiyor, setCalisiyor] = useState(false);
   const [basarili, setBasarili] = useState(false);
 
-  // Token veya email yoksa URL bozuk demektir.
-  const urlDolu = token.length > 0 && email.length > 0;
+  // Token + (userId | email) zorunlu. Admin linkleri userId ile, klasik akış email ile gelir.
+  const urlDolu = token.length > 0 && (userId.length > 0 || email.length > 0);
 
   async function gonder(e: FormEvent) {
     e.preventDefault();
@@ -41,7 +42,8 @@ export function SifreSifirlaPage() {
       await apiRequest("/api/auth/reset-password", {
         method: "POST",
         body: {
-          email: email.trim(),
+          userId: userId.trim() || undefined,
+          email: email.trim() || undefined,
           token: token,
           newPassword: yeniSifre,
         },
@@ -83,7 +85,7 @@ export function SifreSifirlaPage() {
       >
         <h2 id="sifre-sifirla-baslik">Şifre Sıfırlama</h2>
         <p>
-          <strong>{email}</strong> için yeni şifre belirleyin.
+          <strong>{email || userId}</strong> için yeni şifre belirleyin.
         </p>
 
         {basarili ? (
