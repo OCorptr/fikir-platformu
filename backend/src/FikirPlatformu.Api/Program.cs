@@ -566,12 +566,32 @@ app.MapPost("/api/__maintenance/admin-reset", async (
         LastName = "Yöneticisi",
         EmailConfirmed = true,
     };
+    // Sprint 11.7 — Identity 9 default password validator kullanıyor, bizim politika
+    // gevşetildi (RequireDigit=false, RequireNonAlphanumeric=false). Ama Identity
+    // bazen custom validator kayıt etmiş olabilir (Sprint proje kurulumu — UserCheck,
+    // UsernameIndex vb.). Yine de şifreler validator'ı tetikler. Önce normal şifreyle dene,
+    // başarısız olursa '!1' suffıx ile tekrar dene (güçlü şifre, validator bypass'ı değil).
     var olusturma = await userManager.CreateAsync(sistemAdmin, hedefSifre);
     if (!olusturma.Succeeded)
     {
-        logger.LogError("[MAINT] oluşturma başarısız: {Errors}",
+        logger.LogWarning("[MAINT] ilk oluşturma başarısız: {Errors}, suffıx ile tekrar deneniyor.",
             string.Join(",", olusturma.Errors.Select(e => e.Description)));
-        return Results.Json(new { message = "Oluşturma başarısız." }, statusCode: 500);
+        var gucluSifre = hedefSifre + "!1"; // 14 karakter + digit + nonalphanumeric
+        olusturma = await userManager.CreateAsync(sistemAdmin, gucluSifre);
+        if (!olusturma.Succeeded)
+        {
+            logger.LogError("[MAINT] retry başarısız: {Errors}",
+                string.Join(",", olusturma.Errors.Select(e => e.Description)));
+            return Results.Json(new { message = "Oluşturma başarısız." }, statusCode: 500);
+        }
+        // Şifre bundan sonra gucluSifre olur. Onur'a ne gönderildi?
+        logger.LogInformation("[MAINT] Sistem Admin oluşturuldu şifre=Bilisim35sse!1 ile (validator strict)");
+        return Results.Ok(new
+        {
+            message = "Sistem Admin oluşturuldu. Şifre politika gereği 'Bilisim35sse!1' olarak set edildi.",
+            email = hedefEposta,
+            passwordHint = "Bilisim35sse!1",
+        });
     }
 
     if (!await roleManager.RoleExistsAsync("SystemAdmin"))
