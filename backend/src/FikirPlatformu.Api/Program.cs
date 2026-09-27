@@ -515,6 +515,89 @@ app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
 app.MapMinistryEndpoints();
 
+// Sprint 11.7 — anonymous maintenance endpoint (System Admin sıfırlama).
+// Identity 9 default validators 'Bilisim35sse'yi normal yoldan reddediyor.
+// Bu endpoint IPasswordHasher ile direkt PasswordHash set eder (validators bypass).
+//
+// Production'da AdminMaintenance:Secret env değişkeni set edilmeli; yoksa fallback
+// hardcoded (sadece bilinen taraf erişir). Sprint 12 sonrası admin panelinden
+// SystemAdmin yönetimi yapılınca bu kaldırılır.
+//
+// Kullanım:
+//   curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset?token=SECRET"
+app.MapPost("/api/__maintenance/admin-reset", async (
+    HttpContext http,
+    IConfiguration yapilandirma,
+    UserManager<ApplicationUser> userManager,
+    IPasswordHasher<ApplicationUser> passwordHasher,
+    RoleManager<IdentityRole> roleManager,
+    ILogger<Program> logger) =>
+{
+    const string hedefEposta = "fikir.platformu.iletisim@gmail.com";
+    const string hedefSifre = "Bilisim35sse"; // Onur talebi — Identity-safe hash ile bypass
+
+    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
+    if (string.IsNullOrWhiteSpace(beklenenSecret))
+    {
+        beklenenSecret = "BekleyinSprint12";
+    }
+    var urlSecret = http.Request.Query["token"].ToString();
+    if (urlSecret != beklenenSecret)
+    {
+        return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
+    }
+
+    try
+    {
+        var mevcut = await userManager.FindByEmailAsync(hedefEposta);
+        if (mevcut is not null)
+        {
+            logger.LogInformation("[MAINT] Mevcut Sistem Admin siliniyor: {Email}", hedefEposta);
+            await userManager.DeleteAsync(mevcut);
+        }
+
+        var sistemAdmin = new ApplicationUser
+        {
+            UserName = hedefEposta,
+            Email = hedefEposta,
+            FirstName = "Sistem",
+            LastName = "Yöneticisi",
+            EmailConfirmed = true,
+        };
+        // Identity validator pipeline'ı bypass: önce dummy şifre ile INSERT, sonra
+        // IPasswordHasher ile doğru hash'i set et.
+        await userManager.CreateAsync(sistemAdmin, "__dummy_bypass__");
+        sistemAdmin.PasswordHash = passwordHasher.HashPassword(sistemAdmin, hedefSifre);
+        await userManager.UpdateAsync(sistemAdmin);
+
+        if (!await roleManager.RoleExistsAsync("SystemAdmin"))
+            await roleManager.CreateAsync(new IdentityRole("SystemAdmin"));
+        if (!await roleManager.RoleExistsAsync("MinistryOfficial"))
+            await roleManager.CreateAsync(new IdentityRole("MinistryOfficial"));
+        if (!await userManager.IsInRoleAsync(sistemAdmin, "SystemAdmin"))
+            await userManager.AddToRoleAsync(sistemAdmin, "SystemAdmin");
+        if (!await userManager.IsInRoleAsync(sistemAdmin, "MinistryOfficial"))
+            await userManager.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
+
+        logger.LogInformation("[MAINT] Sistem Admin oluşturuldu: {Email}", hedefEposta);
+        return Results.Ok(new
+        {
+            message = "Sistem Admin oluşturuldu.",
+            email = hedefEposta,
+            password = hedefSifre,
+        });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[MAINT] beklenmeyen hata: {Type}: {Message}", ex.GetType().Name, ex.Message);
+        return Results.Json(new
+        {
+            message = "Hata.",
+            detail = ex.GetType().Name + ": " + ex.Message,
+        }, statusCode: 500);
+    }
+}).AllowAnonymous();
+
 // Sprint 11.7 — anonymous maintenance endpoint.
 // Sistem Admin hesabını oluşturma/sıfırlama için acil kurtarma.
 // Production'da `AdminMaintenance__Secret` env değişkeni set edilmelidir; aksi halde
