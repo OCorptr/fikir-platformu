@@ -412,6 +412,108 @@ public static class AdminEndpoints
             });
         }).RequireAuthorization("SystemAdminOnly");
 
+        // ==================== Sprint 11.2 — MFA reset + Force password reset ====================
+        // 7) MFA reset (telefon kayıp senaryosu): Kullanıcının TOTP authenticator
+        // sıfırlanır. Sonraki login'de yeniden MFA setup ekranı çıkar.
+        grup.MapPost("/users/{id}/reset-mfa", async (
+            string id,
+            UserManager<ApplicationUser> um,
+            FikirPlatformuDbContext db,
+            HttpContext http) =>
+        {
+            var user = await um.FindByIdAsync(id);
+            if (user is null) return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+            if (await um.IsInRoleAsync(user, "Student"))
+            {
+                return Results.Json(new { message = "Bu kullanıcı öğrenci rolünde — admin erişimi yok." }, statusCode: 403);
+            }
+
+            // Identity authenticator reset:
+            // - TwoFactorEnabled = false
+            // - AuthenticatorKey null
+            // - RecoveryCodes iptal (user tekrar üretebilir)
+            var resetSonuc = await um.ResetAuthenticatorKeyAsync(user);
+            var kapatSonuc = await um.SetTwoFactorEnabledAsync(user, false);
+
+            if (!resetSonuc.Succeeded || !kapatSonuc.Succeeded)
+            {
+                var errors = resetSonuc.Errors.Concat(kapatSonuc.Errors).ToList();
+                return Results.ValidationProblem(errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
+            }
+
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Email = KisiselVeriYardimci.EmailMaskele(user.Email),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.MfaDisabled,
+                Success = true,
+                FailureReason = "admin-force-reset",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(http.RequestAborted);
+
+            return Results.Ok(new
+            {
+                message = "MFA sıfırlandı. Kullanıcı sonraki login'de MFA setup ekranına yönlendirilecek.",
+                id = user.Id,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // 8) Force password reset: Sistem Admin tek kullanımlık reset token üretir.
+        // Frontend bu token'ı /sifremi-sifirla?token=... URL'inde yakalar, yeni şifre girilir.
+        grup.MapPost("/users/{id}/reset-password", async (
+            string id,
+            UserManager<ApplicationUser> um,
+            IConfiguration cfg,
+            FikirPlatformuDbContext db,
+            HttpContext http) =>
+        {
+            var user = await um.FindByIdAsync(id);
+            if (user is null) return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+            if (await um.IsInRoleAsync(user, "Student"))
+            {
+                return Results.Json(new { message = "Bu kullanıcı öğrenci rolünde — admin erişimi yok." }, statusCode: 403);
+            }
+
+            // Identity framework password reset token (raw token döner, URL safe).
+            var token = await um.GeneratePasswordResetTokenAsync(user);
+
+            // Reset URL — frontend absolute path.
+            var frontendBase = (cfg["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+            var resetUrl = $"{frontendBase}/sifre-sifirla?token={Uri.EscapeDataString(token)}&userId={Uri.EscapeDataString(user.Id)}";
+
+            // Audit.
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Email = KisiselVeriYardimci.EmailMaskele(user.Email),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.PasswordChanged,
+                Success = true,
+                FailureReason = "admin-force-reset-token",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(http.RequestAborted);
+
+            // Production'da resetUrl kullanıcıya email ile gönderilir. Şu an Sprint 11.2'de
+            // response'da dönüyor — frontend admin UI token'ı alıp kopyalayabilir veya
+            // doğrudan mail gönderebilir.
+            return Results.Ok(new
+            {
+                message = "Şifre sıfırlama token'ı üretildi. Kullanıcıya iletin veya email ile gönderin.",
+                id = user.Id,
+                resetUrl,
+                expiresIn = "1 gün",
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
         return app;
     }
 
