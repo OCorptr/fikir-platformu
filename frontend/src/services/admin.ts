@@ -23,6 +23,17 @@ export interface AdminUserListItem {
   mustChangePassword: boolean;
   emailConfirmed: boolean;
   lockoutEnabled: boolean;
+  /** IdentityUserRole join — ör: ["ProvinceManager"] veya ["SystemAdmin"]. */
+  roller: string[];
+  /** ProvinceUserAssignment + Provinces join — ProvinceManager/Evaluator için. */
+  ilAtamalari: AdminUserIlAtamasi[];
+  sonGirisAt: string | null;
+}
+
+export interface AdminUserIlAtamasi {
+  role: string; // "ProvinceManager" | "ProvinceEvaluator"
+  ilKodu: number;
+  ilAdi: string;
 }
 
 export interface AdminUserDetail extends AdminUserListItem {

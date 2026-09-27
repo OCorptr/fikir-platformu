@@ -154,10 +154,53 @@ public static class AdminEndpoints
             }
 
             var toplam = await sorgu.CountAsync();
-            var liste = await sorgu
+
+            // Sprint 11.7 — her user için roller + il ataması.
+            // Önce sayfada görünecek user id'lerini alalım, sonra toplu join yapalım
+            // (N+1 query yerine toplu fetch).
+            var sayfaUserIds = await sorgu
                 .OrderBy(u => u.Email)
                 .Skip((sayfa - 1) * sayfaBasina)
                 .Take(sayfaBasina)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // Roller (IdentityUserRole join).
+            var rolUserIdsSet = sayfaUserIds.ToHashSet();
+            var userRolesDict = await veritabani.Set<IdentityUserRole<string>>()
+                .Where(ur => rolUserIdsSet.Contains(ur.UserId))
+                .Join(veritabani.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => new { ur.UserId, r.Name })
+                .GroupBy(x => x.UserId)
+                .Select(g => new { UserId = g.Key, Roles = g.Select(x => x.Name).ToArray() })
+                .ToDictionaryAsync(g => g.UserId, g => g.Roles);
+
+            // İl atamaları (ProvinceUserAssignment join + Province adı).
+            var ilAtamalari = await veritabani.Set<Domain.Identity.ProvinceUserAssignment>()
+                .Where(p => rolUserIdsSet.Contains(p.UserId))
+                .Join(veritabani.Provinces, p => p.ProvinceId, pr => pr.Id, (p, pr) => new
+                {
+                    p.UserId,
+                    p.Role,
+                    IlKodu = pr.Id,
+                    IlAdi = pr.Name
+                })
+                .ToListAsync();
+            var ilDict = ilAtamalari
+                .GroupBy(x => x.UserId)
+                .ToDictionary(g => g.Key, g => g.Select(x => new { x.Role, x.IlKodu, x.IlAdi }).ToArray());
+
+            // Son giriş.
+            var sonGirisDict = await veritabani.AuthEvents
+                .Where(e => rolUserIdsSet.Contains(e.UserId)
+                            && e.Success
+                            && e.EventType == Domain.Auth.AuthEventType.LoginSuccess)
+                .GroupBy(e => e.UserId)
+                .Select(g => new { UserId = g.Key, SonGirisAt = g.Max(e => e.CreatedAt) })
+                .ToDictionaryAsync(g => g.UserId, g => g.SonGirisAt);
+
+            var liste = await sorgu
+                .Where(u => rolUserIdsSet.Contains(u.Id))
+                .OrderBy(u => u.Email)
                 .Select(u => new
                 {
                     u.Id,
@@ -167,16 +210,33 @@ public static class AdminEndpoints
                     u.TwoFactorEnabled,
                     u.MustChangePassword,
                     u.EmailConfirmed,
-                    u.LockoutEnabled
+                    u.LockoutEnabled,
+                    // Aşağıdaki alanlar lookup dict'lerden sonradan enjekte edilir.
                 })
                 .ToListAsync();
+
+            // Liste objelerini zenginleştir.
+            var listeZengin = liste.Select(u => new
+            {
+                u.Id,
+                u.Email,
+                u.FirstName,
+                u.LastName,
+                u.TwoFactorEnabled,
+                u.MustChangePassword,
+                u.EmailConfirmed,
+                u.LockoutEnabled,
+                Roller = userRolesDict.TryGetValue(u.Id, out var rr) ? rr : Array.Empty<string>(),
+                IlAtamalari = ilDict.TryGetValue(u.Id, out var il) ? il : Array.Empty<object>(),
+                SonGirisAt = sonGirisDict.TryGetValue(u.Id, out var sg) ? (DateTime?)sg : null,
+            }).ToList();
 
             return Results.Ok(new
             {
                 toplam,
                 sayfa,
                 sayfaBasina,
-                kullanicilar = liste
+                kullanicilar = listeZengin
             });
         }).RequireAuthorization("SystemAdminOnly");
 
