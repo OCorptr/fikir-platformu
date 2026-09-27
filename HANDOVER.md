@@ -228,6 +228,23 @@ Onur itirazı: "herkes kendi Gmail'i ile mi olması gerekiyordu" — İNTERNET A
 | **6. Frontend `MfaLoginPage` / `MfaSetupPage` per-user.** Handshake tetikleme aynı, ama user zaten authenticated (Login → MFA setup → user kendi Gmail'ine bağlar). | Sprint 11.P1 |
 | **7. Migration dosyaları Sandbox dışı CI'da üret.** Lokal sandbox'ta `dotnet ef migrations add` dosya yazmadığı için temiz üretim yok. CI veya temiz bash'te tekrar üretilecek. | Sprint 11.P2 |
 
+### Sprint 11 — SystemAdmin Panel (5 feature)
+
+YEGİTEK tarafından "sunucuya erişim zorunluluğu kaldır" gereksinimi. Sistem Admin hesabı Production'da seed'lenmiş: `fikir.platformu.iletisim@gmail.com` / `Bilisim35sse` (Sprint 10.7+++).
+
+**Privacy kuralı (Onur Sprint 10.7+):** Admin scope MinistryOfficial / ProvinceManager / ProvinceEvaluator kullanıcılarına erişir. **Öğrenci kayıt bilgilerine erişim YOK** — öğrenciler için "Şifremi Unuttum" yeterli.
+
+| # | Feature | Açıklama |
+|---|---|---|
+| 1 | **User CRUD** | Tüm Ministry/Province kullanıcılarını liste/oluştur/düzenle/sil. Öğrenci erişim yok. Filtre: rol, MFA enabled, lockout, son login. |
+| 2 | **MFA reset / lockout temizleme** | Telefon kayıp → TOTP reset, re-setup zorla. Lockout/soft-banned hesabı aç. |
+| 3 | **Rol atama** (atama-only) | ProvinceManager / MinistryOfficial / ProvinceEvaluator. **"Geçiş" yok** (Onur: hata riski). DB'de rol değişimi edit-only. |
+| 4 | **Force password reset** | Tek kullanımlık reset link email ile, yeni şifre girişi. |
+| 5 | **Şifremi Unuttum** (Sprint 11.5) | Yetkili Girişi + Öğrenci Girişi ekranlarına link. Backend: `/api/auth/forgot-password` (email + reset token) + `/api/auth/reset-password` (token + new password). DB: `PasswordResetTokens` tablo. |
+| 6 | **Bulk invite / CSV import** (Sprint 11.5) | 400+ AR-GE hesabı için CSV toplu import. Sütunlar: email, ad, soyad, rol, il_kodu. Activation mail. |
+
+**Çıkarıldı (Onur Sprint 10.7+):** Impersonation, SSO/SAML/Microsoft Entra (production-only), Backup/restore (TiDB Cloud zaten otomatik).
+
 ### Sprint 10.7++ Manuel yol (Onur için şu an)
 
 Çünkü Sprint 10.7 tamamlanma aşaması, per-user'a geçiş Sprint 11'e. **ŞİMDİ:**
