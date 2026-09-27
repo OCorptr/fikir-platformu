@@ -190,24 +190,15 @@ export function UserListPage() {
   const filtreTemizle = () => setSearchParams(new URLSearchParams());
 
   return (
-    <section className="admin-panel" aria-labelledby="panel-baslik">
-      <header className="admin-panel-ust">
-        <div>
-          <h2 id="panel-baslik">Kullanıcı Yönetimi</h2>
-          <p className="admin-panel-aciklama">
-            YEGİTEK tarafından kullanılacak. Yetkili girişi yapan herkesi buradan yönet.
-            Öğrenci kayıtlarına erişim yoktur.
-          </p>
-        </div>
-        <div className="admin-panel-aksiyonlar">
-          <Link to="/admin/users/bulk" className="btn btn-ghost">
-            <span aria-hidden="true">📥</span> Toplu İçe Aktar
-          </Link>
-          <Link to="/admin/users/new" className="btn btn-primary">
-            <span aria-hidden="true">＋</span> Yeni Kullanıcı
-          </Link>
-        </div>
-      </header>
+    <section className="admin-panel">
+      <div className="admin-panel-aksiyonlar admin-panel-aksiyonlar-sag">
+        <Link to="/admin/users/bulk" className="btn btn-ghost">
+          <span aria-hidden="true">📥</span> Toplu İçe Aktar
+        </Link>
+        <Link to="/admin/users/new" className="btn btn-primary">
+          <span aria-hidden="true">＋</span> Yeni Kullanıcı
+        </Link>
+      </div>
 
       <div className="admin-filtre-cubugu admin-filtre-cubugu-sticky">
         <label className="admin-filtre-alan admin-filtre-arama">
