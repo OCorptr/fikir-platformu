@@ -31,4 +31,7 @@ public enum AuthEventType
     MfaLoginSuccess = 32,    // 2. adım MFA doğrulama başarılı
     MfaLoginFailure = 33,    // 2. adım MFA doğrulama başarısız
     UserCreated = 40,        // Sistem yöneticisi tarafından yeni kullanıcı oluşturuldu
+    UserUpdated = 41,        // Sprint 11.1 — kullanıcı bilgileri güncellendi (ad, e-posta, vb.)
+    UserDeleted = 42,        // Sprint 11.1 — kullanıcı silindi
+    RoleChanged = 43,        // Sprint 11.1 — rol atama/değişimi (tek aktif rol)
 }

@@ -90,7 +90,7 @@ public static class AdminEndpoints
             }, statusCode: 201);
         }).RequireAuthorization("SystemAdminOnly");
 
-        // 2) Kullanıcı listesi (Sprint 9).
+        // 2) Kullanıcı listesi (Sprint 9, Sprint 11.1'de Student filtreleme eklendi).
         grup.MapGet("/users", async (
             string? role,
             int sayfa,
@@ -101,8 +101,28 @@ public static class AdminEndpoints
             sayfa = sayfa <= 0 ? 1 : sayfa;
             sayfaBasina = sayfaBasina <= 0 || sayfaBasina > 100 ? 25 : sayfaBasina;
 
-            // Rol filtresi için rol-UserId eşlemesini önceden çekip in-memory filtre uygula
-            // (EF Core LINQ navigation property default gelmiyor; küçük ölçekli sistem için yeterli).
+            // Sprint 11.1 whitelist: rol parametresi whitelist'te olmalı (Student filtreleme).
+            var whitelistRollar = new[] { "SystemAdmin", "MinistryOfficial", "ProvinceManager", "ProvinceEvaluator" };
+            if (!string.IsNullOrWhiteSpace(role) && !whitelistRollar.Contains(role))
+            {
+                return Results.Json(new { message = $"Geçersiz rol filtresi. İzinli: {string.Join(", ", whitelistRollar)}" }, statusCode: 400);
+            }
+
+            // Student rolündeki kullanıcıları çıkar (Onur emri — gizlilik).
+            var studentRolId = await veritabani.Roles
+                .Where(r => r.Name == "Student")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+            HashSet<string>? studentIds = null;
+            if (studentRolId is not null)
+            {
+                studentIds = (await veritabani.Set<IdentityUserRole<string>>()
+                    .Where(ur => ur.RoleId == studentRolId)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync()).ToHashSet();
+            }
+
+            // Belirli bir rol filtresi için rol-UserId eşlemesini önceden çek.
             IReadOnlyCollection<string>? rolUserIds = null;
             if (!string.IsNullOrWhiteSpace(role))
             {
@@ -125,6 +145,12 @@ public static class AdminEndpoints
             {
                 var ids = rolUserIds; // closure için yerel değişkene al
                 sorgu = sorgu.Where(u => ids.Contains(u.Id));
+            }
+            // Student çıkar.
+            if (studentIds is { Count: > 0 })
+            {
+                var excludeIds = studentIds;
+                sorgu = sorgu.Where(u => !excludeIds.Contains(u.Id));
             }
 
             var toplam = await sorgu.CountAsync();
@@ -154,8 +180,248 @@ public static class AdminEndpoints
             });
         }).RequireAuthorization("SystemAdminOnly");
 
+        // ==================== Sprint 11.1 — User CRUD (tamamla) ====================
+        // Onur Sprint 11 onayı:
+        // - Privacy: Student rolündeki kullanıcılara admin erişimi yok (gizlilik).
+        // - Rol atama: atama only, mevcut rolün üzerine yaz (geçiş yok — hata riski).
+        // - Whitelist roller: SystemAdmin, MinistryOfficial, ProvinceManager, ProvinceEvaluator.
+        var whitelist = new[] { "SystemAdmin", "MinistryOfficial", "ProvinceManager", "ProvinceEvaluator" };
+
+        // 3) Tekil kullanıcı görüntüleme.
+        grup.MapGet("/users/{id}", async (
+            string id,
+            UserManager<ApplicationUser> um,
+            FikirPlatformuDbContext db) =>
+        {
+            var user = await um.FindByIdAsync(id);
+            if (user is null) return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+
+            // Privacy: Student rolünde ise 403 (Onur emri).
+            if (await um.IsInRoleAsync(user, "Student"))
+            {
+                return Results.Json(new { message = "Bu kullanıcı öğrenci rolünde — admin erişimi yok." }, statusCode: 403);
+            }
+
+            var userRoles = await um.GetRolesAsync(user);
+            var provincesQuery = db.Set<Microsoft.AspNetCore.Identity.IdentityUserRole<string>>()
+                .Where(ur => ur.UserId == id);
+            // İl kodu veya başka profil alanı (varsa) — şu an Sprint 11'de yoksa boş.
+
+            // Son başarılı login zamanı (AuthEvents).
+            var sonGiris = await db.AuthEvents
+                .Where(e => e.UserId == id && e.Success && e.EventType == Domain.Auth.AuthEventType.LoginSuccess)
+                .OrderByDescending(e => e.CreatedAt)
+                .Select(e => (DateTime?)e.CreatedAt)
+                .FirstOrDefaultAsync();
+
+            return Results.Ok(new
+            {
+                id = user.Id,
+                email = user.Email,
+                firstName = user.FirstName,
+                lastName = user.LastName,
+                twoFactorEnabled = user.TwoFactorEnabled,
+                mustChangePassword = user.MustChangePassword,
+                emailConfirmed = user.EmailConfirmed,
+                lockoutEnabled = user.LockoutEnabled,
+                roles = userRoles,
+                sonGirisAt = sonGiris,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // 4) Kullanıcı güncelle (firstName, lastName, email).
+        grup.MapPut("/users/{id}", async (
+            string id,
+            KullaniciGuncelleIstegi istek,
+            UserManager<ApplicationUser> um,
+            FikirPlatformuDbContext db,
+            HttpContext http) =>
+        {
+            var user = await um.FindByIdAsync(id);
+            if (user is null) return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+
+            // Privacy: Student rolünde ise 403.
+            if (await um.IsInRoleAsync(user, "Student"))
+            {
+                return Results.Json(new { message = "Bu kullanıcı öğrenci rolünde — admin erişimi yok." }, statusCode: 403);
+            }
+
+            // Email değişiyorsa benzersizlik kontrolü.
+            if (!string.Equals(user.Email, istek.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                var mevcutEmail = await um.FindByEmailAsync(istek.Email);
+                if (mevcutEmail is not null && mevcutEmail.Id != user.Id)
+                {
+                    return Results.Json(new { message = "Bu e-posta zaten başka bir kullanıcıda kayıtlı." }, statusCode: 409);
+                }
+                user.Email = istek.Email;
+                user.UserName = istek.Email;
+                user.NormalizedEmail = istek.Email.ToUpperInvariant();
+                user.NormalizedUserName = istek.Email.ToUpperInvariant();
+            }
+
+            user.FirstName = istek.FirstName.Trim();
+            user.LastName = istek.LastName.Trim();
+
+            var sonuc = await um.UpdateAsync(user);
+            if (!sonuc.Succeeded)
+            {
+                return Results.ValidationProblem(sonuc.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
+            }
+
+            // Audit.
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Email = KisiselVeriYardimci.EmailMaskele(user.Email),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserUpdated,
+                Success = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(http.RequestAborted);
+
+            return Results.Ok(new { message = "Kullanıcı güncellendi.", id = user.Id });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // 5) Kullanıcı sil.
+        grup.MapDelete("/users/{id}", async (
+            string id,
+            UserManager<ApplicationUser> um,
+            FikirPlatformuDbContext db,
+            HttpContext http) =>
+        {
+            var user = await um.FindByIdAsync(id);
+            if (user is null) return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+
+            // Privacy: Student rolünde ise 403.
+            if (await um.IsInRoleAsync(user, "Student"))
+            {
+                return Results.Json(new { message = "Bu kullanıcı öğrenci rolünde — admin erişimi yok." }, statusCode: 403);
+            }
+
+            // Kendini silemez (SystemAdmin kendi hesabını silemez, audit için).
+            var mevcutKullaniciId = um.GetUserId(http.User);
+            if (string.Equals(mevcutKullaniciId, id, StringComparison.Ordinal))
+            {
+                return Results.Json(new { message = "Kendi hesabınızı silemezsiniz." }, statusCode: 400);
+            }
+
+            // EmailMaskele için kullanıcı bilgisi kullanıyoruz — Identity framework User nesnesi.
+            var maskedEmail = KisiselVeriYardimci.EmailMaskele(user.Email);
+
+            var sonuc = await um.DeleteAsync(user);
+            if (!sonuc.Succeeded)
+            {
+                return Results.ValidationProblem(sonuc.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
+            }
+
+            // Audit.
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = mevcutKullaniciId ?? "(deleted)",
+                Email = maskedEmail,
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserDeleted,
+                Success = true,
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(http.RequestAborted);
+
+            return Results.Ok(new { message = "Kullanıcı silindi.", id });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // 6) Rol atama (atama only — mevcut rolün üzerine yazar, geçiş yok).
+        grup.MapPost("/users/{id}/change-role", async (
+            string id,
+            RolAtamaIstegi istek,
+            UserManager<ApplicationUser> um,
+            FikirPlatformuDbContext db,
+            HttpContext http) =>
+        {
+            if (!whitelist.Contains(istek.NewRole))
+            {
+                return Results.Json(new { message = $"Geçersiz rol. İzinli: {string.Join(", ", whitelist)}" }, statusCode: 400);
+            }
+
+            var user = await um.FindByIdAsync(id);
+            if (user is null) return Results.NotFound(new { message = "Kullanıcı bulunamadı." });
+
+            // Privacy: Student rolünde ise 403.
+            if (await um.IsInRoleAsync(user, "Student"))
+            {
+                return Results.Json(new { message = "Bu kullanıcı öğrenci rolünde — admin erişimi yok." }, statusCode: 403);
+            }
+
+            var mevcutRoller = await um.GetRolesAsync(user);
+            if (mevcutRoller.Contains(istek.NewRole))
+            {
+                return Results.Json(new { message = "Kullanıcı zaten bu role sahip." }, statusCode: 409);
+            }
+
+            // Mevcut rolleri kaldır (atama only — Onur: "geçiş olmasın", sadece hedef rol yazılır).
+            // Çoklu rol ihtimali olabilir — Identity framework AddToRole ile birden fazla yönetilebilir.
+            // Burada "tek aktif rol" semantiği uygulandı (whitelist tekli).
+            if (mevcutRoller.Count > 0)
+            {
+                var kaldirSonuc = await um.RemoveFromRolesAsync(user, mevcutRoller);
+                if (!kaldirSonuc.Succeeded)
+                {
+                    return Results.ValidationProblem(kaldirSonuc.Errors
+                        .GroupBy(e => e.Code)
+                        .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
+                }
+            }
+            var ekleSonuc = await um.AddToRoleAsync(user, istek.NewRole);
+            if (!ekleSonuc.Succeeded)
+            {
+                return Results.ValidationProblem(ekleSonuc.Errors
+                    .GroupBy(e => e.Code)
+                    .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray()));
+            }
+
+            // Audit.
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Email = KisiselVeriYardimci.EmailMaskele(user.Email),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserUpdated,
+                Success = true,
+                FailureReason = $"role-change: {string.Join(",", mevcutRoller)} -> {istek.NewRole}",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(http.RequestAborted);
+
+            return Results.Ok(new
+            {
+                message = "Rol atandı.",
+                id = user.Id,
+                yeniRol = istek.NewRole,
+                oncekiRoller = mevcutRoller,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
         return app;
     }
+
+    public sealed record KullaniciGuncelleIstegi(
+        [Required, EmailAddress, StringLength(256)] string Email,
+        [Required, StringLength(50, MinimumLength = 2)] string FirstName,
+        [Required, StringLength(50, MinimumLength = 2)] string LastName);
+
+    public sealed record RolAtamaIstegi(
+        [Required] string NewRole);
 
     public sealed record YeniKullaniciIstegi(
         [Required, EmailAddress, StringLength(256)] string Email,
