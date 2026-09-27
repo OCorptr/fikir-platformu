@@ -5,12 +5,23 @@
 import type { ApiError } from "../types";
 
 /// <summary>
-/// API base URL'i: env variable varsa onu, yoksa "/api" (Vite proxy).
-/// Production deploy'da VITE_API_BASE_URL=https://fikir-platformu.onrender.com
-/// gibi absolute URL verilir — frontend kendi domainindeki static path'e değil
-/// doğrudan backend'e istek gönderir.
+/// API base URL'i: env variable varsa onu, yoksa Vite proxy veya hardcoded
+/// Production backend origin'i. Sprint 11.24: Production fallback eklendi —
+/// VITE_API_BASE_URL set edilmediğinde relative URL ile static SPA'ya düşüyordu.
+/// Onur dashboard'unda env set edilmediğinden /api/auth/reset-password gibi
+/// endpoint'ler backend'e ulaşmıyor, generic hata dönüyordu.
 /// </summary>
-const API_BASE: string = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+const API_BASE: string = (() => {
+  const env = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
+  if (env) return env;
+  // Build-time'da origin'i tahmin etmek zor; runtime'da window.location'a bak.
+  // Production: frontend ayrı domain (fikir-platformu-web.onrender.com),
+  // backend ayrı domain (fikir-platformu.onrender.com).
+  if (typeof window !== "undefined" && window.location.hostname.endsWith("onrender.com")) {
+    return "https://fikir-platformu.onrender.com";
+  }
+  return ""; // dev'de Vite proxy
+})();
 
 export function apiUrl(path: string): string {
   // path "/api/..." veya "api/..." olabilir
