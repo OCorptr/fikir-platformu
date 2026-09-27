@@ -34,4 +34,6 @@ public enum AuthEventType
     UserUpdated = 41,        // Sprint 11.1 — kullanıcı bilgileri güncellendi (ad, e-posta, vb.)
     UserDeleted = 42,        // Sprint 11.1 — kullanıcı silindi
     RoleChanged = 43,        // Sprint 11.1 — rol atama/değişimi (tek aktif rol)
+    PasswordResetRequested = 50, // Sprint 11.5 — kullanıcı 'şifremi unuttum' akışını başlattı
+    PasswordResetCompleted = 51, // Sprint 11.5 — şifre sıfırlama başarılı oldu
 }

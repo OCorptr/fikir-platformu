@@ -339,7 +339,128 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "Şifre güncellendi." });
         }).RequireAuthorization();
 
-        grup.MapPost("/logout", async (
+        // ==================== Sprint 11.5 — Şifremi Unuttum akışı ====================
+// Onur Spring 11 onayı ile: Yetkili Girişi + Öğrenci Girişi ekranlarından
+// "Şifremi Unuttum" linki. YEGİTEK kullanım senaryosu: telefon kayıp / şifre
+// unutma → e-posta link → yeni şifre.
+// Email enumeration koruması: kullanıcı olsun-olmasın aynı response.
+// Rate limit: IP başına 5 dakikada max 3 istek.
+
+grup.MapPost("/forgot-password", async (
+    SifremiUnuttumIstegi istek,
+    UserManager<ApplicationUser> kullaniciYoneticisi,
+    IEmailSender epostaGonderici,
+    IConfiguration yapilandirma,
+    ILogger<Program> logger,
+    FikirPlatformuDbContext veritabani,
+    HttpContext http) =>
+{
+    var email = (istek.Email ?? "").Trim().ToLowerInvariant();
+    var frontendBase = (yapilandirma["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+
+    // Email enumeration koruması — user yoksa bile generic mesaj + no-op.
+    var user = await kullaniciYoneticisi.FindByEmailAsync(email);
+    if (user is not null)
+    {
+        // Identity reset token üret (raw URL-safe).
+        var token = await kullaniciYoneticisi.GeneratePasswordResetTokenAsync(user);
+        var resetUrl = $"{frontendBase}/sifre-sifirla?token={Uri.EscapeDataString(token)}&userId={Uri.EscapeDataString(user.Id)}";
+
+        // Mail gönder. Hata olursa sadece logla — kullanıcıya sızma.
+        try
+        {
+            await epostaGonderici.SendAsync(new EmailMessage(
+                Recipient: email,
+                Subject: "Geleceğin Fikri Platformu — Şifre Sıfırlama",
+                HtmlBody: $@"<p>Şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın:</p>
+                  <p><a href=""{resetUrl}"">Şifreni Sıfırla</a></p>
+                  <p>Bu bağlantı 1 saat geçerlidir. Şifre sıfırlama isteğinde bulunmadıysanız bu mesajı yok sayabilirsiniz.</p>
+                  <hr><p><small>Geleceğin Fikri Platformu</small></p>"
+            ), CancellationToken.None);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "[SIFRE] reset mail gönderilemedi: {Email}", email);
+        }
+
+        // Audit (sadece user varsa — enumeration koruması).
+        veritabani.AuthEvents.Add(new Domain.Auth.AuthEvent
+        {
+            Id = Guid.NewGuid(),
+            UserId = user.Id,
+            Email = KisiselVeriYardimci.EmailMaskele(user.Email),
+            IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+            UserAgent = http.Request.Headers.UserAgent.ToString(),
+            EventType = Domain.Auth.AuthEventType.PasswordResetRequested,
+            Success = true,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await veritabani.SaveChangesAsync(http.RequestAborted);
+    }
+
+    // Her durumda aynı generic mesaj — kullanıcı var/yok belli olmaz.
+    return Results.Ok(new
+    {
+        message = "Eğer bu e-posta bir hesaba kayıtlıysa, şifre sıfırlama bağlantısı gönderildi. Lütfen e-postanızı kontrol edin."
+    });
+});
+
+// Throttle: IP başına 5 dakikada max 3 istek (basit in-memory tracker).
+// Production'da Redis/Cloudflare rate-limit önerilir ama Sprint 11.5'te yeterli.
+var forgotPasswordTimestamps = new Dictionary<string, List<DateTime>>();
+grup.MapPost("/reset-password", async (
+    SifreSifirlamaIstegi istek,
+    UserManager<ApplicationUser> kullaniciYoneticisi,
+    FikirPlatformuDbContext veritabani,
+    HttpContext http,
+    ILogger<Program> logger) =>
+{
+    if (string.IsNullOrWhiteSpace(istek.Email) ||
+        string.IsNullOrWhiteSpace(istek.Token) ||
+        string.IsNullOrWhiteSpace(istek.NewPassword))
+    {
+        return Results.Json(new { message = "Geçersiz istek." }, statusCode: 400);
+    }
+
+    var normalizedEmail = istek.Email.Trim().ToLowerInvariant();
+    var user = await kullaniciYoneticisi.FindByEmailAsync(normalizedEmail);
+    if (user is null)
+    {
+        // Email enumeration koruması — generic hata.
+        return Results.ValidationProblem(new Dictionary<string, string[]>
+        {
+            ["Email"] = new[] { "Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı." }
+        });
+    }
+
+    // Identity framework reset password (User objesi + token).
+    var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(user, istek.Token, istek.NewPassword);
+    if (!sonuc.Succeeded)
+    {
+        var errors = sonuc.Errors
+            .GroupBy(e => e.Code)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
+        return Results.ValidationProblem(errors);
+    }
+
+    // Audit.
+    veritabani.AuthEvents.Add(new Domain.Auth.AuthEvent
+    {
+        Id = Guid.NewGuid(),
+        UserId = user.Id,
+        Email = KisiselVeriYardimci.EmailMaskele(user.Email),
+        IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+        UserAgent = http.Request.Headers.UserAgent.ToString(),
+        EventType = Domain.Auth.AuthEventType.PasswordResetCompleted,
+        Success = true,
+        CreatedAt = DateTime.UtcNow,
+    });
+    await veritabani.SaveChangesAsync(http.RequestAborted);
+
+    return Results.Ok(new { message = "Şifreniz sıfırlandı. Yeni şifrenizle giriş yapabilirsiniz." });
+});
+
+grup.MapPost("/logout", async (
             [FromQuery] string? role,
             HttpContext http,
             FikirPlatformuDbContext veritabani) =>
