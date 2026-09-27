@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using System.Text.Json;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Domain.Students;
@@ -469,7 +470,17 @@ public static class AuthEndpoints
                 var clientId = cfg["Mail:Gmail:ClientId"];
                 var redirectUri = cfg["Mail:Gmail:RedirectUri"]
                     ?? $"{http.Request.Scheme}://{http.Request.Host}/api/auth/gmail-oauth/callback";
-                var state = $"{Guid.NewGuid():N}|{http.Request.Query["returnTo"]}";
+                // Sprint 10.7+++ state: base64url(JSON) — RFC 6749 standard.
+                // Önceki "guid|returnTo" pattern '|' + path'den cookie invalid oluyor.
+                var stateObj = new
+                {
+                    nonce = Guid.NewGuid().ToString("N"),
+                    returnTo = http.Request.Query["returnTo"].ToString()
+                };
+                var stateJson = System.Text.Json.JsonSerializer.Serialize(stateObj);
+                var stateBytes = System.Text.Encoding.UTF8.GetBytes(stateJson);
+                var state = Convert.ToBase64String(stateBytes)
+                    .Replace('+', '-').Replace('/', '_').TrimEnd('=');
                 http.Response.Cookies.Append(".FikirOAuthState", state, new CookieOptions
                 {
                     HttpOnly = true,
@@ -496,98 +507,137 @@ public static class AuthEndpoints
                 HttpContext http,
                 IConfiguration cfg,
                 IHttpClientFactory httpFactory,
+                ILogger<Program> logger,
                 FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
                 HassasVeriSifreleme sifreleme) =>
             {
-                var code = http.Request.Query["code"].ToString();
-                var rawState = http.Request.Query["state"].ToString();
-                var stateCookie = http.Request.Cookies[".FikirOAuthState"];
-
-                string? returnTo = null;
-                if (!string.IsNullOrWhiteSpace(rawState))
+                try
                 {
-                    var parts = rawState.Split('|', 2);
-                    if (parts.Length == 2) returnTo = Uri.UnescapeDataString(parts[1]);
-                }
+                    var code = http.Request.Query["code"].ToString();
+                    var rawState = http.Request.Query["state"].ToString();
+                    var stateCookie = http.Request.Cookies[".FikirOAuthState"];
 
-                if (string.IsNullOrWhiteSpace(code))
-                {
-                    return Results.Json(new { error = "code parametresi yok — Google onay iptal edilmiş." }, statusCode: 400);
-                }
-                if (string.IsNullOrWhiteSpace(rawState) || rawState != stateCookie)
-                {
-                    return Results.Json(new { error = "state uyumsuz — CSRF koruması." }, statusCode: 400);
-                }
-                // state cookie'yi temizle
-                http.Response.Cookies.Delete(".FikirOAuthState", new CookieOptions { Path = "/" });
-
-                var clientId = cfg["Mail:Gmail:ClientId"];
-                var clientSecret = cfg["Mail:Gmail:ClientSecret"];
-                var redirectUri = cfg["Mail:Gmail:RedirectUri"]
-                    ?? $"{http.Request.Scheme}://{http.Request.Host}/api/auth/gmail-oauth/callback";
-
-                var client = httpFactory.CreateClient();
-                var tokenYanit = await client.PostAsync(
-                    "https://oauth2.googleapis.com/token",
-                    new FormUrlEncodedContent(new Dictionary<string, string>
+                    string? returnTo = null;
+                    // Sprint 10.7+++ base64-url JSON state (RFC 6749 standard).
+                    // Önceki "$guid|$returnTo" pattern cookie value'da '|' ve '/'
+                    // karakterleri yüzünden browser'lar tarafından reddediliyor
+                    // olabilirdi (Set-Cookie invalid). Base64url JSON temiz olur.
+                    try
                     {
-                        ["client_id"] = clientId!,
-                        ["client_secret"] = clientSecret!,
-                        ["code"] = code,
-                        ["grant_type"] = "authorization_code",
-                        ["redirect_uri"] = redirectUri,
-                    }));
-
-                var govde = await tokenYanit.Content.ReadAsStringAsync();
-                if (!tokenYanit.IsSuccessStatusCode)
-                {
-                    return Results.Json(new { error = "Google token exchange başarısız.", detail = govde }, statusCode: 500);
-                }
-
-                var json = System.Text.Json.JsonDocument.Parse(govde).RootElement;
-                var refreshToken = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
-
-                // Sprint 10.7+++ (Onur feedback "otomatik kaydolmalı"): refresh_token
-                // ENV variable'a değil DB'ye otomatik kaydedilir. gmail_refresh_tokens
-                // tablosu Id=1 singleton row (Sistem Sabit Gmail'i pattern). Tablo
-                // zaten Program.cs startup'ta CREATE TABLE IF NOT EXISTS ile idempotent
-                // oluşturulur. HassasVeriSifreleme ile encrypted saklanır — Data
-                // Protection key ayrı (DB leak'inde attacker OAuth yetkisi kazanamaz).
-                // ONUR: Restart gerekmez, restart sonrası persiste kalır, Manuel env yok.
-                if (!string.IsNullOrWhiteSpace(refreshToken))
-                {
-                    var mevcut = await veritabani.GmailRefreshTokens.FindAsync(1L);
-                    var encrypted = sifreleme.SifreleGmail(refreshToken);
-                    if (mevcut is null)
-                    {
-                        veritabani.GmailRefreshTokens.Add(new FikirPlatformu.Infrastructure.Auth.GmailRefreshToken
+                        var padded = rawState.Replace('-', '+').Replace('_', '/');
+                        padded += new string('=', (4 - padded.Length % 4) % 4);
+                        var raw = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+                        using var doc = JsonDocument.Parse(raw);
+                        if (doc.RootElement.TryGetProperty("returnTo", out var rtEl))
                         {
-                            Id = 1,
-                            EncryptedRefreshToken = encrypted,
-                            UpdatedAt = DateTime.UtcNow,
-                        });
+                            returnTo = rtEl.GetString();
+                        }
                     }
-                    else
-                    {
-                        mevcut.EncryptedRefreshToken = encrypted;
-                        mevcut.UpdatedAt = DateTime.UtcNow;
-                    }
-                    await veritabani.SaveChangesAsync(http.RequestAborted);
-                }
+                    catch (FormatException) { /* base64 decode başarısız — eski state olabilir */ }
 
-                // Onur feedback (Sprint 10.7+++): relative path redirect browser'da
-                // current origin (backend) ile resolve olur → 404. Absolute frontend
-                // URL ile SPA /mfa-login'e yönlendir. Frontend:BaseUrl env'de set edilmeli.
-                var frontendBase = FrontendAdresi(cfg).TrimEnd('/');
-                var basariPath = string.IsNullOrWhiteSpace(returnTo) ? "/" : returnTo;
-                // Eğer returnTo zaten absolute (https://...) ise olduğu gibi kullan,
-                // değilse frontend base ile birleştir. Hem local dev hem prod destekler.
-                var absoluteTarget = basariPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-                    || basariPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                    ? basariPath
-                    : $"{frontendBase}{basariPath}";
-                return Results.Redirect(
-                    $"{absoluteTarget}?gmail_oauth=ok{(refreshToken != null ? "&has_token=1" : "&has_token=0")}");
+                    if (string.IsNullOrWhiteSpace(code))
+                    {
+                        return Results.Json(new { error = "code parametresi yok — Google onay iptal edilmiş." }, statusCode: 400);
+                    }
+                    if (string.IsNullOrWhiteSpace(rawState) || rawState != stateCookie)
+                    {
+                        logger.LogWarning("[GMAIL] state mismatch. rawState={Raw}, cookie={Cookie}",
+                            rawState ?? "(null)", stateCookie ?? "(null)");
+                        return Results.Json(new { error = "state uyumsuz — CSRF koruması." }, statusCode: 400);
+                    }
+                    // state cookie'yi temizle
+                    http.Response.Cookies.Delete(".FikirOAuthState", new CookieOptions { Path = "/" });
+
+                    var clientId = cfg["Mail:Gmail:ClientId"];
+                    var clientSecret = cfg["Mail:Gmail:ClientSecret"];
+                    var redirectUri = cfg["Mail:Gmail:RedirectUri"]
+                        ?? $"{http.Request.Scheme}://{http.Request.Host}/api/auth/gmail-oauth/callback";
+
+                    if (string.IsNullOrWhiteSpace(clientId) || string.IsNullOrWhiteSpace(clientSecret))
+                    {
+                        logger.LogError("[GMAIL] Mail:Gmail:ClientId veya ClientSecret Render env'de eksik.");
+                        return Results.Json(new
+                        {
+                            error = "Backend OAuth yapılandırması eksik (Mail:Gmail:ClientId/Secret env).",
+                            detail = "Render dashboard → Environment ekle."
+                        }, statusCode: 500);
+                    }
+
+                    var client = httpFactory.CreateClient();
+                    var tokenYanit = await client.PostAsync(
+                        "https://oauth2.googleapis.com/token",
+                        new FormUrlEncodedContent(new Dictionary<string, string>
+                        {
+                            ["client_id"] = clientId!,
+                            ["client_secret"] = clientSecret!,
+                            ["code"] = code,
+                            ["grant_type"] = "authorization_code",
+                            ["redirect_uri"] = redirectUri,
+                        }));
+
+                    var govde = await tokenYanit.Content.ReadAsStringAsync();
+                    if (!tokenYanit.IsSuccessStatusCode)
+                    {
+                        logger.LogError("[GMAIL] token exchange failed: {Status} {Body}",
+                            tokenYanit.StatusCode, govde.Substring(0, Math.Min(govde.Length, 400)));
+                        return Results.Json(new { error = "Google token exchange başarısız.", detail = govde }, statusCode: 500);
+                    }
+
+                    var json = System.Text.Json.JsonDocument.Parse(govde).RootElement;
+                    var refreshToken = json.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
+
+                    // Sprint 10.7+++ (Onur feedback "otomatik kaydolmalı"): refresh_token
+                    // ENV variable'a değil DB'ye otomatik kaydedilir. gmail_refresh_tokens
+                    // tablosu Id=1 singleton row (Sistem Sabit Gmail'i pattern). Tablo
+                    // zaten Program.cs startup'ta CREATE TABLE IF NOT EXISTS ile idempotent
+                    // oluşturulur. HassasVeriSifreleme ile encrypted saklanır — Data
+                    // Protection key ayrı (DB leak'inde attacker OAuth yetkisi kazanamaz).
+                    // ONUR: Restart gerekmez, restart sonrası persiste kalır, Manuel env yok.
+                    if (!string.IsNullOrWhiteSpace(refreshToken))
+                    {
+                        var mevcut = await veritabani.GmailRefreshTokens.FindAsync(1L);
+                        var encrypted = sifreleme.SifreleGmail(refreshToken);
+                        if (mevcut is null)
+                        {
+                            veritabani.GmailRefreshTokens.Add(new FikirPlatformu.Infrastructure.Auth.GmailRefreshToken
+                            {
+                                Id = 1,
+                                EncryptedRefreshToken = encrypted,
+                                UpdatedAt = DateTime.UtcNow,
+                            });
+                        }
+                        else
+                        {
+                            mevcut.EncryptedRefreshToken = encrypted;
+                            mevcut.UpdatedAt = DateTime.UtcNow;
+                        }
+                        await veritabani.SaveChangesAsync(http.RequestAborted);
+                    }
+
+                    // Onur feedback (Sprint 10.7+++): relative path redirect browser'da
+                    // current origin (backend) ile resolve olur → 404. Absolute frontend
+                    // URL ile SPA /mfa-login'e yönlendir. Frontend:BaseUrl env'de set edilmeli.
+                    var frontendBase = FrontendAdresi(cfg).TrimEnd('/');
+                    var basariPath = string.IsNullOrWhiteSpace(returnTo) ? "/" : returnTo;
+                    // Eğer returnTo zaten absolute (https://...) ise olduğu gibi kullan,
+                    // değilse frontend base ile birleştir. Hem local dev hem prod destekler.
+                    var absoluteTarget = basariPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                        || basariPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+                        ? basariPath
+                        : $"{frontendBase}{basariPath}";
+                    return Results.Redirect(
+                        $"{absoluteTarget}?gmail_oauth=ok{(refreshToken != null ? "&has_token=1" : "&has_token=0")}");
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "[GMAIL] callback unexpected exception. query={Query}",
+                        http.Request.QueryString);
+                    return Results.Json(new
+                    {
+                        error = "OAuth callback beklenmeyen hata.",
+                        detail = ex.GetType().Name + ": " + ex.Message,
+                    }, statusCode: 500);
+                }
             });
         }
 
