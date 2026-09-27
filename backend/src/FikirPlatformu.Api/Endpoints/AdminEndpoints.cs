@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -578,7 +579,9 @@ public static class AdminEndpoints
             string id,
             UserManager<ApplicationUser> um,
             IConfiguration cfg,
+            IEmailSender epostaGonderici,
             FikirPlatformuDbContext db,
+            ILogger<Program> logger,
             HttpContext http) =>
         {
             var user = await um.FindByIdAsync(id);
@@ -595,6 +598,35 @@ public static class AdminEndpoints
             var frontendBase = (cfg["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
             var resetUrl = $"{frontendBase}/sifre-sifirla?token={Uri.EscapeDataString(token)}&userId={Uri.EscapeDataString(user.Id)}";
 
+            // Sprint 11.13: Mail gönder. Sistem Sabit Gmail mode'unda onur35bilisim
+            // (veya fikir.platformu.iletisim) hesabından gönderilir — bu hesaplar
+            // daha önce OAuth handshake ile DB'ye persist olmuş GmailRefreshToken
+            // kullanır. Mail gelmezse loglanır ama audit event başarılı sayılır
+            // (token DB'de var; user manuel olarak da resetleyebilir).
+            string? mailHatasi = null;
+            try
+            {
+                await epostaGonderici.SendAsync(new EmailMessage(
+                    Recipient: user.Email!,
+                    Subject: "Geleceğin Fikri Platformu — Şifre Sıfırlama",
+                    HtmlBody: $@"<p>Sayın kullanıcı,</p>
+                      <p>Yönetici tarafından hesabınız için şifre sıfırlama bağlantısı oluşturuldu.</p>
+                      <p>Aşağıdaki bağlantıya tıklayarak yeni şifrenizi belirleyebilirsiniz:</p>
+                      <p><a href=""{resetUrl}"">Şifremi Sıfırla</a></p>
+                      <p>Bu bağlantı 1 saat geçerlidir. İsteği siz başlatmadıysanız bu mesajı yok sayabilirsiniz.</p>
+                      <hr><p><small>Geleceğin Fikri Platformu</small></p>"
+                ), CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                mailHatasi = ex.Message;
+                logger.LogError(ex, "[ADMIN-SIFRE] reset mail gönderilemedi: {Email}", user.Email);
+            }
+
+            // İlk girişte şifre değiştirme zorunluluğu.
+            user.MustChangePassword = true;
+            await um.UpdateAsync(user);
+
             // Audit.
             db.AuthEvents.Add(new Domain.Auth.AuthEvent
             {
@@ -605,21 +637,35 @@ public static class AdminEndpoints
                 UserAgent = http.Request.Headers.UserAgent.ToString(),
                 EventType = Domain.Auth.AuthEventType.PasswordChanged,
                 Success = true,
-                FailureReason = "admin-force-reset-token",
+                FailureReason = mailHatasi is null
+                    ? "admin-force-reset-mail"
+                    : $"admin-force-reset-mail-failed:{mailHatasi}",
                 CreatedAt = DateTime.UtcNow,
             });
             await db.SaveChangesAsync(http.RequestAborted);
 
-            // Production'da resetUrl kullanıcıya email ile gönderilir. Şu an Sprint 11.2'de
-            // response'da dönüyor — frontend admin UI token'ı alıp kopyalayabilir veya
-            // doğrudan mail gönderebilir.
-            return Results.Ok(new
+            // Response.
+            if (mailHatasi is null)
             {
-                message = "Şifre sıfırlama token'ı üretildi. Kullanıcıya iletin veya email ile gönderin.",
-                id = user.Id,
-                resetUrl,
-                expiresIn = "1 gün",
-            });
+                return Results.Ok(new
+                {
+                    message = "Şifre sıfırlama bağlantısı kullanıcının e-postasına gönderildi.",
+                    id = user.Id,
+                    email = user.Email,
+                });
+            }
+            else
+            {
+                // Mail gönderilemedi — fallback olarak URL döndür ki admin başka yöntemle iletebilsin.
+                return Results.Ok(new
+                {
+                    message = "Mail gönderilemedi — link manuel olarak kullanıcıya iletilmeli: " + mailHatasi,
+                    id = user.Id,
+                    email = user.Email,
+                    resetUrl,
+                    mailHatasi = true,
+                });
+            }
         }).RequireAuthorization("SystemAdminOnly");
 
         // ==================== Sprint 11.5 P2 — Bulk CSV import ====================

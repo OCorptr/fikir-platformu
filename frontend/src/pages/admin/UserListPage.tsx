@@ -182,9 +182,23 @@ export function UserListPage() {
   }
 
   async function sifreReset(item: AdminUserListItem) {
-    if (!confirm(`"${item.email}" için force password reset başlatılsın mı?`)) return;
-    try { const sonuc = await resetUserPassword(item.id); prompt("Reset URL'i kopyalayıp kullanıcıya iletin:", sonuc.resetUrl); }
-    catch (err) { setHata(err instanceof ApiHttpError ? err.message : "Şifre sıfırlanamadı."); }
+    if (!confirm(`"${item.email}" için force password reset başlatılsın mı? Sıfırlama bağlantısı kullanıcının e-postasına gönderilecek.`)) return;
+    try {
+      const sonuc = await resetUserPassword(item.id);
+      // Sprint 11.13: Backend artık otomatik mail atıyor. URL'i prompt ile
+      // göstermek yerine kullanıcıya bilgi ver. Mail gönderilemediyse fallback
+      // olarak resetUrl response'da gelir (bu durumda admin linki başka yöntemle
+      // iletebilir).
+      if (sonuc.resetUrl) {
+        await navigator.clipboard.writeText(sonuc.resetUrl);
+        alert(`${sonuc.message}\n\nMail gönderilemediği için link panoya kopyalandı — kullanıcıya başka bir yöntemle iletin.`);
+      } else {
+        alert(sonuc.message);
+      }
+      await yukle();
+    } catch (err) {
+      setHata(err instanceof ApiHttpError ? err.message : "Şifre sıfırlanamadı.");
+    }
   }
 
   async function rolDegistir(_item: AdminUserListItem, _newRole: AllowedRole) {

@@ -71,8 +71,12 @@ export interface ChangeRoleRequest {
 export interface ResetPasswordResponse {
   message: string;
   id: string;
-  resetUrl: string;
-  expiresIn: string;
+  email?: string;
+  /** Sprint 11.13: Mail gönderilemediğinde fallback olarak döner. */
+  resetUrl?: string;
+  mailHatasi?: boolean;
+  /** Eski API uyumluluğu için opsiyonel. */
+  expiresIn?: string;
 }
 
 export interface ResetMfaResponse {
