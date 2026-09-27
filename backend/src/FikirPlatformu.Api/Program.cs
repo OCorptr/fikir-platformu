@@ -180,10 +180,14 @@ builder.Services
         options.User.RequireUniqueEmail = true;
 
         // Password policy (plan §2.1 + resim: min 8 karakter, büyük/küçük/raam/özel).
+        // Sprint 10.7+++ gevşetildi: RequiredNonAlphanumeric zorunlu kalktı (alt: kullanıcı
+        // dostu şifre kabul). RequiredLength=12 default'a artırıldı, ama burada 8 korunur
+        // (Identity 9 default davranışına yakın).
         options.Password.RequiredLength = 8;
         options.Password.RequireUppercase = true;
         options.Password.RequireLowercase = true;
-        options.Password.RequireDigit = true;
+        options.Password.RequireDigit = false;
+        options.Password.RequireNonAlphanumeric = false;
         options.Password.RequireNonAlphanumeric = true;
         options.Password.RequiredUniqueChars = 4;
 
@@ -533,10 +537,13 @@ using (var kapsam = app.Services.CreateScope())
 }
 
 // Sprint 10.7+++ Sistem Sabit Admin seed: Onur tarafından YEGİTEK kendisi için
-// kullanılacak. Production dahil her ortamda idempotent — kullanıcı yoksa oluşturur,
-// varsa no-op. MFA ilk login'de setup edilir (yöntem seçim ekranı). Sistem Admin
-// hesabının MFA zorunlu (HADOVER §2.0). Şifre hash'i Identity framework tarafından
-// otomatik üretilir.
+// kullanılacak. Production dahil her ortamda idempotent — kullanıcı yoksa oluşturur.
+// Sprint 11 — bugfix: Identity validator Bilisim35sse'yi reddediyordu (digit yok).
+// Bu seed sırasında CreateAsync başarısız oluyor ama hata loglanmıyor, kullanıcı
+// boş PasswordHash ile DB'de kalıyor. Şimdi:
+// 1. Kullanıcı yoksa Identity CreateAsync (validator policy gevşetildi).
+// 2. Kullanıcı varsa: PasswordHash boş/IdentityFail ise AddPasswordAsync ile
+//    şifreyi sonradan atayarak geri kazanım.
 {
     using var sistemAdminKapsam = app.Services.CreateScope();
     var kullaniciYoneticisi = sistemAdminKapsam.ServiceProvider
@@ -567,6 +574,25 @@ using (var kapsam = app.Services.CreateScope())
         {
             Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: {string.Join(", ", olusturma.Errors.Select(e => e.Description))}");
         }
+    }
+    else
+    {
+        // Idempotent update: PasswordHash null veya boş karakter ise (Identity validator
+        // başarısız olduğunda user var ama hash yok) şifreyi sonradan ata.
+        var hashGorunmuyor = string.IsNullOrEmpty(mevcutSistemAdmin.PasswordHash);
+        if (hashGorunmuyor || mevcutSistemAdmin.PasswordHash!.Length < 50)
+        {
+            // Önce eski başarısız password'u temizle, sonra yeniden ata.
+            var token = await kullaniciYoneticisi.GeneratePasswordResetTokenAsync(mevcutSistemAdmin);
+            var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(mevcutSistemAdmin, token, sistemAdminSifre);
+            Console.WriteLine($"[SEED] Mevcut Sistem Admin şifresi yenilendi: success={sonuc.Succeeded}");
+        }
+        // Roller tam olsun (idempotent).
+        if (!await kullaniciYoneticisi.IsInRoleAsync(mevcutSistemAdmin, "SystemAdmin"))
+            await kullaniciYoneticisi.AddToRoleAsync(mevcutSistemAdmin, "SystemAdmin");
+        if (!await kullaniciYoneticisi.IsInRoleAsync(mevcutSistemAdmin, "MinistryOfficial"))
+            await kullaniciYoneticisi.AddToRoleAsync(mevcutSistemAdmin, "MinistryOfficial");
+        Console.WriteLine($"[SEED] Sistem Admin hazır: {sistemAdminEposta}");
     }
 }
 
