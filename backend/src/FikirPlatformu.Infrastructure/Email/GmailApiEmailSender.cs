@@ -204,6 +204,11 @@ public sealed class GmailApiEmailSender : IEmailSender
 
     /// <summary>
     /// Gmail API'nin beklediği RFC 2822 raw mesajı üretir.
+    ///
+    /// Sprint 11.15 CTE fix: Content-Transfer-Encoding quoted-printable olarak
+    /// set edilip body raw yazilinca Gmail HTML tag'leri literal olarak gosteriyor
+    /// (&lt;a href&gt; link olarak render edilmiyor). CTE base64 yaparak body
+    /// base64 encode edilir — Gmail otomatik decode eder ve HTML link calisir.
     /// </summary>
     private static string BuildRfc2822(string from, string fromName, string to, string subject, string htmlBody)
     {
@@ -212,15 +217,17 @@ public sealed class GmailApiEmailSender : IEmailSender
         sb.Append("To: <").Append(to).Append(">\r\n");
         // Sprint 10.7+++ encoding fix: Subject header'da ASCII dışı karakterler
         // RFC 2047 Encoded-Word formatina cevrilir (=?UTF-8?B?base64?=). Önceki
-        // raw byte yazimi Gmail'in parser'inda mojibake yaratıyordu (Ornek:
-        // 'Geleceğin Fikri' → 'GeleceÃ„ÂŸin'). Body zaten Content-Type charset=UTF-8
-        // ile OK; sadece header'a Encoded-Word gerekir.
+        // raw byte yazimi Gmail'in parser'inda mojibake yaratıyordu.
         sb.Append("Subject: ").Append(EncodeSubjectRfc2047(subject)).Append("\r\n");
         sb.Append("Content-Type: text/html; charset=UTF-8\r\n");
-        sb.Append("Content-Transfer-Encoding: quoted-printable\r\n");
+        sb.Append("Content-Transfer-Encoding: base64\r\n");
         sb.Append("MIME-Version: 1.0\r\n");
         sb.Append("\r\n");
-        sb.Append(htmlBody);
+        // Body base64 ile encode edilir — Türkçe karakterler + HTML link'leri
+        // Gmail parser tarafından doğru render edilir.
+        sb.Append(Convert.ToBase64String(
+            Encoding.UTF8.GetBytes(htmlBody),
+            Base64FormattingOptions.InsertLineBreaks));
 
         var bytes = Encoding.UTF8.GetBytes(sb.ToString());
         return Convert.ToBase64String(bytes)
