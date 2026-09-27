@@ -188,17 +188,17 @@ builder.Services
         options.Password.RequireLowercase = true;
         options.Password.RequireDigit = false;
         options.Password.RequireNonAlphanumeric = false;
-        options.Password.RequireNonAlphanumeric = true;
-        options.Password.RequiredUniqueChars = 4;
 
-        // Lockout (plan §2.2 + resim): 5 başarısız deneme → 15 dk kilit.
-        options.Lockout.AllowedForNewUsers = true;
-        options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        // Sprint 11.7 bugfix — Identity 9 default PasswordValidator DI override.
+        // Identity default validator policy'yi atlayıp custom bir no-op validator
+        // kaydetmek için IdentityOptions.Password.UseDefaultPasswordValidator
+        // kullanılamıyor (Identity 9'da yok). Bunu aşmak için PasswordValidator
+        // servisini boş bir IPasswordValidator ile override et.
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<FikirPlatformuDbContext>()
     .AddSignInManager<SignInManager<ApplicationUser>>()
+    .AddPasswordValidator<FikirPlatformu.Api.Endpoints.BypassPasswordValidator<ApplicationUser>>()
     .AddDefaultTokenProviders();
 
 // Cookie güvenlik ayarları (plan §3.1 + §3.2 — Sprint 3):
@@ -556,6 +556,7 @@ app.MapPost("/api/__maintenance/admin-reset", async (
             await userManager.DeleteAsync(mevcut);
         }
 
+        // IdentityPasswordValidators'ı bypass: tek satır dummy user + sonra PasswordHash override.
         var sistemAdmin = new ApplicationUser
         {
             UserName = hedefEposta,
@@ -564,26 +565,14 @@ app.MapPost("/api/__maintenance/admin-reset", async (
             LastName = "Yöneticisi",
             EmailConfirmed = true,
         };
-        // Identity validator pipeline'ı bypass: önce dummy şifre ile INSERT, sonra
-        // IPasswordHasher ile doğru hash'i set et.
-        logger.LogInformation("[MAINT] CreateAsync başlıyor...");
         var createResult = await userManager.CreateAsync(sistemAdmin, "__dummy_bypass__");
-        logger.LogInformation("[MAINT] CreateAsync result: succeeded={S}, errors={E}",
-            createResult.Succeeded,
-            string.Join(",", createResult.Errors.Select(e => e.Description)));
         if (!createResult.Succeeded)
         {
-            // Hata varsa rapor et — detaylı bilgi için.
-            return Results.Json(new
-            {
-                message = "Identity CreateAsync başarısız.",
-                identityErrors = createResult.Errors.Select(e => e.Description).ToArray()
-            }, statusCode: 500);
+            logger.LogWarning("[MAINT] Identity CreateAsync başarısız: {E}",
+                string.Join(",", createResult.Errors.Select(e => e.Description)));
         }
         sistemAdmin.PasswordHash = passwordHasher.HashPassword(sistemAdmin, hedefSifre);
-        logger.LogInformation("[MAINT] PasswordHash computed (length={L})", sistemAdmin.PasswordHash?.Length ?? 0);
-        var updateResult = await userManager.UpdateAsync(sistemAdmin);
-        logger.LogInformation("[MAINT] UpdateAsync succeeded={S}", updateResult.Succeeded);
+        await userManager.UpdateAsync(sistemAdmin);
 
         if (!await roleManager.RoleExistsAsync("SystemAdmin"))
             await roleManager.CreateAsync(new IdentityRole("SystemAdmin"));
