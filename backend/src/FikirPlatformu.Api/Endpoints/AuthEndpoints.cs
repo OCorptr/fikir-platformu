@@ -561,41 +561,50 @@ grup.MapPost("/logout", async (
             ILogger<Program> logger,
             HttpContext http) =>
         {
-            // Sprint 11.16: UserId öncelikli (admin reset), yoksa email (forgot-password).
-            ApplicationUser? kullanici = null;
-            if (!string.IsNullOrWhiteSpace(istek.UserId))
+            // Sprint 11.19: Her çağrı info-level log + try-catch ile exception'ları da yakala.
+            logger.LogInformation("[SIFRE-RESET] BASLADI: UserId={UserId}, Email={Email}, TokenLen={TokenLen}, NewPwdLen={PwdLen}",
+                istek.UserId, istek.Email, istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
+            try
             {
-                kullanici = await kullaniciYoneticisi.FindByIdAsync(istek.UserId);
-            }
-            else if (!string.IsNullOrWhiteSpace(istek.Email))
-            {
-                kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
-            }
+                // Sprint 11.16: UserId öncelikli (admin reset), yoksa email (forgot-password).
+                ApplicationUser? kullanici = null;
+                if (!string.IsNullOrWhiteSpace(istek.UserId))
+                {
+                    kullanici = await kullaniciYoneticisi.FindByIdAsync(istek.UserId);
+                }
+                else if (!string.IsNullOrWhiteSpace(istek.Email))
+                {
+                    kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
+                }
 
-            if (kullanici is null)
+                if (kullanici is null)
+                {
+                    logger.LogWarning("[SIFRE-RESET] Kullanici bulunamadi (userId={UserId}, email={Email})",
+                        istek.UserId, istek.Email);
+                    return KimlikHatasi("Sıfırlama bağlantısı geçersiz.");
+                }
+
+                var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(kullanici, istek.Token, istek.NewPassword);
+                if (!sonuc.Succeeded)
+                {
+                    var detay = string.Join("; ", sonuc.Errors.Select(e => $"{e.Code}={e.Description}"));
+                    logger.LogError("[SIFRE-RESET] BASARISIZ: UserId={UserId}, Email={Email}, Detay={Detay}",
+                        kullanici.Id, kullanici.Email, detay);
+                    var mesaj = sonuc.Errors.Any(e => e.Code == "InvalidToken")
+                        ? "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş."
+                        : $"Şifre reddedildi: {detay}";
+                    return Results.Json(new { message = mesaj }, statusCode: 400);
+                }
+                logger.LogInformation("[SIFRE-RESET] BASARILI: UserId={UserId}, Email={Email}",
+                    kullanici.Id, kullanici.Email);
+                return Results.Ok(new { message = "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz." });
+            }
+            catch (Exception ex)
             {
-                logger.LogWarning("[SIFRE-RESET] Kullanici bulunamadi (userId={UserId}, email={Email})",
+                logger.LogError(ex, "[SIFRE-RESET] EXCEPTION: UserId={UserId}, Email={Email}",
                     istek.UserId, istek.Email);
-                return KimlikHatasi("Sıfırlama bağlantısı geçersiz.");
+                return Results.Json(new { message = "Sunucu hatası: " + ex.GetType().Name + " — " + ex.Message }, statusCode: 500);
             }
-
-            var tokenLength = istek.Token?.Length ?? 0;
-            var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(kullanici, istek.Token, istek.NewPassword);
-            if (!sonuc.Succeeded)
-            {
-                // Sprint 11.18: Detaylı hata log — Identity validator / invalid token ayırt etmek için.
-                var detay = string.Join("; ", sonuc.Errors.Select(e => $"{e.Code}={e.Description}"));
-                logger.LogError("[SIFRE-RESET] BASARISIZ: UserId={UserId}, Email={Email}, TokenLen={TokenLen}, NewPwdLen={PwdLen}, Detay={Detay}",
-                    kullanici.Id, kullanici.Email, tokenLength, istek.NewPassword?.Length ?? 0, detay);
-                // Token ile parola validator farklı hata kodları döner:
-                //   InvalidToken → token yanlış veya süresi dolmuş.
-                //   PasswordTooShort / PasswordRequires* → validator reddi (BypassPasswordValidator ile bunlar olmamalı).
-                var mesaj = sonuc.Errors.Any(e => e.Code == "InvalidToken")
-                    ? "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş."
-                    : $"Şifre reddedildi: {detay}";
-                return Results.Json(new { message = mesaj }, statusCode: 400);
-            }
-            return Results.Ok(new { message = "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz." });
         });
 
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
