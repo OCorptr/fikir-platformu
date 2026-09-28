@@ -61,6 +61,10 @@ export default function App() {
       <AccessibilityPanel />
       <Routes>
         <Route path="/" element={<HomePage />} />
+        {/* Sprint 11.55: bu rota tanımsızdı ve 404 dönüyordu. AdminAuthGuard ve
+            şifre sıfırlama ekranları buraya yönlendiriyor. Ana sayfa giriş
+            modalı açık halde render edilir. */}
+        <Route path="/giris" element={<HomePage />} />
         <Route path="/fikir" element={<FikirPage />} />
         <Route path="/mfa-setup" element={<MfaSetupPage />} />
         <Route path="/mfa-login" element={<MfaLoginPage />} />

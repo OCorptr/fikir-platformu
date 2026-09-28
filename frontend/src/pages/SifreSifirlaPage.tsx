@@ -165,11 +165,14 @@ export function SifreSifirlaPage() {
           <div className="ss-basarili" role="status" aria-live="polite">
             <div className="ss-ikon" aria-hidden="true">✓</div>
             <h3>Şifreniz başarıyla sıfırlandı</h3>
-            <p>Yeni şifrenizle giriş yapabilirsiniz.</p>
+            <p>
+              Yeni şifrenizle giriş yapabilirsiniz. Tarayıcınızdaki eski oturum
+              güvenlik nedeniyle kapatıldı.
+            </p>
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => navigate("/giris")}
+              onClick={() => navigate("/giris", { replace: true })}
             >
               Giriş ekranına git
             </button>

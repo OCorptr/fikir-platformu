@@ -470,6 +470,7 @@ grup.MapPost("/logout", async (
         grup.MapPost("/reset-password", async (
             SifreSifirlamaIstegi istek,
             UserManager<ApplicationUser> kullaniciYoneticisi,
+            IPasswordHasher<ApplicationUser> sifreDogrulayici,
             ILogger<Program> logger,
             HttpContext http) =>
         {
@@ -513,7 +514,33 @@ grup.MapPost("/logout", async (
                         istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                     return Results.Json(new { message = mesaj }, statusCode: 400);
                 }
-                logger.LogInformation("[SIFRE-RESET] BASARILI: UserId={UserId}, Email={Email}",
+                // Sprint 11.55 — DOĞRULAMA.
+                // Identity `ResetPasswordAsync` Succeeded döndüğü hâlde hash'in
+                // gerçekten yazıldığı garanti değildir (Identity'nin bilinen
+                // "PasswordHash boş kalır" davranışı bu projede Sprint 11.7'de
+                // yaşanmıştı). Kullanıcı "şifremi değiştirdim ama eski şifre
+                // hâlâ çalışıyor" diye bildirdi; bu nedenle yazma sonrası
+                // hash'i doğrudan doğruluyoruz ve uyuşmazsa HATA döndürüyoruz.
+                await Task.Delay(150);
+                var tazelenmis = await kullaniciYoneticisi.FindByIdAsync(kullanici.Id);
+                var dogrulama = tazelenmis?.PasswordHash is null
+                    ? PasswordVerificationResult.Failed
+                    : sifreDogrulayici.VerifyHashedPassword(tazelenmis, tazelenmis.PasswordHash, istek.NewPassword);
+
+                if (dogrulama == PasswordVerificationResult.Failed)
+                {
+                    logger.LogError(
+                        "[SIFRE-RESET] DOGRULAMA BASARISIZ: UserId={UserId} — Identity başarılı döndü " +
+                        "ama yeni şifre doğrulanamadı. PasswordHash={Bos} SecurityStamp={Bos}",
+                        kullanici.Id,
+                        string.IsNullOrEmpty(tazelenmis?.PasswordHash),
+                        string.IsNullOrEmpty(tazelenmis?.SecurityStamp));
+                    SifreResetDebug.Kaydet(false, "DOGRULAMA_BASARISIZ", kullanici.Id, kullanici.Email,
+                        istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
+                    return Results.Json(new { message = "Şifre kaydedilemedi. Lütfen tekrar deneyin veya yöneticinize başvurun." }, statusCode: 500);
+                }
+
+                logger.LogInformation("[SIFRE-RESET] BASARILI+DOGRULANDI: UserId={UserId}, Email={Email}",
                     kullanici.Id, KisiselVeriYardimci.EmailMaskele(kullanici.Email));
                 SifreResetDebug.Kaydet(true, "Şifreniz güncellendi", kullanici.Id, kullanici.Email,
                     istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);

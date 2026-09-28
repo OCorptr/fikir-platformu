@@ -213,6 +213,17 @@ builder.Services
     .AddSignInManager<SignInManager<ApplicationUser>>()
     .AddDefaultTokenProviders();
 
+// Sprint 11.55 — GÜVENLİK YAMASI.
+// `AddIdentityCore` `SecurityStampValidator`'ı kaydetmez; bunu yapan `AddIdentity`'dir.
+// Kayıt edilmediği için şifre değiştiğinde AÇIK OLAN OTURUMLAR geçersiz
+// kalmıyordu: kullanıcı şifresini değiştirdikten sonra hâlâ giriş yapmış
+// görünüyor ve eski oturumla sistemde gezebiliyordu (kullanıcı raporundan).
+// `ValidationInterval` cookie her istekte kontrol edilir; 5 dakika dengeli bir
+// değerdir (çok kısa = her istekte veritabanına gider, çok uzun = eski
+// oturumlar dakikalarca açık kalır).
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.FromMinutes(5));
+
 // Cookie güvenlik ayarları (plan §3.1 + §3.2 — Sprint 3):
 //   - HttpOnly: JS erişemez (XSS koruması)
 //   - SameSite: Cors:AllowedOrigins DOLUYSA → None (cross-origin); BOŞSA → Lax (same-origin reverse proxy)

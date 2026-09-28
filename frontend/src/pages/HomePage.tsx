@@ -48,7 +48,11 @@ export function HomePage() {
   const [aktif, setAktif] = useState(0);
   const [arsivAcik, setArsivAcik] = useState(false);
   const [lightboxAcik, setLightboxAcik] = useState(false);
-  const [yetkiliGirisAcik, setYetkiliGirisAcik] = useState(false);
+  // Sprint 11.55: `/giris` rotası ana sayfayı giriş modalı AÇIK halde gösterir.
+  // Önceden bu rota tanımsızdı ve 404 dönüyordu.
+  const [yetkiliGirisAcik, setYetkiliGirisAcik] = useState(
+    () => typeof window !== "undefined" && window.location.pathname === "/giris",
+  );
   const n = kazananlar.length;
 
   useEffect(() => {
@@ -224,7 +228,14 @@ export function HomePage() {
 
       <YetkiliGirisModal
         acik={yetkiliGirisAcik}
-        onKapat={() => setYetkiliGirisAcik(false)}
+        onKapat={() => {
+          setYetkiliGirisAcik(false);
+          // `/giris` üzerinden gelindiyse adres çubuğu ana sayfaya dönsün,
+          // aksi halde modal kapandığında `/giris` yazmaya devam ederdi.
+          if (typeof window !== "undefined" && window.location.pathname === "/giris") {
+            window.history.replaceState(null, "", "/");
+          }
+        }}
       />
     </>
   );
