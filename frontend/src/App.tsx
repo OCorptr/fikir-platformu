@@ -22,6 +22,8 @@ import { OAuthAyarlaPage } from "./pages/admin/OAuthAyarlaPage";
 import { AdminAuthGuard } from "./components/AdminAuthGuard";
 import { SifremiUnuttumPage } from "./pages/SifremiUnuttumPage";
 import { SifreSifirlaPage } from "./pages/SifreSifirlaPage";
+import { SifreDegistirPage } from "./pages/SifreDegistirPage";
+import { SifreKilit } from "./components/SifreKilit";
 
 /* her rotada govde sinifi degisir:
    - /il-panel*, /bakanlik*  → sayfa-admin (sidebar + govde düzeni admin.css'ten)
@@ -59,7 +61,14 @@ export default function App() {
       <GovdeSinifi />
       <KosulluUstBar />
       <AccessibilityPanel />
+      <SifreKilit>
       <Routes>
+        {/* Sprint 11.60 / YG-17 — 90 günlük parola süresi dolmuş personel
+            uygulamanın tamamına kilitlenir; yalnızca bu ekrana erişebilir. */}
+        <Route
+          path="/sifre-degistir"
+          element={<SifreDegistirPage zorunlu={false} />}
+        />
         <Route path="/" element={<HomePage />} />
         {/* Sprint 11.55: bu rota tanımsızdı ve 404 dönüyordu. AdminAuthGuard ve
             şifre sıfırlama ekranları buraya yönlendiriyor. Ana sayfa giriş
@@ -100,6 +109,7 @@ export default function App() {
         </Route>
         <Route path="*" element={<SayfaBulunamadi />} />
       </Routes>
+      </SifreKilit>
     </BrowserRouter>
     </UygulamayiSinirla>
   );

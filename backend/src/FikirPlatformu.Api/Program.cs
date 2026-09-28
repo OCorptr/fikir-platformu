@@ -469,6 +469,33 @@ using (var scope = app.Services.CreateScope())
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "[STARTUP] auth_events.Reason kolonu oluşturulamadı.");
     }
+
+    // Sprint 11.60 / YG-17: PasswordChangedAt başlangıç değerlemesi.
+    // Eski kayıtlarda bu alan NULL'dır. NULL, "ne zaman değiştirildiği
+    // bilinmiyor" demektir ve politikada en kötü senaryo (zorunlu değişim)
+    // olarak yorumlanır. Kullanıcıları kilitlememek için son giriş tarihine,
+    // o da yoksa bugüne geriye dönük bir taban değer yazılır.
+    try
+    {
+        var etkilenen = dbContext.Database.ExecuteSqlRaw(
+            """
+            UPDATE `AspNetUsers`
+            SET `PasswordChangedAt` = COALESCE(`LastLoginAt`, UTC_TIMESTAMP())
+            WHERE `PasswordChangedAt` IS NULL
+            """);
+        if (etkilenen > 0)
+        {
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning(
+                "[STARTUP] {Sayi} hesaba PasswordChangedAt taban değeri yazıldı (YG-17).",
+                etkilenen);
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "[STARTUP] PasswordChangedAt taban değerlemesi yapılamadı.");
+    }
 }
 
 // Sprint 11.52: Kurulum seed komutu — `dotnet run -- seed` ile ilk hesapları oluşturur.

@@ -45,6 +45,12 @@ export interface MeSession {
   emailConfirmed: boolean;
   roles: string[];
   profile: StudentProfileDto | null;
+  // Sprint 11.60 / YG-17 — periyodik parola değişimi durumu.
+  sifreYasiGun?: number | null;
+  sifreKalanGun?: number | null;
+  sifreUyariGerekli?: boolean;
+  sifreDegistirmeZorunlu?: boolean;
+  sifreDegistirmeGerekce?: string | null;
 }
 
 export interface MeAuthenticated {
@@ -131,6 +137,13 @@ export interface LoginResponse {
   message?: string;
   mustChangePassword?: boolean;
   passwordWarn?: boolean;
+  /** Sprint 11.60 / YG-17 — parolanın kaç gündür değiştirilmediği. */
+  sifreYasiGun?: number | null;
+  /** Zorunlu değişime kalan gün. */
+  sifreKalanGun?: number | null;
+  /** true ise kullanıcı değişim yapmadan diğer sayfalara gidemez. */
+  sifreDegistirmeZorunlu?: boolean;
+  sifreDegistirmeGerekce?: string | null;
 }
 
 // Genel hata cevabı (RFC 7807 / ValidationProblem)

@@ -293,13 +293,13 @@ public static class AuthEndpoints
                 AuthEventType.LoginSuccess, success: true, reason: null);
 
             // Şifre değişikliği zorunluluğu (plan §2.5) ve süre sonu (plan §2.4) kontrolü.
-            var simdi = DateTimeOffset.UtcNow;
+            //
+            // Sprint 11.60 / YG-17: politika artık rol tabanlı ve tek yerde
+            // tanımlı (Domain.Auth.SifreYasiPolicy). Buradaki eski "90 gün herkes
+            // için" hesabı kaldırıldı — öğrenciler zorunluluk dışı, sistem
+            // yöneticileri muaf.
+            var sifreYasi = Domain.Auth.SifreYasiPolicy.Hesapla(kullanici.PasswordChangedAt, roller);
             var mustChange = kullanici.MustChangePassword;
-            var passwordExpired = kullanici.PasswordChangedAt.HasValue
-                && (simdi - kullanici.PasswordChangedAt.Value).TotalDays > 90;
-            var passwordWarn = kullanici.PasswordChangedAt.HasValue
-                && !passwordExpired
-                && (simdi - kullanici.PasswordChangedAt.Value).TotalDays > 75; // 75+ gün: uyarı
 
             return Results.Ok(new
             {
@@ -314,8 +314,12 @@ public static class AuthEndpoints
                     _ => "student"
                 },
                 // Şifre güvenlik işaretleri (frontend bu değerlere göre uyarı/redirect verecek).
-                mustChangePassword = mustChange || passwordExpired,
-                passwordWarn = passwordWarn && !mustChange && !passwordExpired,
+                mustChangePassword = mustChange || sifreYasi.DegistirmeZorunlu,
+                passwordWarn = sifreYasi.UyariGerekli && !mustChange && !sifreYasi.DegistirmeZorunlu,
+                sifreYasiGun = sifreYasi.YasiGun,
+                sifreKalanGun = sifreYasi.KalanGun,
+                sifreDegistirmeZorunlu = sifreYasi.DegistirmeZorunlu,
+                sifreDegistirmeGerekce = sifreYasi.Gerekce
             });
         }).RequireRateLimiting("login");
 
@@ -1068,6 +1072,9 @@ grup.MapPost("/logout", async (
                 .FirstOrDefaultAsync(cancellationToken);
         }
 
+        // Sprint 11.60 / YG-17: periyodik parola değişimi durumu.
+        var sifreYasi = Domain.Auth.SifreYasiPolicy.Hesapla(kullanici.PasswordChangedAt, roller);
+
         return new
         {
             context,
@@ -1076,7 +1083,12 @@ grup.MapPost("/logout", async (
             lastName = kullanici.LastName,
             emailConfirmed = kullanici.EmailConfirmed,
             roles = roller,
-            profile = profil
+            profile = profil,
+            sifreYasiGun = sifreYasi.YasiGun,
+            sifreKalanGun = sifreYasi.KalanGun,
+            sifreUyariGerekli = sifreYasi.UyariGerekli,
+            sifreDegistirmeZorunlu = sifreYasi.DegistirmeZorunlu,
+            sifreDegistirmeGerekce = sifreYasi.Gerekce
         };
     }
 
