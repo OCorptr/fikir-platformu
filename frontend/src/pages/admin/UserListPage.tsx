@@ -30,6 +30,7 @@ import { getProvinces } from "../../services/references";
 import { rolAdi } from "../../services/roles";
 import type { ProvinceRef } from "../../types";
 import { ApiHttpError } from "../../services/api";
+import { UserCreateModal } from "./UserCreateModal";
 
 type GrupKodu = "Yonetim" | "IlManager" | "IlEvaluator";
 
@@ -79,6 +80,21 @@ export function UserListPage() {
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(true);
   const [iller, setIller] = useState<ProvinceRef[]>([]);
+
+  // Sprint 11.49: Drawer modal state
+  const [ekleAcik, setEkleAcik] = useState(false);
+  const [ekleGrup, setEkleGrup] = useState<"Yonetim" | "IlManager" | "IlEvaluator">("Yonetim");
+  const [ekleIlKodu, setEkleIlKodu] = useState<number | undefined>();
+  const ekleIlAdi = useMemo(() => {
+    if (ekleIlKodu == null) return undefined;
+    return iller.find((i) => i.id === ekleIlKodu)?.name;
+  }, [ekleIlKodu, iller]);
+
+  function acEkleModal(grup: "Yonetim" | "IlManager" | "IlEvaluator", il?: number) {
+    setEkleGrup(grup);
+    setEkleIlKodu(il);
+    setEkleAcik(true);
+  }
 
   // Default KAPALI. v2 key (eski v1'deki açık state'i bypass).
   const [acikGruplar, setAcikGruplar] = useState<Record<GrupKodu, boolean>>(() => {
@@ -209,16 +225,9 @@ export function UserListPage() {
   const filtreTemizle = () => setSearchParams(new URLSearchParams());
 
   // Her grup başlığındaki "+ Yönetici Ekle" + il alt grubundaki "+ Ekle" bu
-  // handler'ı tetikler. /admin/users/new sayfasına role ve ilKodu query ile
-  // yönlendirilir; UserCreatePage URL parametrelerini okuyup formu preset eder.
+  // handler'ı tetikler. Sprint 11.49: Drawer modal açılır (route navigation yok).
   function kullaniciEkleNavi(kod: GrupKodu, ilKodu?: number) {
-    const params = new URLSearchParams();
-    // Yönetim grubu için özel: SystemAdmin default. Bakanlık Yetkilisi ayrı
-    // istenirse dropdown ile değiştirilebilir.
-    const rol = GRUP_ROLLERI[kod];
-    params.set("role", rol);
-    if (ilKodu) params.set("ilKodu", String(ilKodu));
-    navigate(`/admin/users/new?${params.toString()}`);
+    acEkleModal(kod, ilKodu);
   }
 
   return (
@@ -226,9 +235,6 @@ export function UserListPage() {
       <div className="admin-panel-aksiyonlar admin-panel-aksiyonlar-sag">
         <Link to="/admin/users/bulk" className="btn btn-ghost">
           <span aria-hidden="true">📥</span> Toplu İçe Aktar
-        </Link>
-        <Link to="/admin/users/new" className="btn btn-primary">
-          <span aria-hidden="true">＋</span> Yeni Kullanıcı
         </Link>
       </div>
 
@@ -330,6 +336,15 @@ export function UserListPage() {
           })}
         </div>
       )}
+
+      <UserCreateModal
+        acik={ekleAcik}
+        onClose={() => setEkleAcik(false)}
+        grupKodu={ekleGrup}
+        ilKodu={ekleIlKodu}
+        ilAdi={ekleIlAdi}
+        basariliCallback={() => { void yukle(); }}
+      />
     </section>
   );
 }

@@ -16,7 +16,6 @@ import { MfaSetupPage } from "./pages/MfaSetupPage";
 import { MfaLoginPage } from "./pages/MfaLoginPage";
 import { AdminLayout } from "./pages/admin/AdminLayout";
 import { UserListPage } from "./pages/admin/UserListPage";
-import { UserCreatePage } from "./pages/admin/UserCreatePage";
 import { UserEditPage } from "./pages/admin/UserEditPage";
 import { UserBulkPage } from "./pages/admin/UserBulkPage";
 import { OAuthAyarlaPage } from "./pages/admin/OAuthAyarlaPage";
@@ -90,7 +89,6 @@ export default function App() {
           >
             <Route index element={<UserListPage />} />
             <Route path="users" element={<UserListPage />} />
-            <Route path="users/new" element={<UserCreatePage />} />
             <Route path="users/bulk" element={<UserBulkPage />} />
             <Route path="users/:id" element={<UserEditPage />} />
             <Route path="oauth" element={<OAuthAyarlaPage />} />

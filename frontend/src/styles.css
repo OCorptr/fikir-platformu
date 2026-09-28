@@ -1853,3 +1853,49 @@ input[type="range"] {
   margin-top: 1rem;
   flex-wrap: wrap;
 }
+
+@keyframes drawerSlideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes overlayFade { from { opacity: 0; } to { opacity: 1; } }
+.drawer-overlay { position: fixed; inset: 0; z-index: 90; background: rgba(8, 20, 45, 0.55); backdrop-filter: blur(2px); display: flex; justify-content: flex-end; animation: overlayFade 0.18s ease-out; overscroll-behavior: contain; }
+.drawer-panel { position: relative; width: min(32rem, 100%); height: 100%; background: #fff; color: #16355c; box-shadow: -1.5rem 0 4rem rgba(8, 20, 45, 0.25); display: flex; flex-direction: column; animation: drawerSlideIn 0.28s cubic-bezier(0.32, 0.72, 0.34, 1) both; overflow: hidden; }
+.drawer-header { display: flex; align-items: center; gap: 0.8rem; padding: 1.1rem 1.4rem; border-bottom: 1px solid #e6ecf3; background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%); }
+.drawer-header h2 { margin: 0; font-size: 1.15rem; font-weight: 800; color: #16355c; text-wrap: balance; }
+.drawer-header small { display: block; font-size: 0.82rem; color: #5a6f8a; font-weight: 600; margin-top: 0.15rem; }
+.drawer-close { margin-left: auto; background: #eef3f9; border: 0; color: #16355c; width: 2.2rem; height: 2.2rem; border-radius: 50%; font-size: 1.1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: background-color 120ms ease; }
+.drawer-close:hover { background: #d8e2ee; }
+.drawer-close:focus-visible { outline: 2px solid #f4c542; outline-offset: 2px; }
+.drawer-body { flex: 1; padding: 1.4rem 1.4rem 2rem; overflow-y: auto; overscroll-behavior: contain; }
+.drawer-footer { padding: 0.9rem 1.4rem; border-top: 1px solid #e6ecf3; background: #fbfcfe; display: flex; gap: 0.6rem; justify-content: flex-end; }
+.drawer-alan { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.95rem; }
+.drawer-alan > span { font-size: 0.85rem; font-weight: 700; color: #33475f; }
+.drawer-alan input, .drawer-alan select, .drawer-alan textarea { padding: 0.6rem 0.8rem; border: 1px solid #ccd; border-radius: 0.5rem; background: #fff; color: #16355c; font: inherit; font-size: 0.95rem; transition: border-color 120ms ease, box-shadow 120ms ease; }
+.drawer-alan input:focus-visible, .drawer-alan select:focus-visible, .drawer-alan textarea:focus-visible { outline: 2px solid #f4c542; outline-offset: 1px; border-color: #f4c542; }
+.drawer-alan .drawer-yardimci { font-size: 0.78rem; color: #647a92; }
+.drawer-alan.hata input, .drawer-alan.hata select { border-color: #d8402f; }
+.drawer-alan-hata { font-size: 0.8rem; color: #d8402f; font-weight: 700; margin-top: 0.2rem; }
+.drawer-oto-sifre { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.4rem; }
+.drawer-oto-sifre button { background: #eaf2ff; border: 1px solid #b9d2ee; color: #1e5c9e; padding: 0.4rem 0.7rem; border-radius: 0.4rem; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: background-color 120ms ease; }
+.drawer-oto-sifre button:hover { background: #d8e8ff; }
+.drawer-oto-sifre code { background: #f4f6fa; padding: 0.4rem 0.7rem; border-radius: 0.4rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92rem; color: #16355c; border: 1px solid #ccd; letter-spacing: 0.04em; flex: 1; user-select: all; }
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-overlay, .drawer-panel { animation: none; }
+}
+
+.csv-rehber { background: linear-gradient(180deg, #f7faff 0%, #ffffff 100%); border: 1px solid #ccd; border-radius: 0.85rem; padding: 1.2rem 1.4rem; margin-bottom: 1.4rem; }
+.csv-rehber h3 { margin: 0 0 0.5rem; font-size: 1rem; color: #16355c; font-weight: 800; }
+.csv-rehber p { margin: 0 0 0.7rem; color: #5a6f8a; font-size: 0.88rem; }
+.csv-adim { display: flex; align-items: flex-start; gap: 0.7rem; padding: 0.55rem 0; border-top: 1px solid #e6ecf3; }
+.csv-adim-ilk { border-top: 0; }
+.csv-adim-no { flex-shrink: 0; background: #16355c; color: #fff; width: 1.8rem; height: 1.8rem; border-radius: 50%; display: grid; place-items: center; font-size: 0.85rem; font-weight: 800; }
+.csv-adim-icerik { flex: 1; color: #33475f; font-size: 0.92rem; }
+.csv-adim-icerik b { color: #16355c; }
+.csv-tablosu { width: 100%; border-collapse: collapse; margin: 0.7rem 0; font-size: 0.86rem; background: #fff; border: 1px solid #ccd; border-radius: 0.5rem; overflow: hidden; }
+.csv-tablosu thead { background: #eef3f9; }
+.csv-tablosu th, .csv-tablosu td { padding: 0.5rem 0.7rem; text-align: left; border-bottom: 1px solid #e6ecf3; }
+.csv-tablosu th { font-weight: 800; color: #16355c; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.csv-tablosu td { color: #5a6f8a; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; }
+.csv-tablosu td.zorunlu::after { content: " *"; color: #d8402f; font-weight: 800; }
+.csv-indir-btn { display: inline-flex; align-items: center; gap: 0.5rem; background: #eaf2ff; border: 1px solid #b9d2ee; color: #1e5c9e; padding: 0.6rem 1rem; border-radius: 0.5rem; font-weight: 700; font-size: 0.9rem; cursor: pointer; text-decoration: none; transition: background-color 120ms ease; }
+.csv-indir-btn:hover { background: #d8e8ff; }
+.csv-indir-btn:focus-visible { outline: 2px solid #f4c542; outline-offset: 2px; }
