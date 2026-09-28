@@ -54,7 +54,7 @@
 |---|---|---|---|
 | YG-18 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ✅ | YG-13 ile aynı madde; aynı mekanizma. |
 | YG-19 | En az yetki prensibi uygulanır. | ✅ | Policy bazlı: `StudentOnly`, `ProvinceOnly`, `MinistryOnly`, Admin whitelist. Her endpoint kendi rol/policy'sini ister. Sprint 11 privacy guard: `/api/admin/users*` Student'a açık değil. |
-| YG-20 | Oturum sonlandırma işlevi her sayfadan erişilebilir olmalıdır. | ⚠️ | `AdminLayout` üst bar, `FikirPage`, `AuthModal`, `YetkiliGirisModal`, `MfaLoginPage`, `MfaSetupPage` üzerinde mevcut ✅. **Eksik:** anasayfa (`HomePage`), şifre sıfırlama sayfaları ve Sprint 11 `/admin` panelinde çıkış bağlantısı yok. `KullaniciCikis` bileşeni `PublicLayout` içinde ama `PublicLayout` hiçbir route'ta kullanılmıyor → Sprint 12. |
+| YG-20 | Kullanıcı her sayfadan oturum sonlandırabilmelidir. | ✅ | **Sprint 11.62:** `KullaniciCikis` bileşeni `App.tsx` içinde uygulamanın tamamına bağlandı (sabit konumlu buton). `/admin/*` altında render edilmez — AdminLayout kendi menüsünü içerir. Hangi oturumun kapatılacağı açılan sayfanın yolundan çıkarılır (`contextFromPath`). Boşta kalan `PublicLayout.tsx` silindi (hiçbir yerde kullanılmıyordu) |
 | YG-21 | Oturum kimliği için zaman aşımı ve hareketsizlik süresi belirlenir. | ✅ | Idle timeout 30 dk sliding; absolute timeout 8 saat (`auth_issued_at` claim + `OnValidatePrincipal` reddi). `PreMfaScheme` 10 dk. |
 | YG-22 | HttpOnly, Secure, SameSite gibi güvenlik bayrakları kullanılır. | ✅ | Tüm cookie'lerde `HttpOnly = true`, `SecurePolicy` (production'da `Always`), `SameSite` (cross-origin `None`+`Secure`, same-origin `Lax`). |
 | YG-23 | Yetkisiz kaynaklara CORS kısıtlamaları uygulanır. | ✅ | `Cors__AllowedOrigins` whitelist + Sprint 10.7 hardcoded production fallback. Preflight testi: `OPTIONS /api/auth/login` → 204 + `Access-Control-Allow-Origin`. |
@@ -111,7 +111,6 @@
 | # | Madde | Yapılacak |
 |---|---|---|
 | **YG-03 / 31 / 32** | Dosya yükleme uzantı + MIME + beyaz liste | CSV toplu import ucunda beyaz liste (uzantı + MIME + boyut) eklenmeli |
-| **YG-20** | Her sayfadan oturum sonlandırma | `KullaniciCikis` bileşenini tüm layout'lara bağla |
 | **YG-08** | PII depolama şifrelemesi | Öğrenci PII alanları için şifreleme veya "kişisel veri ≠ gizli veri" gerekçesi |
 | **YG-38** | Yayın öncesi güvenlik testi | Otomatik test paketi + bağımsız penetrasyon testi planı |
 
