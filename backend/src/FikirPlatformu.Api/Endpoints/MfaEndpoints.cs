@@ -419,6 +419,26 @@ public static class MfaEndpoints
     /// PreMfaScheme cookie'sini temizler, kullanıcının sahip olduğu role'lere göre asıl scheme seçer
     /// ve yeni cookie yazar (MFA tamamlandı → gerçek authenticated session'a upgrade).
     /// </summary>
+    /// <summary>
+    /// Onur (S11.76): Principal'a rol claim'lerini açıkça ekler. Cookie handler
+    /// yalnızca claim'leri sakladığı için yetkilendirme politikaları
+    /// (<c>IsInRole</c>) cookie içindeki rollere bakar.
+    /// </summary>
+    internal static void RolleriEkle(ClaimsPrincipal principal, IEnumerable<string> roller)
+    {
+        var kimlik = principal.Identities.FirstOrDefault();
+        if (kimlik is null) return;
+        var mevcut = kimlik.Claims
+            .Where(c => c.Type == ClaimTypes.Role)
+            .Select(c => c.Value)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var rol in roller)
+        {
+            if (mevcut.Add(rol))
+                kimlik.AddClaim(new Claim(ClaimTypes.Role, rol));
+        }
+    }
+
     private static async Task<(string hedefScheme, string context)> SchemeUpgradeYap(
         ApplicationUser kullanici,
         UserManager<ApplicationUser> kullaniciYoneticisi,
@@ -436,6 +456,16 @@ public static class MfaEndpoints
         }
 
         var principal = await girisYoneticisi.CreateUserPrincipalAsync(kullanici);
+
+        // Onur (S11.76): Rol claim'leri AÇIKÇA yazılır.
+        // `CreateUserPrincipalAsync` yalnızca kullanıcı claim'lerini üretir; rol
+        // claim'lerinin eklenmesi claims factory'nin varsayılan davranışına
+        // BAĞLIDIR. Bağımlılık kaldırıldı: yetkilendirme politikaları
+        // (`ProvinceOnly` → IsInRole("SystemAdmin")) cookie içindeki role bakar,
+        // claim yoksa 403 döner ve kullanıcı ana sayfaya atılır — hata mesajı
+        // olmadığı için bu davranış sessizce sınıf yönetimine benzer görünüyordu.
+        RolleriEkle(principal, roller);
+
         var props = new AuthenticationProperties
         {
             IsPersistent = false,

@@ -223,6 +223,9 @@ public static class AuthEndpoints
             // SignInManager default scheme (Identity.Application) ile çalışır; farklı scheme'ler için
             // HttpContext.SignInAsync + Identity'nin ClaimsPrincipal'ını kullanıyoruz.
             var principal = await girisYoneticisi.CreateUserPrincipalAsync(kullanici);
+            // Onur (S11.76): rol claim'lerini açıkça yaz — yetkilendirme
+            // politikaları cookie içindeki role bakar (bkz. MfaEndpoints).
+            MfaEndpoints.RolleriEkle(principal, roller);
             var props = new AuthenticationProperties
             {
                 IsPersistent = istek.RememberMe,
@@ -485,10 +488,21 @@ grup.MapPost("/logout", async (
                 }
             }
 
+            // Onur (S11.76): Hangi scheme'lerin cookie'si geldi? Panele
+            // yönlendirme başarısız olduğunda bu bilgi olmadan tahmin yürütmek
+            // zorunda kalıyorduk ("Sistem Yöneticisi il-panel'a giremiyor" üç
+            // tur denendi, üçü de yanlış kök neden buldu). /me cevabına eklenir;
+            // tarayıcı Network sekmesinden bir bakışla durum anlaşılır.
+            var gelenSchemeler = new List<string>();
+            if (ogrenciSonuc.Succeeded) gelenSchemeler.Add("student");
+            if (ilSonuc.Succeeded) gelenSchemeler.Add("province");
+            if (bakanlikSonuc.Succeeded) gelenSchemeler.Add("ministry");
+
             return Results.Ok(new
             {
                 authenticated = true,
                 roles = roller,
+                gelenSchemeler,
                 sessions = oturumlar,
             });
         }).AllowAnonymous();
