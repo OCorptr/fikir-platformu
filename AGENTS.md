@@ -37,6 +37,7 @@
 - **Sandbox:** Windows kernel sandbox. `dotnet ef migrations add` dosya yazma sorunu var — Sprint 11'de startup idempotent raw SQL ile çözüldü. **Yeni migration gerekirse lokal geliştirici makinede CI veya temiz bash'te üret.**
 - **Backend `dotnet build`** → tüm projeler derlenir. `cd backend && dotnet build -c Release --nologo` kullan (Release, hızlı).
 - **Frontend `pnpm build`** → Vite content-based hash bundle üretir. Build sonrası `dist/assets/` içinde SHA-prefixed dosyalar. (paket yöneticisi **pnpm 11**, `npm` değil)
+- **Frontend kilit dosyaları iki tane:** `pnpm-lock.yaml` (lokal geliştirme, pnpm kullanır) ve `package-lock.json` (Render Static Site build'i `npm ci && npm run build` kullanır). **Bağımlılık eklediğinde/guncellediğinde `bash scripts/sync-npm-lock.sh` calistir** — aksi halde Render build'i eski kilitle calisir veya basarisiz olur.
 - **Git config:** `git -c user.name=OnurCorptr -c user.email=onur35bilisim@gmail.com commit` — global config yok.
 - **Internet search zorunlu** her fix öncesi (Onur kuralı). `Microsoft Learn`, `context7`, `brave_web_search` tool'ları kullan.
 - **Test:** Backend'de xUnit var — `backend/tests/FikirPlatformu.Tests` (17 test, 3 dosya: `IdeaTests`, `ProfanityTextMatcherTests`, `SubmitIdeaServiceTests`). `scripts/verify.ps1` `dotnet test` çalıştırır. **Frontend'de Vitest yok** — UI doğrulama Playwright ile manual.

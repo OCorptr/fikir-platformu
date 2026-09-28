@@ -43,7 +43,7 @@ services:
     name: fikir-platformu-web
     runtime: static
     rootDir: frontend
-    buildCommand: npm install -g --no-update-notifier pnpm@11.19.0 && pnpm install --frozen-lockfile && pnpm run build
+    buildCommand: npm ci && npm run build
     staticPublishPath: dist
     autoDeploy: true
 
