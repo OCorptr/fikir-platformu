@@ -181,6 +181,12 @@ builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.EskiOgrenciKayitTe
 // Ayrıcalıklı roller muaf tutulur ve `PasifHesap_Enabled=false` ile kapatılabilir.
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
 
+// Sprint 11.61 / YG-13,18 — günlük denetim raporu üretimi.
+// Kurumun merkezî günlük toplama altyapısı teslim sırasında bilinmiyor;
+// rapor dosyası her ortamda üretilir, sistem yöneticisi kendi ekranından
+// görüntüler/indirir. Ayarlar: DenetimRapor__Klasor, __SaklamaGun, __Etkin.
+builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.DenetimRaporServisi>();
+
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
     {

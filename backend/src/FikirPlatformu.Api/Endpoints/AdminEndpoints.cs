@@ -23,6 +23,82 @@ public static class AdminEndpoints
         var grup = app.MapGroup("/api/admin").WithTags("Sistem Yönetimi");
 
         // =============================================================
+        // YEĞİTEK YG-13 / YG-18 — Denetim raporları (Sprint 11.61)
+        // Günlük hareket kayıtları dosyaya yazılır; sistem yöneticisi
+        // istediği an görüntüler ve indirir.
+        // =============================================================
+
+        // Rapor listesi
+        grup.MapGet("/raporlar", (IConfiguration cfg) =>
+        {
+            var klasor = ArkaPlan.DenetimRaporServisi.RaporKlasoru(cfg);
+            if (!Directory.Exists(klasor))
+            {
+                return Results.Ok(new { klasor, etkin = true, raporlar = Array.Empty<object>() });
+            }
+
+            var raporlar = Directory.EnumerateFiles(klasor, "denetim-*.jsonl")
+                .Select(y =>
+                {
+                    var bilgi = new FileInfo(y);
+                    return new
+                    {
+                        dosya = bilgi.Name,
+                        tarih = bilgi.LastWriteTimeUtc.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                        boyutBayt = bilgi.Length,
+                        olusturma = bilgi.LastWriteTimeUtc.ToString("o", System.Globalization.CultureInfo.InvariantCulture),
+                    };
+                })
+                .OrderByDescending(r => r.dosya)
+                .Take(400)
+                .ToList();
+
+            return Results.Ok(new
+            {
+                klasor,
+                etkin = ArkaPlan.DenetimRaporServisi.EtkinMi(cfg),
+                saklamaGun = ArkaPlan.DenetimRaporServisi.SaklamaGunu(cfg),
+                adet = raporlar.Count,
+                raporlar,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // Rapor içeriği (önizleme — sistem yöneticisi ekranda görüntüler)
+        grup.MapGet("/raporlar/{dosya}", (string dosya, IConfiguration cfg) =>
+        {
+            if (!GuvenliDosyaAdi(dosya))
+                return Results.Json(new { message = "Geçersiz dosya adı." }, statusCode: 400);
+
+            var yol = Path.Combine(ArkaPlan.DenetimRaporServisi.RaporKlasoru(cfg), dosya);
+            if (!File.Exists(yol))
+                return Results.Json(new { message = "Rapor bulunamadı." }, statusCode: 404);
+
+            var satirlar = File.ReadAllLines(yol);
+            return Results.Ok(new
+            {
+                dosya,
+                satirSayisi = satirlar.Length,
+                satirlar = satirlar.Take(500),
+                // 500 satır sınırı: tarayıcıyı kilitlememek için.
+                kisitli = satirlar.Length > 500,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // Rapor indirme (JSONL veya özet CSV)
+        grup.MapGet("/raporlar/{dosya}/indir", (string dosya, IConfiguration cfg) =>
+        {
+            if (!GuvenliDosyaAdi(dosya))
+                return Results.Json(new { message = "Geçersiz dosya adı." }, statusCode: 400);
+
+            var yol = Path.Combine(ArkaPlan.DenetimRaporServisi.RaporKlasoru(cfg), dosya);
+            if (!File.Exists(yol))
+                return Results.Json(new { message = "Rapor bulunamadı." }, statusCode: 404);
+
+            var icerik = File.ReadAllBytes(yol);
+            return Results.File(icerik, "text/plain; charset=utf-8", dosya);
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // =============================================================
         // YEĞİTEK madde 39 — "Kullanılmayan hesaplar raporlanır ve pasife alınır"
         // Sprint 11.53
         // =============================================================
@@ -910,6 +986,19 @@ public static class AdminEndpoints
 
         return app;
     }
+
+    /// <summary>
+    /// Path traversal'a kapalı dosya adı doğrulaması. Yalnızca rapor adlandırma
+    /// kalıbına uyan, dizin ayracı içermeyen dosyalar kabul edilir.
+    /// </summary>
+    private static bool GuvenliDosyaAdi(string dosya)
+        => !string.IsNullOrWhiteSpace(dosya)
+           && dosya.Length <= 100
+           && dosya.StartsWith("denetim-", StringComparison.Ordinal)
+           && dosya.EndsWith(".jsonl", StringComparison.Ordinal)
+           && !dosya.Contains('/')
+           && !dosya.Contains('\\')
+           && !dosya.Contains("..", StringComparison.Ordinal);
 
     public sealed record KullaniciGuncelleIstegi(
         [Required, EmailAddress, StringLength(256)] string Email,

@@ -19,6 +19,7 @@ import { UserListPage } from "./pages/admin/UserListPage";
 import { UserEditPage } from "./pages/admin/UserEditPage";
 import { UserBulkPage } from "./pages/admin/UserBulkPage";
 import { OAuthAyarlaPage } from "./pages/admin/OAuthAyarlaPage";
+import { DenetimRaporlariPage } from "./pages/admin/DenetimRaporlariPage";
 import { AdminAuthGuard } from "./components/AdminAuthGuard";
 import { SifremiUnuttumPage } from "./pages/SifremiUnuttumPage";
 import { SifreSifirlaPage } from "./pages/SifreSifirlaPage";
@@ -105,6 +106,8 @@ export default function App() {
             <Route path="users/bulk" element={<UserBulkPage />} />
             <Route path="users/:id" element={<UserEditPage />} />
             <Route path="oauth" element={<OAuthAyarlaPage />} />
+            {/* Sprint 11.61 / YG-13,18 — denetim raporları */}
+            <Route path="raporlar" element={<DenetimRaporlariPage />} />
           </Route>
         </Route>
         <Route path="*" element={<SayfaBulunamadi />} />

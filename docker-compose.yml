@@ -53,6 +53,15 @@ services:
       PasifHesap__GunSayisi: ${PASIF_HESAP_GUN:-90}
       PasifHesap__KontrolGunu: ${PASIF_HESAP_KONTROL_GUN:-30}
 
+      # --- Denetim raporları (YEĞİTEK madde 13/18) ---
+      # Raporlar bu volume'a yazılır; konteyner yeniden oluşsa da korunur.
+      # Sistem yöneticisi Admin Panel > Denetim Raporları ekranından indirir.
+      DenetimRapor__Klasor: /var/lib/fikir/denetim-raporlari
+      DenetimRapor__SaklamaGun: ${DENETIM_SAKLAMA_GUN:-400}
+      DenetimRapor__Etkin: "true"
+      volumes:
+        - denetim-raporlari:/var/lib/fikir/denetim-raporlari
+
       # --- CAPTCHA (YEĞİTEK madde 2) ---
       # Yalnızca güvenlik testi sırasında true yapılır; test sonrası kaldırılmalı.
       Captcha__Disabled: ${CAPTCHA_DISABLED:-false}
@@ -144,6 +153,9 @@ services:
 volumes:
   mysql-data:
     # MySQL verisi. YEDEKLERİNİZDE MUTLAKA BU VOLUME + DataProtectionKeys tablosu olsun.
+  denetim-raporlari:
+    # YEĞİTEK madde 13/18 — günlük hareket kaydı raporları.
+    # Yedeklenmesi önerilir: denetim kaydı kaybolursa YG-13 ihlali doğar.
 
 networks:
   fikir-net:

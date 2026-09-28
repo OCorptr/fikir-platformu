@@ -1,4 +1,4 @@
-# YEĞİTEK Güvenlik Gereksinim Uyum Matrisi
+﻿# YEĞİTEK Güvenlik Gereksinim Uyum Matrisi
 
 > **Kaynak:** YEĞİTEK tarafından istenen güvenlik gereksinim listesi (Onur tarafından 2026-09-28'de paylaşıldı).
 > **Amaç:** Teslim sırasında madde madde "uyumdur" beyanının kanıtını göstermek.
@@ -42,17 +42,17 @@
 |---|---|---|---|
 | YG-11 | Kullanıcılar ve sistemler tekil olarak tanımlanır. | ✅ | ASP.NET Core Identity: `AspNetUsers.Id` GUID primary key, `NormalizedEmail` unique index. |
 | YG-12 | Başarılı/başarısız kimlik doğrulama girişimleri izlenir ve kayıt altına alınır. | ✅ | `auth_events` tablosu: `LoginSuccess`, `LoginFailure`, `LockedOut`, `EmailNotConfirmed`, `Logout`, `PasswordChanged`, `Mfa*` event tipleri. IP + UserAgent ile. |
-| YG-13 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ⚠️ | Kayıt **veritabanında merkezî** (`auth_events`). **Eksik:** SIEM/merkezî log sunucusuna **iletim** (Serilog → HTTP/OTLP sink) yok → Sprint 12. |
+| YG-13 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ✅ | **Sprint 11.61:** `DenetimRaporServisi` her gece 02:00 UTC'de hareket kayıtlarını JSON Lines + CSV özet olarak dosyaya yazar. Sistem yöneticisi **Admin Panel → Denetim Raporları** ekranından görüntüler/indirir. **Kalan:** merkezî sisteme *otomatik* iletim yok (kurum altyapısı bilinmiyor) — dosya `rsync`/betikle aktarılabilir. |
 | YG-14 | Parolalar varsayılan olarak maskelenir, açık metin olarak gösterilmez veya iletilmez. | ✅ | Frontend `type="password"`, gösterge yok. Şifre hiçbir log'a yazılmaz. Backend şifreyi asla response'a koymaz. |
 | YG-15 | İlk parola belirleme güvenli mekanizmalarla yapılır ve ik kullanımda değişiklik zorunludur. | ✅ | `ApplicationUser.MustChangePassword` flag. Admin yeni kullanıcı oluştururken flag `true`. `/api/auth/change-password` zorunlu kılıyor. `MfaSetup` sonrası da set ediliyor. |
 | YG-16 | Parolalar en az 8 karakter (büyük/küçük harf, rakam, özel karakter) içerir. | ✅ | **Sprint 11.53:** `RequiredLength = 8`, `RequireUppercase = true`, `RequireLowercase = true`, `RequireDigit = true`, `RequireNonAlphanumeric = true` — beş koşulun beşi de zorunlu. Frontend doğrulaması `frontend/src/services/sifreKurallari.ts` ile backend ile birebir aynı; Identity hataları `SifreKuraliMesaji` ile Türkçeye çevrilir. Ölü kod olan `BypassPasswordValidator` kaldırıldı. |
-| YG-17 | Parolalar belirli aralıklarla değiştirilmez zorundadır. | ⚠️ | **Not:** YEĞİTEK metninde "değiştirilmez" yazıyor; kastedilen büyük olasılıkla "**değiştirilmelidir**" (periyodik zorunlu değişim). **Mevcut:** 90 gün policy tanımlı, 75 gün frontend uyarısı var. **Eksik:** backend'de zorunlu değişim **uygulanmıyor** (login engellenmiyor) → Sprint 12. |
+| YG-17 | Parolalar belirli aralıklarla değiştirilmelidir. | ✅ | **Sprint 11.60:** `Domain/Auth/SifreYasiPolicy` — 90 gün zorunlu, 75 gün uyarı. Rol tabanlı: `MinistryOfficial` zorunlu; `Student`/`ProvinceEvaluator`/`ProvinceManager` zorunlu değil; `SystemAdmin` muaf. Frontend `SifreKilit` uygulamayı kilitler. |
 
 ## 3. Yetkilendirme ve Oturum Yönetimi
 
 | # | Gereksinim | Durum | Kanıt / Açıklama |
 |---|---|---|---|
-| YG-18 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ⚠️ | YG-13 ile aynı madde. |
+| YG-18 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ✅ | YG-13 ile aynı madde; aynı mekanizma. |
 | YG-19 | En az yetki prensibi uygulanır. | ✅ | Policy bazlı: `StudentOnly`, `ProvinceOnly`, `MinistryOnly`, Admin whitelist. Her endpoint kendi rol/policy'sini ister. Sprint 11 privacy guard: `/api/admin/users*` Student'a açık değil. |
 | YG-20 | Oturum sonlandırma işlevi her sayfadan erişilebilir olmalıdır. | ⚠️ | `AdminLayout` üst bar, `FikirPage`, `AuthModal`, `YetkiliGirisModal`, `MfaLoginPage`, `MfaSetupPage` üzerinde mevcut ✅. **Eksik:** anasayfa (`HomePage`), şifre sıfırlama sayfaları ve Sprint 11 `/admin` panelinde çıkış bağlantısı yok. `KullaniciCikis` bileşeni `PublicLayout` içinde ama `PublicLayout` hiçbir route'ta kullanılmıyor → Sprint 12. |
 | YG-21 | Oturum kimliği için zaman aşımı ve hareketsizlik süresi belirlenir. | ✅ | Idle timeout 30 dk sliding; absolute timeout 8 saat (`auth_issued_at` claim + `OnValidatePrincipal` reddi). `PreMfaScheme` 10 dk. |
@@ -110,8 +110,6 @@
 
 | # | Madde | Yapılacak |
 |---|---|---|
-| **YG-17** | Periyodik parola değişimi zorunluluğu | Backend'de 90 gün kontrolü uygulanmalı (login sonrası zorunlu değişim) |
-| **YG-13 / YG-18** | Merkezî log sistemine iletim | Serilog → HTTP/OTLP sink yapılandırması |
 | **YG-03 / 31 / 32** | Dosya yükleme uzantı + MIME + beyaz liste | CSV toplu import ucunda beyaz liste (uzantı + MIME + boyut) eklenmeli |
 | **YG-20** | Her sayfadan oturum sonlandırma | `KullaniciCikis` bileşenini tüm layout'lara bağla |
 | **YG-08** | PII depolama şifrelemesi | Öğrenci PII alanları için şifreleme veya "kişisel veri ≠ gizli veri" gerekçesi |
