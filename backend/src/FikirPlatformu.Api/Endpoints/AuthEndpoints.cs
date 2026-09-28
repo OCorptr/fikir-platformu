@@ -637,12 +637,20 @@ grup.MapPost("/logout", async (
             {
                 aktifSenderAdi = "resolve-fail: " + ex.GetType().Name;
             }
+
+            // Sprint 11.39: Subject encoding test — örnek Subject al ve
+            // EncodeSubjectRfc2047'in çıktısını göster.
+            var ornekSubject = "Geleceğin Fikri Platformu — Şifre Sıfırlama";
+            var encoded = FikirPlatformu.Infrastructure.Email.GmailApiEmailSender.EncodeSubjectRfc2047Public(ornekSubject);
+
             return Results.Ok(new
             {
                 mailTypeEnv = string.IsNullOrEmpty(mailType) ? "(env yok)" : mailType,
                 aktifSender = aktifSenderAdi,
                 senderAdres = yapilandirma["Mail:Gmail:SenderAddress"] ?? "(yok)",
                 clientIdVar = !string.IsNullOrEmpty(yapilandirma["Mail:Gmail:ClientId"]),
+                ornekSubjectRaw = ornekSubject,
+                ornekSubjectEncoded = encoded,
             });
         });
 

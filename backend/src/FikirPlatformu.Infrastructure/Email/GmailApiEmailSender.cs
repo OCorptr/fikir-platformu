@@ -251,6 +251,11 @@ public sealed class GmailApiEmailSender : IEmailSender
         if (asciiOnly) return subject;
         return "=?UTF-8?B?" + Convert.ToBase64String(bytes) + "?=";
     }
+
+    /// <summary>
+    /// Sprint 11.39 — Debug endpoint'in test edebilmesi için public wrapper.
+    /// </summary>
+    public static string EncodeSubjectRfc2047Public(string subject) => EncodeSubjectRfc2047(subject);
 }
 
 /// <summary>
