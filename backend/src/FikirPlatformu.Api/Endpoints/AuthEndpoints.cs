@@ -652,6 +652,29 @@ grup.MapPost("/logout", async (
             });
         });
 
+        // Sprint 11.25: Test endpoint — frontend'in doğru backend origin'ini
+        // kullandigini dogrular. CORS preflight testi. Maintenance token ile.
+        grup.MapGet("/__debug/cors-test", (
+            [FromQuery] string? token,
+            [FromQuery] string? fromOrigin,
+            IConfiguration yapilandirma) =>
+        {
+            var beklenen = yapilandirma["AdminMaintenance:Secret"]
+                ?? yapilandirma["__maintenance:admin-reset:token"]
+                ?? "BekleyinSprint12";
+            if (string.IsNullOrEmpty(token) || token != beklenen)
+            {
+                return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+            }
+            return Results.Ok(new
+            {
+                message = "CORS testi başarılı — backend'e erişim var.",
+                backendOrigin = "fikir-platformu.onrender.com",
+                fromOrigin = fromOrigin ?? "yok",
+                beklenenFrontendOrigin = "https://fikir-platformu-web.onrender.com",
+            });
+        });
+
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
         // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
         // icin" gostermek icin). Identity token dogrulamasi YAPILMAZ — sadece

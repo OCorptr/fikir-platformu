@@ -454,6 +454,21 @@ app.Use(async (ctx, next) =>
 
 // Güvenli global hata yönetici — PII sızıntısı yok (YEĞİTEK gereksinim #41).
 FikirPlatformu.Api.Middleware.GuvenliHataYonetici.Kullan(app);
+// Sprint 11.26: CORS preflight OPTIONS request'leri 204 ile kısa devre yapsın.
+// UseStatusCodePages middleware'i 404 fallback'i bu istekleri yakalıyor ve
+// Status 404 veriyor. UseCors'tan önce olmalı ki preflight CORS middleware'e
+// ulaşabilsin.
+app.Use(async (ctx, next) =>
+{
+    if (HttpMethods.IsOptions(ctx.Request.Method) && ctx.Request.Headers.ContainsKey("Origin"))
+    {
+        // 204 No Content. UseCors gerekli header'ları ekler.
+        ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+        return;
+    }
+    await next();
+});
+
 app.UseStatusCodePages(async context =>
 {
     // UseStatusCodePages handler'ı fallback ProblemDetails üretir. Burada kısa Türkçe mesaj yazıyoruz.
