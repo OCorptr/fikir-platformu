@@ -1,24 +1,34 @@
-// Admin Panel düzeni — Sprint 11 / Sprint 11.64 (yeniden tasarım).
+// Sistem Yönetimi paneli — Sprint 11.65.
 //
-// Görsel dil İl AR-GE / Bakanlık panellerinden alındı. Referans
-// (`styles.css` → "İl AR-GE Paneli") DEĞİŞTİRİLMEDİ; burada yalnızca
-// admin kapsamı için sakin bir türev kullanılıyor (bkz. admin-theme.css).
+// Onur geri bildirimi: bu panel İl AR-GE / Bakanlık panellerinin düzenini
+// kullanmıyordu. İki ayrı AdminLayout vardı:
+//   * components/AdminLayout.tsx  → sol kenar paneli + Çıkış Yap  (il/bakanlık)
+//   * pages/admin/AdminLayout.tsx → yalnızca üst menü şeridi        (admin)
+// Admin panelinde çıkış butonu YOKTU. Üstelik `KullaniciCikis`
+// bileşeni de `/admin` altında bilerek gizlenmişti ("AdminLayout kendi
+// menüsünü içeriyor" varsayımı yanlıştı). İki eksiğin birbirini
+// gizlemesi sonucu çıktı.
 //
-// Erişilebilirlik:
-//   - Aktif menü öğesi `aria-current="page"` ile işaretlenir (eskiden yalnızca
-//     bir CSS sınıfı ile renk değişiyordu — ekran okuyucu durumu bildirmiyordu).
-//   - Menü <nav> + aria-label taşır.
-//   - Atlama bağlantısı: içeriğe odaklanmak için "İçeriğe geç" bağlantısı.
-//   - Sayfa başlığı <h1>, her rota kendi başlığını getirir (tek H1 kuralı).
+// Düzeltme: bu dosya artık ortak `components/AdminLayout`'ı kullanıyor.
+// Böylece kenar paneli, kullanıcı kutusu ve Çıkış Yap düğmesi tüm
+// panellerde ortaktır.
 
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router-dom";
+import {
+  AdminLayout as PanelCerceve,
+  panelIkon,
+  type PanelMenuItem,
+} from "../../components/AdminLayout";
+import { me } from "../../services/auth";
+import type { MeSession } from "../../types";
 
-const MENU = [
-  { yol: "/admin/users", etiket: "Kullanıcılar" },
-  { yol: "/admin/users/bulk", etiket: "Toplu Ekleme" },
-  { yol: "/admin/raporlar", etiket: "Denetim Raporları" },
-  { yol: "/admin/oauth", etiket: "E-posta Ayarları" },
-] as const;
+const MENU: PanelMenuItem[] = [
+  { hedef: "/admin/users", baslik: "Kullanıcılar", svg: panelIkon.kullanici, aktifYol: "/admin/users" },
+  { hedef: "/admin/users/bulk", baslik: "Toplu Ekleme", svg: panelIkon.yukle },
+  { hedef: "/admin/raporlar", baslik: "Denetim Raporları", svg: panelIkon.rapor },
+  { hedef: "/admin/oauth", baslik: "E-posta Ayarları", svg: panelIkon.ePosta },
+];
 
 function baslikBul(yol: string): string {
   if (yol === "/admin" || yol === "/admin/users") return "Kullanıcı Yönetimi";
@@ -30,47 +40,36 @@ function baslikBul(yol: string): string {
   return "Sistem Yönetimi";
 }
 
-/** /admin/users/:id düzeni — liste menüsü de aktif sayılır ama başlık ayrı. */
-function menuAktifMi(aktifYol: string, hedef: string): boolean {
-  if (hedef === "/admin/users") {
-    return aktifYol === "/admin/users" || /^\/admin\/users\/[^/]+$/.test(aktifYol);
-  }
-  return aktifYol === hedef;
+/** SystemAdmin oturumunu bul — kenar paneli ad/rol göstermesi için. */
+function adminOturumuBul(oturumlar: MeSession[] | undefined): MeSession | null {
+  return oturumlar?.find((s) => s.roles?.includes("SystemAdmin")) ?? null;
 }
 
 export function AdminLayout() {
   const konum = useLocation();
-  const baslik = baslikBul(konum.pathname);
+  const [oturumlar, setOturumlar] = useState<MeSession[] | undefined>(undefined);
+
+  useEffect(() => {
+    let iptal = false;
+    me()
+      .then((cevap) => {
+        if (!iptal) setOturumlar(cevap.authenticated ? cevap.sessions : []);
+      })
+      .catch(() => {
+        if (!iptal) setOturumlar([]);
+      });
+    return () => {
+      iptal = true;
+    };
+  }, []);
 
   return (
-    <div className="adm-panel">
-      <header className="adm-panel-ust">
-        <div>
-          <Link to="/" className="adm-geri">
-            ← Ana Sayfa
-          </Link>
-          <h1 className="adm-ust-baslik">{baslik}</h1>
-          <nav className="adm-menu" aria-label="Sistem yönetimi">
-            {MENU.map((m) => (
-              <Link
-                key={m.yol}
-                to={m.yol}
-                aria-current={menuAktifMi(konum.pathname, m.yol) ? "page" : undefined}
-              >
-                {m.etiket}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      <a href="#adm-icerik" className="sr-only">
-        İçeriğe geç
-      </a>
-
-      <main id="adm-icerik" className="adm-sayfa">
-        <Outlet />
-      </main>
-    </div>
+    <PanelCerceve
+      ben={adminOturumuBul(oturumlar) ?? null}
+      baslik={baslikBul(konum.pathname)}
+      menu={MENU}
+    >
+      <Outlet />
+    </PanelCerceve>
   );
 }

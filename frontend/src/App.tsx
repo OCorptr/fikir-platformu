@@ -28,14 +28,17 @@ import { SifreDegistirPage } from "./pages/SifreDegistirPage";
 import { SifreKilit } from "./components/SifreKilit";
 
 /* her rotada govde sinifi degisir:
-   - /il-panel*, /bakanlik*  → sayfa-admin (sidebar + govde düzeni admin.css'ten)
-   - /fikir                  → sayfa-fikir (öğrenci fikir hero)
-   - diger                   → sayfa-index (anasayfa) */
+   - /il-panel*, /bakanlik*, /admin*  → sayfa-admin (kenar paneli + govde)
+   - /fikir                           → sayfa-fikir (öğrenci fikir hero)
+   - diger                            → sayfa-index (anasayfa) */
 function GovdeSinifi() {
   const yol = useLocation().pathname;
   useEffect(() => {
-    const adminMi = yol.startsWith("/il-panel") || yol.startsWith("/bakanlik");
-    if (adminMi) {
+    const panelMi =
+      yol.startsWith("/il-panel") ||
+      yol.startsWith("/bakanlik") ||
+      yol.startsWith("/admin");
+    if (panelMi) {
       document.body.className = "sayfa-admin";
     } else if (yol.startsWith("/fikir")) {
       document.body.className = "sayfa-fikir";
@@ -46,13 +49,15 @@ function GovdeSinifi() {
   return null;
 }
 
-/* UstBar (üst logo + slogan + MEB logosu) yalnizca anasayfa ve /fikir'de gösterilir.
-   Admin panellerde (.kenar + .ustbar zaten AdminLayout'ta var) UstBar
-   gereksiz yer kaplar ve logonun uzerinde panel durur. */
+/* Sprint 11.65 (Onur) — UstBar (üst logo + slogan + MEB logosu) YALNIZCA
+   anasayfa ve /fikir'de gösterilir. Diğer tüm sayfalarda gereksiz yer
+   kaplıyordu: /admin, /mfa-setup, /mfa-login, /sifre-degistir,
+   /sifremi-unuttum, /sifre-sifirla. Paneller zaten kendi kenar panelinde
+   marka bloğu taşıyor. */
 function KosulluUstBar() {
   const yol = useLocation().pathname;
-  const adminMi = yol.startsWith("/il-panel") || yol.startsWith("/bakanlik");
-  if (adminMi) return null;
+  const genelSayfaMi = yol === "/" || yol.startsWith("/fikir");
+  if (!genelSayfaMi) return null;
   return <UstBar />;
 }
 
@@ -104,7 +109,10 @@ export default function App() {
               </AdminAuthGuard>
             }
           >
-            <Route index element={<UserListPage />} />
+            {/* Sprint 11.65 (Onur): `/admin` ve `/admin/users` birebir aynı
+                ekranı gösteriyordu — iki rota aynı bileşene bağlıydı. Sahte
+                sayfa kaldırıldı, `/admin` artık tek yönlendirme noktası. */}
+            <Route index element={<Navigate to="/admin/users" replace />} />
             <Route path="users" element={<UserListPage />} />
             <Route path="users/bulk" element={<UserBulkPage />} />
             <Route path="users/:id" element={<UserEditPage />} />

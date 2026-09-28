@@ -8,14 +8,23 @@
 //
 // Davranış:
 //   - Oturum yoksa hiçbir şey render etmez.
-//   - `/admin/*` altında render edilmez (AdminLayout kendi çıkış menüsünü
-//     içeriyor; iki buton üst üste binmesin).
+//   - PANEL SAYFALARINDA render edilmez: /il-panel, /bakanlik ve /admin
+//     kendi sol kenar panellerinde "Çıkış Yap" düğmesi taşır. Sprint 11.65
+//     öncesinde bu bileşen `/admin` altında da gizleniyordu, ama admin'in
+//     kenar paneli yoktu — yani çıkış yolu hiçbir yerde görünmüyordu.
+//     Yanlış varsayım iki eksiği birbirine saklıyordu.
 //   - Hangi oturumun kapatılacağı, açık olan sayfanın yolundan çıkarılır
 //     (il-panel → province, bakanlik → ministry, fikir → student).
 
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { logout, me, contextFromPath, type LoginContext } from "../services/auth";
+
+const PANEL_ONEKI = ["/il-panel", "/bakanlik", "/admin"];
+
+function panelSayfasiMi(yol: string): boolean {
+  return PANEL_ONEKI.some((onek) => yol.startsWith(onek));
+}
 
 export function KullaniciCikis() {
   const [girisYapildi, setGirisYapildi] = useState(false);
@@ -32,8 +41,8 @@ export function KullaniciCikis() {
     return () => controller.abort();
   }, [konum.pathname]);
 
-  // Admin panelinde kendi çıkış menüsü var; çakışma olmasın.
-  if (konum.pathname.startsWith("/admin")) return null;
+  // Panel sayfalarının kendi kenar panelinde çıkış düğmesi var.
+  if (panelSayfasiMi(konum.pathname)) return null;
   if (!girisYapildi) return null;
 
   const handleClick = async () => {

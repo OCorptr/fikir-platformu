@@ -2,7 +2,7 @@
 // Admin teması (assets/css/admin-panel.css) kullanılır; anasayfa ve /fikir bu temayı kullanmaz.
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout, type LoginContext } from "../services/auth";
 import { rolAdi } from "../services/roles";
 import type { MeSession } from "../types";
@@ -13,13 +13,23 @@ interface AdminLayoutProps {
   aciklama?: string;
   donemRozet?: string;       // sağ üst dönem rozeti (opsiyonel)
   children: ReactNode;
+  /**
+   * Sprint 11.65 — Sol kenar paneli menüsü. Verilmezse rol bazlı varsayılan
+   * kullanılır (il paneli / bakanlık). /admin paneli kendi menüsünü geçer.
+   * Böylece TÜM paneller aynı kenar panelini, aynı çıkış yolunu paylaşır.
+   */
+  menu?: PanelMenuItem[];
+  /** Sprint 11.65 — çıkışta hangi oturumun kapatılacağı. Varsayılan: role bakılır. */
+  cikisBaglami?: LoginContext;
 }
 
-interface MenuItem {
+export interface PanelMenuItem {
   hedef: string;             // path
   baslik: string;             // .km-yazi
   svg: ReactNode;
   rozet?: { deger: string | number; renk?: "mavi" };
+  /** Bu öğenin aktif sayılması için eşleşecek yol kalıbı (tam yol yerine). */
+  aktifYol?: string;
 }
 
 const svgProps = {
@@ -58,9 +68,41 @@ const ikon = {
       <path d="M7 14l4-4 4 4 5-5" />
     </svg>
   ),
+  // Sprint 11.65 — sistem yönetimi menüsü ikonları.
+  kullanici: (
+    <svg {...svgProps}>
+      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  yukle: (
+    <svg {...svgProps}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <path d="M7 10l5 5 5-5" />
+      <path d="M12 15V3" />
+    </svg>
+  ),
+  kilit: (
+    <svg {...svgProps}>
+      <rect x="3" y="11" width="18" height="11" rx="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  ePosta: (
+    <svg {...svgProps}>
+      <rect x="2" y="4" width="20" height="16" rx="2" />
+      <path d="m22 7-10 6L2 7" />
+    </svg>
+  ),
 };
 
-export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: AdminLayoutProps) {
+export const panelIkon = ikon;
+
+export function AdminLayout({
+  ben, baslik, aciklama, donemRozet, children, menu, cikisBaglami,
+}: AdminLayoutProps) {
   const navigate = useNavigate();
   const yol = useLocation().pathname;
   const [kullaniciMenuAcik, setKullaniciMenuAcik] = useState(false);
@@ -92,19 +134,19 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
   const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
   const ministryMi = ben?.roles.includes("MinistryOfficial") ?? false;
 
-  const ilMenu: MenuItem[] = [
+  const ilMenu: PanelMenuItem[] = [
     { hedef: "/il-panel", baslik: "Gelen Fikirler", svg: ikon.gelen },
     { hedef: "/il-panel/rapor", baslik: "Raporlama", svg: ikon.rapor },
-    ...(managerMi ? [{ hedef: "/il-panel/adaylar", baslik: "Aday Havuzu", svg: ikon.aday } as MenuItem] : []),
-    ...(managerMi ? [{ hedef: "/il-panel/ekip", baslik: "Ekip", svg: ikon.aday } as MenuItem] : []),
+    ...(managerMi ? [{ hedef: "/il-panel/adaylar", baslik: "Aday Havuzu", svg: ikon.aday } as PanelMenuItem] : []),
+    ...(managerMi ? [{ hedef: "/il-panel/ekip", baslik: "Ekip", svg: ikon.aday } as PanelMenuItem] : []),
   ];
 
-  const ministryMenu: MenuItem[] = [
+  const ministryMenu: PanelMenuItem[] = [
     { hedef: "/bakanlik", baslik: "Aktif Adaylar", svg: ikon.aday },
     { hedef: "/bakanlik/donemler", baslik: "Dönemler", svg: ikon.donem },
   ];
 
-  const aktifMenu = ministryMi ? ministryMenu : ilMenu;
+  const aktifMenu = menu ?? (ministryMi ? ministryMenu : ilMenu);
   // Kenar-marka alt basligi: panel turu yerine kisinin adi yazsin.
   const baslikMetni = ben
     ? `${ben.firstName} ${ben.lastName}`
@@ -123,7 +165,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
     .join("") || "?";
 
   async function cikis() {
-    const ctx: LoginContext = ministryMi ? "ministry" : "province";
+    const ctx: LoginContext = cikisBaglami ?? (ministryMi ? "ministry" : "province");
     try {
       await logout(ctx);
     } catch { /* yoksay */ }
@@ -143,22 +185,23 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
         </div>
         <nav className="kenar-menu">
           {aktifMenu.map((m) => {
-            // Exact match: "/il-panel" ve "/il-panel/adaylar" ayni anda aktif olmasin
-            const aktif = yol === m.hedef;
+            // Sprint 11.65: `aktifYol` verilmişse tam yol yerine önek eşleşmesi
+            // yapılır. /admin/users/:id açıkken "Kullanıcılar" menüsü de
+            // aktif görünür (eskiden yalnızca birebir eşleşmede yanıyordu).
+            const aktif = m.aktifYol
+              ? yol === m.aktifYol || yol.startsWith(m.aktifYol)
+              : yol === m.hedef;
             return (
-              <button
+              <Link
                 key={m.hedef}
-                type="button"
+                to={m.hedef}
                 className={`km-oge ${aktif ? "aktif" : ""}`}
-                onClick={() => {
-                  window.history.pushState({}, "", m.hedef);
-                  window.dispatchEvent(new PopStateEvent("popstate"));
-                }}
+                aria-current={aktif ? "page" : undefined}
               >
                 {m.svg}
                 <span className="km-yazi">{m.baslik}</span>
                 {m.rozet && <span className={`rozet ${m.rozet.renk ?? ""}`}>{m.rozet.deger}</span>}
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -182,37 +225,7 @@ export function AdminLayout({ ben, baslik, aciklama, donemRozet, children }: Adm
             <h1>{baslik}</h1>
             {aciklama && <p>{aciklama}</p>}
           </div>
-          <div className="ustbar-sag">
-            {donemRozet && <span className="donem-rozeti">{donemRozet}</span>}
-            {ben && (
-              <div className="kullanici-menu" ref={kullaniciMenuRef}>
-                <button
-                  type="button"
-                  className="km-tetik"
-                  aria-haspopup="menu"
-                  aria-expanded={kullaniciMenuAcik}
-                  onClick={() => setKullaniciMenuAcik((a) => !a)}
-                  title="Hesap menüsü"
-                >
-                  <span className="k-avatar kucuk">{avatarBasHarf}</span>
-                  <span className="km-isim">{kullaniciAdi}</span>
-                  <span className="km-asagi" aria-hidden="true">▾</span>
-                </button>
-                {kullaniciMenuAcik && (
-                  <div className="km-dropdown" role="menu">
-                    <div className="km-dropdown-baslik">
-                      <b>{kullaniciBen}</b>
-                      <small>{rolEtiket}</small>
-                      <small className="km-eposta">{ben.email}</small>
-                    </div>
-                    <button type="button" className="km-dropdown-oge cikis" role="menuitem" onClick={cikis}>
-                      🚪 Çıkış Yap
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
+          {donemRozet && <span className="donem-rozeti">{donemRozet}</span>}
         </header>
         <main className="icerik">{children}</main>
       </div>

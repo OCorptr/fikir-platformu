@@ -336,6 +336,9 @@ export function UserListPage() {
           )}
         </div>
       ) : (
+        /* Sprint 11.65 — dar ekranda tablo yatay kaydırma kutusuna alınır
+           (admin-theme.css @media max-width:900px). Sütunları gizlemiyoruz:
+           sistem yöneticisi karşılaştırma için hepsine ihtiyaç duyuyor. */
         <div className="adm-yigin">
           {(Object.keys(GRUP_BASLIKLARI) as GrupKodu[]).map((kod) => {
             const liste = gruplar[kod];
@@ -592,6 +595,7 @@ function KullaniciListesi({
   }
 
   return (
+    <div className="adm-tablo-kaydir">
     <table className="adm-tablo">
       <caption className="sr-only">
         Kullanıcı listesi — düzenle, MFA sıfırla, şifre sıfırla ve sil işlemleri
@@ -621,6 +625,7 @@ function KullaniciListesi({
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 

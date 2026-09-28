@@ -52,9 +52,23 @@ body.sayfa-admin {
 /* ---------- Düzen ---------- */
 
 .adm-sayfa {
-  max-width: 78rem;
-  margin: 0 auto;
-  padding: 1.5rem clamp(1rem, 3vw, 2rem) 4rem;
+  /* Sprint 11.65 (Onur): "ekran genişliği uygun olmasına rağmen tablo
+     enini küçük tutmuşsun, tek satıra sığabilecek şeyler 2-3 satıra
+     taşıyor". Eski `max-width: 78rem` kaldırıldı — 1440p/4K ekranlarda
+     sağdaki 400-600px boşa gidiyordu. Artık içerik, kenar panelinin
+     (13rem) bıraktığı tüm genişliği kullanıyor. `.icerik` (admin-panel.css)
+     zaten yatay dolgu veriyor. */
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Yeni eklenen içerikler (kullanıcı oluşturma modalı, OAuth, tek metin
+   kutuları) okunabilirlik için genişlik sınırı istiyor. Onlar kendi
+   kapsayıcılarında daraltılır. */
+.adm-sayfa > .adm-h2 + .adm-aciklama,
+.adm-sayfa > .adm-aciklama {
+  max-width: 62ch;
 }
 
 .adm-baslik-sira {
@@ -90,71 +104,27 @@ body.sayfa-admin {
   line-height: 1.5;
 }
 
-/* ---------- Panel başlığı (AdminLayout) ---------- */
+/* ---------- Panel başlığı ----------
+   Sprint 11.65: kenar paneli `components/AdminLayout`'a taşındığı için
+   `.adm-panel-ust` / `.adm-menu` / `.adm-geri` / `.adm-ust-baslik` kaldırıldı.
+   Artık tüm paneller (il, bakanlık, sistem yönetimi) aynı kenar panelini ve
+   aynı "Çıkış Yap" yolunu kullanıyor. */
 
-.adm-panel-ust {
-  background: var(--yt-yuzey);
-  border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
-  position: sticky;
-  top: 0;
-  z-index: 40;
-}
-
-.adm-panel-ust > div {
-  max-width: 78rem;
-  margin: 0 auto;
-  padding: 0.9rem clamp(1rem, 3vw, 2rem);
-}
-
-.adm-geri {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--yt-soluk);
-  text-decoration: none;
-  border-radius: var(--yt-r-kucuk);
-  padding: 0.15rem 0.35rem;
-}
-
-.adm-geri:hover {
-  color: var(--yt-vurgu);
-  background: var(--yt-baslik-zemin);
-}
-
-.adm-ust-baslik {
-  font-family: "Baloo 2", "Nunito", sans-serif;
-  font-weight: 800;
-  font-size: 1.15rem;
-  color: var(--yt-lacivert);
-  margin: 0.15rem 0 0.6rem;
-}
-
-/* Gezinme — referanstaki .ust-nav-link diline yakın ama daha sakin. */
-.adm-menu {
+.adm-baslik-sira {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.35rem;
 }
 
-.adm-menu a {
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--yt-r-pil);
-  font-weight: 700;
-  font-size: 0.87rem;
-  text-decoration: none;
+.adm-h1 {
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
   color: var(--yt-lacivert);
-  background: var(--yt-baslik-zemin);
-  border: var(--yt-cizgi-kalinlik) solid transparent;
-  transition: background var(--yt-gecis), color var(--yt-gecis);
-}
-
-.adm-menu a:hover {
-  background: var(--yt-vurgu);
-  color: #fff;
-}
-
-.adm-menu a[aria-current="page"] {
-  border-color: var(--yt-lacivert);
-  background: var(--yt-yuzey);
+  margin: 0;
+  text-wrap: balance;
 }
 
 /* ---------- Kart ---------- */
@@ -778,5 +748,85 @@ input[aria-invalid="true"].adm-input {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================================
+   Duyarlı davranış — Sprint 11.65
+   ============================================================
+   Onur: "tüm tasarımlar tüm ekran çözünürlüklerinde aynı olmalı,
+   mobil uyumluluk olmalı... diğerlerinde olmayabilir."
+
+   Kenar paneli daralması `admin-panel.css` § 860px'de zaten var
+   (13rem → 4.2rem ikon rayı, `.govde` kenar boşluğu eşlenir).
+   Buradaki kurallar O NOKTADAN SONRA bozulmayı engelliyor:
+   kenar paneli daraldığında içerik alanı 4.2rem kazanır ama tablolar
+   ve form ızgaraları bunu takip etmeyince taşıyordu.
+   ============================================================ */
+
+/* Kenar paneli ikon rayına döndüğünde menü etiketleri gizlenir. Başlığın
+   yanındaki rozet/metin de yer kaplamasın. */
+@media (max-width: 860px) {
+  .adm-grup-baslik .adm-meta {
+    display: none;
+  }
+  .adm-sayfa {
+    padding-bottom: 2rem;
+  }
+  .adm-h2 {
+    font-size: 1.05rem;
+  }
+  .adm-izgara {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Tablet: kullanıcı tablosu 7 sütun. 860px altında kenar paneli daraldığı
+   için tablo yatay kaydırmaya alınır — sütunları gizlemek yerine kaydırma,
+   çünkü sistem yöneticisi tüm sütunları karşılaştırmak için kullanıyor. */
+@media (max-width: 900px) {
+  .adm-tablo-kaydir {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    /* Kenar paneli sabit olduğu için kaydırma çubuğu kenar boşluğuna
+       girmesin diye yatay dolgu. */
+    margin-inline: calc(1.9rem * -1);
+    padding-inline: 1.9rem;
+  }
+  .adm-tablo-kaydir .adm-tablo {
+    min-width: 46rem;
+  }
+  .adm-islem-grup {
+    justify-content: flex-start;
+  }
+}
+
+/* Mobil: filtre çubuğu tek sütuna iner, düğmeler tam genişlik. */
+@media (max-width: 560px) {
+  .adm-filtre-cubugu {
+    padding: 0.85rem;
+  }
+  .adm-filtre-cubugu .adm-alan {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .adm-btn-kuyruk .adm-btn,
+  .adm-modal-alt .adm-btn {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+  .adm-sifre-kutu code {
+    flex: 1 1 100%;
+  }
+  .adm-yigin {
+    gap: 0.6rem;
+  }
+  .adm-bos-durum {
+    padding: 1.5rem 1rem;
+  }
+  /* Kenar paneli 4.2rem'e düştüğü için .iceric dolgusu daraltılır. */
+  .adm-sayfa {
+    padding-left: 0;
+    padding-right: 0;
   }
 }
