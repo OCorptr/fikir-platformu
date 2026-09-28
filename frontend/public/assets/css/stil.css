@@ -861,8 +861,10 @@ html.yuksek-kontrast .erisilebilirlik-dugme { background: #000 !important; borde
 .ay-okul { font-size: 0.92rem; font-weight: 700; color: #8AA0B5; }
 .ay-tema { font-size: 0.88rem; font-weight: 800; color: #1E5C9E; margin-top: 0.25rem; }
 .ay-fikir-giris { font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic; font-size: 1rem; line-height: 1.5; color: #33475F; margin-top: 0.35rem; }
-html.koyu-mod .ozellik-arsiv { color: #fff; }
-html.koyu-mod .ozellik-arsiv svg { color: #fff; }
+html.koyu-mod button.ozellik.ozellik-arsiv,
+html.koyu-mod button.ozellik.ozellik-yetkili { color: #fff; }
+html.koyu-mod button.ozellik.ozellik-arsiv svg,
+html.koyu-mod button.ozellik.ozellik-yetkili svg { color: #fff; }
 html.koyu-mod .arsiv-icerik { background: #1B2C49; }
 html.koyu-mod .arsiv-icerik h2 { color: #DCE7F5; }
 html.koyu-mod .arsiv-alt { color: #93A9C4; }
@@ -1033,25 +1035,42 @@ html.koyu-mod .af-orta .af-soz { color: #E8EFF8; }
 
 /* MEB yazisini buyut */
 
-/* arsiv ogesi: ozellik seridinde dikkat cekici ama abartisiz altin rozet */
-.ozellik-arsiv {
+/* arsiv ogesi: ozellik seridinde dikkat cekici ama abartisiz altin rozet
+   Sprint 11.68: "Ayın Fikri Arşivi" ve "Yetkili Girişi" ayni rozet ailesine alindi.
+   Onur: "biri farklı biri farklı olmamalı - renkler, yazı türü, tıklama efektleri,
+   üstüne gelme dahil". Iki oge TEK kural setini paylasir; ayri kural yazilirsa
+   biri digerinden ayrilir. Yeni oge eklerken de bu blogu genisletin.
+
+   ONEMLI: secicilerde ".ozellik." oneki sart. src/styles.css SONRA yuklenir ve
+   `button.ozellik { border:0; padding:0; background:transparent }` (0,1,1)
+   rozeti ezer. `.ozellik.ozellik-arsiv` (0,2,0) onu yener. Iki class da zaten
+   HTML'de var; rozet her zaman iki class ile birlikte kullanilir. */
+button.ozellik.ozellik-arsiv,
+button.ozellik.ozellik-yetkili {
   cursor: pointer; gap: 0.35rem;
   background: linear-gradient(180deg, #FFFEF7 0%, #FFF3C9 100%);
   border: 0.16rem solid #EFD489; border-radius: 1.1rem;
   padding: 0.5rem 1.1rem 0.45rem; margin-top: -0.45rem;
   color: #7A5800;
   box-shadow: 0 0.45rem 1.1rem rgba(196, 148, 10, 0.2);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
-.ozellik-arsiv svg { color: #B8860B; width: 1.9rem; height: 1.9rem; }
-.ozellik-arsiv:hover { transform: translateY(-0.2rem); box-shadow: 0 0.7rem 1.5rem rgba(196, 148, 10, 0.32); }
-.ozellik-arsiv:focus-visible { outline: 0.22rem solid var(--sari); outline-offset: 0.2rem; }
-html.koyu-mod .ozellik-arsiv {
+button.ozellik.ozellik-arsiv svg,
+button.ozellik.ozellik-yetkili svg { color: #B8860B; width: 1.9rem; height: 1.9rem; }
+button.ozellik.ozellik-arsiv:hover,
+button.ozellik.ozellik-yetkili:hover { transform: translateY(-0.2rem); box-shadow: 0 0.7rem 1.5rem rgba(196, 148, 10, 0.32); border-color: #D9AE3A; }
+button.ozellik.ozellik-arsiv:active,
+button.ozellik.ozellik-yetkili:active { transform: translateY(0); box-shadow: 0 0.3rem 0.7rem rgba(196, 148, 10, 0.22); }
+button.ozellik.ozellik-arsiv:focus-visible,
+button.ozellik.ozellik-yetkili:focus-visible { outline: 0.22rem solid var(--sari); outline-offset: 0.2rem; }
+html.koyu-mod button.ozellik.ozellik-arsiv,
+html.koyu-mod button.ozellik.ozellik-yetkili {
   background: linear-gradient(180deg, #24365C 0%, #1B2C49 100%);
   border-color: #F6C453; color: #F6C453;
   box-shadow: 0 0.45rem 1.1rem rgba(0, 0, 0, 0.4);
 }
-html.koyu-mod .ozellik-arsiv svg { color: #F6C453; }
+html.koyu-mod button.ozellik.ozellik-arsiv svg,
+html.koyu-mod button.ozellik.ozellik-yetkili svg { color: #F6C453; }
 
 /* fikir.html: kompakt tema secim kutusu */
 .tema-secim {
