@@ -230,6 +230,21 @@ public static class AuthEndpoints
             };
             await http.SignInAsync(scheme, principal, props);
 
+            // Onur (S11.71): "Sistem Yöneticisi girebilmeliydi buraya da"
+            // (/il-panel). Giris tek cookie yaziyordu; sistem yoneticisi yalnizca
+            // MinistryScheme aliyordu, /me de cookie'a baktigi icin province
+            // session'i hic olusmuyordu. Sistem yoneticisi kuralin istisnasi
+            // oldugu icin diger panellerin cookie'leri de ayni oturumda yazilir.
+            // Diger roller icin davranis degismiyor.
+            if (roller.Contains("SystemAdmin"))
+            {
+                foreach (var digerScheme in new[] { "ProvinceScheme", IdentityConstants.ApplicationScheme })
+                {
+                    if (digerScheme == scheme) continue;
+                    await http.SignInAsync(digerScheme, principal, props);
+                }
+            }
+
             // MFA kontrolü (Sprint 9 güncellemesi):
             // Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) MFA zorunlu.
             // MFA setup veya MFA verify gerekiyorsa PreMfaScheme ile kısa süreli cookie yazılır
@@ -1030,9 +1045,19 @@ grup.MapPost("/logout", async (
     private static string? GirisIcinSchemeSec(IList<string> roller, string? istenenContext)
     {
         // Kullanıcının sahip olduğu context'ler
+        // Onur (S11.71): "il-panel sayfalarına ben giremiyorum neden? Sistem
+        // Yöneticisi girebilmeliydi buraya da."
+        // Sebep: SystemAdmin hiçbir context listesinde sayılmıyordu. Tohumlanan
+        // sistem yöneticisinin rolleri SystemAdmin + MinistryOfficial; bu yüzden
+        // yalnızca MinistryScheme cookie'si yazılıyordu. /me cookie'a baktığı
+        // için province session'ı hiç oluşmuyordu ve /il-panel (ProtectedRoute
+        // context="province") ana sayfaya atıyordu.
+        // Kural: "Sistem Yöneticisi dışında kimsede birden fazla panele erişemez"
+        // — sistem yöneticisi istisnadır, üç panele de erişir.
+        bool sistemAdmin = roller.Contains("SystemAdmin");
         bool ogrenci = roller.Contains("Student");
-        bool ilPersoneli = roller.Contains("ProvinceManager") || roller.Contains("ProvinceEvaluator");
-        bool bakanlik = roller.Contains("MinistryOfficial");
+        bool ilPersoneli = sistemAdmin || roller.Contains("ProvinceManager") || roller.Contains("ProvinceEvaluator");
+        bool bakanlik = sistemAdmin || roller.Contains("MinistryOfficial");
 
         // İstenen context açıkça verilmemişse, hesabın sahip olduğu ilk context'i kullan.
         if (string.IsNullOrEmpty(istenenContext))

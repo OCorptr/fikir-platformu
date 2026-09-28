@@ -324,12 +324,10 @@ body.sayfa-admin {
   margin-bottom: 1rem;
 }
 
-/* Rol çipleri: hücreye sığmazsa kendi içinde kayar, çubuk 2. satıra düşmez. */
+/* Rol çipleri: Onur (S11.71) "kaydırma çubuğu gereksiz, zaten sığıyor"
+   dedi — bu yüzden sarmalama kaldırıldı, çipler normal akışta. */
 .adm-filtre-cubugu .adm-alan-genis {
   min-width: 0;
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding-bottom: 0.1rem;
 }
 .adm-filtre-cubugu .adm-alan-genis > * {
   flex-wrap: nowrap;
@@ -901,6 +899,18 @@ main.sayfa-ortak {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1.1rem;
   align-items: start;
+}
+/* Onur (S11.71): "Toplu Kullanıcı Ekleme sayfasındaki tasarımı kontrol et ve
+   düzelt, sağa taşmış, sayfada görünmüyor."
+   Sebep: grid çocuklarının varsayılan `min-width: auto` değeri içerik genişliğine
+   kilitliyor; yarım genişlikteki kart tabloyu taşıyordu. Ayrıca tablo
+   hücreleri nowrap olduğu için "Açıklama" sütunu sonsuza dek uzuyordu. */
+.adm-ikili > * {
+  min-width: 0;
+  overflow-x: auto;
+}
+.adm-ikili .adm-tablo td {
+  white-space: normal;
 }
 @media (max-width: 900px) {
   .adm-ikili {

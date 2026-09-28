@@ -93,6 +93,28 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
 
   if (!acik) return null;
 
+  // Onur (S11.71): rol bazlı yönlendirme listesi. Sistem yöneticisi üç panelin
+  // tamamına erişir (kurum kuralı: istisnadır); diğer roller yalnızca kendi
+  // panelini görür. Böylece "bu panel için saçma" metinler ve yanlış yönlendirme
+  // düğmeleri ortadan kalkıyor.
+  const roller = meCevap?.roles ?? [];
+  const panelSecenekleri: { ad: string; yol: string }[] = [];
+  if (roller.includes("SystemAdmin")) {
+    panelSecenekleri.push({ ad: "Yönetici Paneli", yol: "/admin" });
+    if (roller.includes("MinistryOfficial"))
+      panelSecenekleri.push({ ad: "Bakanlık Paneli", yol: "/bakanlik" });
+    panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
+  } else if (roller.includes("MinistryOfficial")) {
+    panelSecenekleri.push({ ad: "Bakanlık Paneli", yol: "/bakanlik" });
+  } else if (
+    roller.includes("ProvinceManager") ||
+    roller.includes("ProvinceEvaluator")
+  ) {
+    panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
+  } else {
+    panelSecenekleri.push({ ad: "Fikirlerim", yol: "/fikir" });
+  }
+
   // /me cevabı bekleniyor — form banner gösterme (yanıltıcı olur).
   if (oturumYukleniyor && aktifOturum === null) {
     return (
@@ -229,29 +251,46 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
         </div>
 
         <h2 id="yg-baslik" className="yg-baslik">Yetkili Paneli</h2>
-        <p className="yg-alt">
-          İl AR-GE birimi veya bakanlık yetkilisiyseniz hesabınızla giriş yapın.
-        </p>
 
-        {/* Onur feedback: session varken form GÖSTERİLMEZ, sadece banner + butonlar.
-            Tekrar giriş için önce 'Çıkış yap' butonu zorunlu. */}
+        {/* Onur (S11.71): "İl AR-GE birimi veya bakanlık yetkilisiyseniz
+            hesabınızla giriş yapın. gibi yazılar bu panel için saçma, kaldır."
+            Alt metin artık yalnızca giriş YAPILMAMIŞ durumda anlamlı; oturum
+            açıkken panel listesi gösteriliyor ve o metin yanlış yönlendiriyordu. */}
+        {aktifOturum ? (
+          <p className="yg-alt">
+            Bu tarayıcıda açık oturumunuz var. Aşağıdan gitmek istediğiniz
+            panele geçebilirsiniz.
+          </p>
+        ) : (
+          <p className="yg-alt">
+            Size tanımlı panele erişmek için kurum hesabınızla giriş yapın.
+          </p>
+        )}
+
+        {/* Onur (S11.71): "her giriş yapan kişi rolüne göre yönlendirme
+            butonu olsun. Örneğin Sistem Yöneticisi için Yönetici Paneli,
+            Bakanlık Paneli, İl-AR-GE Paneli şeklinde 3 yönlendirme de olsun.
+            Diğerlerinde sadece rolüne göre."
+            Sistem yöneticisi istisnadır (kuralı kendisi koydu: "Sistem
+            Yöneticisi dışında kimsede 1'den fazla panele erişemez"), o yüzden
+            üçü de verilir. Diğer roller yalnızca kendi panelini görür. */}
         {aktifOturum ? (
           <div className="yg-aktif-oturum" role="status">
             <div className="yg-aktif-oturum__baslik">
               ✓ Bu tarayıcıda oturum açık
               <small>({oturumEtiketi})</small>
             </div>
-            <p className="yg-aktif-oturum__metin">
-              Zaten giriş yapmışsınız ({oturumEtiketi}). Panele gitmek için aşağıdaki butonu kullanın.
-              <br />
-              Farklı bir hesapla girmek için önce <b>Çıkış yap</b>'a basın.
-            </p>
             <div className="yg-aktif-oturum__butonlar">
-              <button type="button" className="yg-ikincil" onClick={paneleGit}>
-                {aktifOturum === "ministry" ? "Bakanlık paneline git →"
-                  : aktifOturum === "province" ? "İl paneline git →"
-                  : "Fikirlerime git →"}
-              </button>
+              {panelSecenekleri.map((p) => (
+                <button
+                  key={p.yol}
+                  type="button"
+                  className="yg-ikincil"
+                  onClick={() => fullPageNav(p.yol)}
+                >
+                  {p.ad} →
+                </button>
+              ))}
               <button type="button" className="yg-cikis" onClick={cikisYap} disabled={calisiyor}>
                 {calisiyor ? "Çıkış yapılıyor…" : "Çıkış yap"}
               </button>

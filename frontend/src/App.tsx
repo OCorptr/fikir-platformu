@@ -3,7 +3,6 @@ import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-route
 import { AccessibilityPanel } from "./components/AccessibilityPanel";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { UstBar } from "./components/UstBar";
-import { KullaniciCikis } from "./components/KullaniciCikis";
 import FikirPage from "./pages/FikirPage";
 import { SayfaBulunamadi, SunucuHatasi } from "./pages/HataSayfalari";
 import { HomePage } from "./pages/HomePage";
@@ -68,8 +67,11 @@ export default function App() {
       <GovdeSinifi />
       <KosulluUstBar />
       <AccessibilityPanel />
-      {/* Sprint 11.62 / YG-20 — çıkış butonu her sayfada erişilebilir. */}
-      <KullaniciCikis />
+      {/* Sprint 11.71 (Onur): "Çıkış yapmadan anasayfa açınca ekranın sağ
+          kısmında tüm sayfayı kaplayan saçma bir Çıkış butonu var, kaldır."
+          Sabit konumlu `.kullanici-cikis` düğmesi kaldırıldı. Çıkış yolu iki
+          yerde kalıyor ve ikisi de yerinde: (1) panel sayfalarının sol kenar
+          panelinde, (2) ana sayfadaki "Yetkili Girişi" penceresinde. */}
       <SifreKilit>
       <Routes>
         {/* Sprint 11.60 / YG-17 — 90 günlük parola süresi dolmuş personel
