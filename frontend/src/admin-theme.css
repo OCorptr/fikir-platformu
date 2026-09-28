@@ -259,16 +259,45 @@ body.sayfa-admin {
   gap: 0 1rem;
 }
 
+/* Sprint 11.66 (Onur): "2 satıra inmiş tek satır yap". Filtre çubuğu artık
+   CSS grid: arama / il / rol çipleri / sonuç sayısı. Çipler `nowrap` ile
+   kırılmaz; daralınca çubuk kendisi alt satıra iner (aşağıdaki breakpoint). */
 .adm-filtre-cubugu {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.4fr) minmax(9rem, 0.8fr) auto;
+  align-items: end;
+  gap: 0.6rem 0.9rem;
   background: var(--yt-yuzey);
   border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
   border-radius: var(--yt-r-kart);
   padding: 0.85rem 1rem;
   margin-bottom: 1rem;
+}
+
+/* Rol çipleri hücresi kendi satırında tam genişlikte kalır ki
+   "Sistem Yöneticisi / Bakanlık AR-GE Yetkilisi / İl AR-GE Yöneticisi /
+   İl AR-GE Değerlendiricisi" tek satıra sığsın. */
+.adm-filtre-cubugu .adm-alan-genis {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.adm-filtre-cubugu .adm-meta {
+  grid-column: -2 / -1;
+  justify-self: end;
+  margin: 0;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .adm-filtre-cubugu {
+    grid-template-columns: 1fr 1fr;
+  }
+  .adm-filtre-cubugu .adm-meta {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
 }
 
 .adm-filtre-cubugu .adm-alan {
@@ -510,7 +539,8 @@ summary.adm-grup-baslik:hover .adm-grup-ad {
   color: var(--yt-vurgu);
 }
 
-/* Rol çipleri (filtre çubuğu). */
+/* Rol çipleri (filtre çubuğu) — Sprint 11.66: tek satırda kalmaları için
+   sarmalama kapalı, taşarsa yatay kaydırılır. */
 .adm-cip-grup {
   display: flex;
   flex-wrap: wrap;
@@ -527,6 +557,7 @@ summary.adm-grup-baslik:hover .adm-grup-ad {
   background: var(--yt-yuzey);
   color: var(--yt-soluk);
   cursor: pointer;
+  white-space: nowrap;
   transition: background var(--yt-gecis), color var(--yt-gecis),
     border-color var(--yt-gecis);
 }

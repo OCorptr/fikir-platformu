@@ -1,0 +1,688 @@
+/* ============================================================
+   Anasayfa alt bölümü + iki modalın ortak teması
+   Sprint 11.66
+   ============================================================
+   Onur: "anasayfaki en alttaki Ayın Fikri Arşivi ile Yetkili Girişi
+   kısımları çok belirsiz daha düzgün bir tema uygula onlara ikiside aynı
+   temalı olsun."
+
+   Sorun: `.ozellik` düğmeleri yalnızca ikon + metin, `gap: 8rem` ile
+   ortalanmış. Kenarlık, dolgu, yüzey, odak halkası yok — tıklanabilir
+   oldukları belli olmuyor. Arşiv modalı altın/sarı temalı (`.ay-kart`
+   `#F2D488`), Yetkili Girişi modalı lacivert temalı (`.yg-*`): iki ayrı
+   görsel dil.
+
+   Burada ikisi de aynı dile getiriliyor: koyu lacivert başlık, turkuaz
+   vurgu, beyaz yüzey, tek tip kenar/padding/gölge. `public/assets/css`
+   içindeki eski kurallara dokunulmadı; bu dosya `styles.css` ve
+   `admin-theme.css` sonrasında yüklenir.
+   ============================================================ */
+
+:root {
+  --yt-lacivert: #16355c;
+  --yt-lacivert-koyu: #0f1b31;
+  --yt-vurgu: #1f9fa4;
+  --yt-govde: #33475f;
+  --yt-soluk: #647a92;
+  --yt-cizgi: #d8e3ee;
+  --yt-yuzey-2: #f7fafd;
+  --yt-baslik-zemin: #eef4fb;
+  --yt-sari: #f6a81c;
+  --yt-sari-koyu: #e8590c;
+  --yt-tehlike: #d8402f;
+  --yt-gecis: 160ms;
+  --yt-r-kart: 1.2rem;
+  --yt-r-kucuk: 0.6rem;
+  --yt-r-pil: 999px;
+  --yt-cizgi-kalinlik: 0.1rem;
+  --yt-geyik: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --yt-yuvarlak: "Baloo 2", "Nunito", sans-serif;
+}
+
+/* ============================================================
+   1) Anasayfa altındaki iki giriş noktası
+   ============================================================ */
+
+.ozellikler {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+  max-width: 52rem;
+  margin: 2.4rem auto 0;
+  padding: 0 1.5rem 2rem;
+}
+
+.ozellikler .ozellik {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 1.1rem 1.25rem;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  background: #fff;
+  color: var(--yt-lacivert);
+  font-family: var(--yt-yuvarlak);
+  font-weight: 800;
+  font-size: 1.05rem;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 0.5rem 1.4rem rgb(22 53 92 / 8%);
+  transition: transform var(--yt-gecis), box-shadow var(--yt-gecis),
+    border-color var(--yt-gecis);
+}
+
+.ozellikler .ozellik:hover {
+  transform: translateY(-2px);
+  border-color: var(--yt-vurgu);
+  box-shadow: 0 0.9rem 2rem rgb(22 53 92 / 14%);
+}
+
+.ozellikler .ozellik:active {
+  transform: translateY(0);
+}
+
+.ozellikler .ozellik:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 3px;
+}
+
+.ozellikler .ozellik svg {
+  flex: 0 0 auto;
+  width: 2.1rem;
+  height: 2.1rem;
+  color: var(--yt-vurgu);
+}
+
+/* İkon kutusu — iki düğmenin aynı görünmesi için ortak. */
+.ozellikler .ozellik > span.oz-ikon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: var(--yt-r-kucuk);
+  background: var(--yt-baslik-zemin);
+  color: var(--yt-lacivert);
+}
+
+.ozellikler .ozellik > span.oz-ikon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: currentColor;
+}
+
+.ozellikler .ozellik-arsiv > span.oz-ikon {
+  background: #fff4e0;
+  color: var(--yt-sari-koyu);
+}
+
+.ozellikler .ozellik-yetkili > span.oz-ikon {
+  background: #e2f5f5;
+  color: #0f7c80;
+}
+
+.ozellikler .ozellik-arsiv:hover > span.oz-ikon {
+  background: #ffe9c4;
+}
+
+.ozellikler .ozellik-yetkili:hover > span.oz-ikon {
+  background: #cbeeee;
+}
+
+/* Metin bloğu: başlık + tek satır açıklama. */
+.ozellikler .ozellik > span.oz-metin {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.ozellikler .ozellik > span.oz-metin small {
+  font-family: var(--yt-geyik);
+  font-weight: 600;
+  font-size: 0.83rem;
+  color: var(--yt-soluk);
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+/* Koyu mod. */
+html.koyu-mod .ozellikler .ozellik {
+  background: #1b2c49;
+  border-color: #2a3f63;
+  color: #dce7f5;
+  box-shadow: none;
+}
+
+html.koyu-mod .ozellikler .ozellik > span.oz-metin small {
+  color: #9fb4cc;
+}
+
+html.koyu-mod .ozellikler .ozellik-arsiv > span.oz-ikon {
+  background: #3a3320;
+  color: var(--yt-sari);
+}
+
+html.koyu-mod .ozellikler .ozellik-yetkili > span.oz-ikon {
+  background: #16343a;
+  color: #4fd0d4;
+}
+
+/* ============================================================
+   2) Arşiv modalı — Yetkili Girişi ile aynı yüzey
+   ============================================================ */
+
+.arsiv-modal,
+.yg-lightbox {
+  backdrop-filter: blur(3px);
+}
+
+.arsiv-icerik,
+.yg-kart {
+  background: #fff;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: 1.4rem;
+  box-shadow: 0 1.4rem 3.4rem rgb(8 20 45 / 28%);
+  padding: 1.8rem 1.9rem;
+  color: var(--yt-govde);
+}
+
+/* Ortak modal başlığı. */
+.arsiv-icerik h2,
+.yg-baslik {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: var(--yt-yuvarlak);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--yt-lacivert);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.arsiv-alt,
+.yg-alt {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--yt-soluk);
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+/* Ortak kapat düğmesi. */
+.arsiv-kapat,
+.yg-kapat {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: 50%;
+  background: #fff;
+  color: var(--yt-soluk);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--yt-gecis), color var(--yt-gecis),
+    border-color var(--yt-gecis);
+}
+
+.arsiv-kapat:hover,
+.yg-kapat:hover {
+  background: #fdecea;
+  border-color: #f3c3bd;
+  color: var(--yt-tehlike);
+}
+
+.arsiv-kapat:focus-visible,
+.yg-kapat:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+/* Ay kartları: altın ayrıcalığı korundu ama kenar/padding diğer
+   yüzeylerle aynı ölçüye (0.1rem kenar) getirildi. */
+.ay-kart {
+  border: var(--yt-cizgi-kalinlik) solid #f0dcae;
+  border-left: 0.4rem solid var(--yt-sari);
+  border-radius: var(--yt-r-kart);
+  background: #fffdf6;
+  padding: 1rem 1.2rem;
+}
+
+.ay-kart h3,
+.ay-kart b {
+  color: var(--yt-lacivert);
+  font-family: var(--yt-yuvarlak);
+  font-weight: 800;
+}
+
+/* ============================================================
+   3) Yetkili Girişi modalı — arşivle aynı yüzey
+   ============================================================ */
+
+.yg-kart {
+  width: min(30rem, 100%);
+  max-height: calc(100svh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.yg-kapat {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+}
+
+.yg-alan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.9rem;
+  color: var(--yt-lacivert);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.yg-alan input,
+.yg-alan select {
+  font: inherit;
+  font-size: 0.98rem;
+  padding: 0.6rem 0.75rem;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kucuk);
+  background: #fff;
+  color: var(--yt-lacivert);
+  transition: border-color var(--yt-gecis), box-shadow var(--yt-gecis);
+}
+
+.yg-alan input:focus-visible,
+.yg-alan select:focus-visible {
+  outline: none;
+  border-color: var(--yt-vurgu);
+  box-shadow: 0 0 0 3px rgb(31 159 164 / 22%);
+}
+
+.yg-giris,
+.yg-ikincil,
+.yg-cikis {
+  font: inherit;
+  font-weight: 800;
+  border-radius: var(--yt-r-pil);
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  border: var(--yt-cizgi-kalinlik) solid transparent;
+  transition: background var(--yt-gecis), border-color var(--yt-gecis),
+    color var(--yt-gecis);
+}
+
+.yg-giris {
+  background: var(--yt-vurgu);
+  color: #fff;
+}
+
+.yg-giris:hover:not(:disabled) {
+  background: #0f7c80;
+}
+
+.yg-ikincil {
+  background: var(--yt-yuzey-2);
+  border-color: var(--yt-cizgi);
+  color: var(--yt-lacivert);
+}
+
+.yg-ikincil:hover:not(:disabled) {
+  border-color: var(--yt-lacivert);
+}
+
+.yg-cikis {
+  background: transparent;
+  color: var(--yt-soluk);
+  font-weight: 700;
+  padding: 0.4rem 0.7rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.yg-cikis:hover:not(:disabled) {
+  color: var(--yt-tehlike);
+}
+
+.yg-giris:focus-visible,
+.yg-ikincil:focus-visible,
+.yg-cikis:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+.yg-giris:disabled,
+.yg-ikincil:disabled,
+.yg-cikis:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.yg-not {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  background: var(--yt-baslik-zemin);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kucuk);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.87rem;
+  line-height: 1.5;
+  color: var(--yt-govde);
+}
+
+/* ============================================================
+   4) Duyarlı davranış
+   ============================================================ */
+
+@media (max-width: 640px) {
+  .ozellikler {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    padding-inline: 1rem;
+  }
+  .ozellikler .ozellik {
+    padding: 0.9rem 1rem;
+    font-size: 1rem;
+  }
+  .arsiv-icerik,
+  .yg-kart {
+    padding: 1.4rem 1.2rem;
+    border-radius: var(--yt-r-kart);
+  }
+  .arsiv-icerik h2,
+  .yg-baslik {
+    font-size: 1.25rem;
+  }
+  .yg-giris,
+  .yg-ikincil {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ozellikler .ozellik {
+    transition: none;
+  }
+  .ozellikler .ozellik:hover {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   5) MFA sayfaları — Sprint 11.66
+   ============================================================
+   Onur: "https://.../mfa-login sayfasının teması da çirkin bunu da
+   düzelt." Önceden emoji başlıklar (🔐 📧 📱) + `durum-banner` +
+   `.btn-ana`/`.btn-link` karışımı kullanılıyordu; ana sayfa ve panellerin
+   diliyle uyumsuzdu. Artık aynı kart/etiket/rozet dili.
+   ============================================================ */
+
+.mfa-kart-sayfa {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1rem;
+}
+
+.mfa-kart {
+  width: min(26rem, 100%);
+  background: #fff;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: 1.4rem;
+  box-shadow: 0 1.2rem 3rem rgb(8 20 45 / 12%);
+  padding: 1.9rem 1.8rem;
+  text-align: center;
+  color: var(--yt-govde);
+}
+
+.mfa-kart-genis {
+  width: min(38rem, 100%);
+}
+
+.mfa-kart-ikon {
+  display: grid;
+  place-items: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  margin: 0 auto 0.9rem;
+  border-radius: var(--yt-r-kucuk);
+  background: #e2f5f5;
+  color: #0f7c80;
+}
+
+.mfa-kart-ikon svg {
+  width: 1.7rem;
+  height: 1.7rem;
+}
+
+.mfa-kart h1 {
+  font-family: var(--yt-yuvarlak);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--yt-lacivert);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.mfa-kart .mfa-aciklama {
+  display: block;
+  margin: 0.4rem 0 1.3rem;
+  color: var(--yt-soluk);
+  font-weight: 600;
+  font-size: 0.93rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+/* Yöntem seçim kartları. */
+.mfa-yontem-secim {
+  display: grid;
+  gap: 0.7rem;
+  text-align: left;
+  margin-bottom: 1.1rem;
+}
+
+.mfa-yontem-kart {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "ikon baslik" "ikon aciklama";
+  align-items: center;
+  gap: 0.15rem 0.85rem;
+  padding: 0.95rem 1.1rem;
+  background: var(--yt-yuzey-2);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--yt-gecis), background var(--yt-gecis);
+}
+
+.mfa-yontem-kart:hover {
+  border-color: var(--yt-vurgu);
+  background: #fff;
+}
+
+.mfa-yontem-kart:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+.mfa-yontem-kart.onerilen {
+  border-color: var(--yt-vurgu);
+}
+
+.mfa-yontem-ikon {
+  grid-area: ikon;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--yt-r-kucuk);
+  background: #fff;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  color: var(--yt-lacivert);
+}
+
+.mfa-yontem-ikon svg {
+  width: 1.3rem;
+  height: 1.3rem;
+}
+
+.mfa-yontem-baslik {
+  grid-area: baslik;
+  font-family: var(--yt-yuvarlak);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--yt-lacivert);
+}
+
+.mfa-yontem-aciklama {
+  grid-area: aciklama;
+  font-size: 0.86rem;
+  color: var(--yt-soluk);
+  line-height: 1.4;
+}
+
+.mfa-yontem-rozet {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.7rem;
+  background: #e2f5f5;
+  color: #0f7c80;
+  border-radius: var(--yt-r-pil);
+  padding: 0.1rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+/* Form. */
+.mfa-form {
+  display: grid;
+  gap: 0.7rem;
+  text-align: left;
+}
+
+.mfa-alan {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--yt-lacivert);
+}
+
+.mfa-alan input {
+  /* Kod kutusu: geniş, ortalanmış, sekmesiz yazım için. */
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.35em;
+  padding: 0.7rem 0.5rem;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kucuk);
+  background: #fff;
+  color: var(--yt-lacivert);
+}
+
+.mfa-alan input:focus-visible {
+  outline: none;
+  border-color: var(--yt-vurgu);
+  box-shadow: 0 0 0 3px rgb(31 159 164 / 22%);
+}
+
+.mfa-alan-hint {
+  font-size: 0.8rem;
+  color: var(--yt-soluk);
+  text-align: center;
+}
+
+.mfa-hata {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  background: #fdecea;
+  border: var(--yt-cizgi-kalinlik) solid #f3c3bd;
+  border-radius: var(--yt-r-kucuk);
+  padding: 0.6rem 0.75rem;
+  color: #a32a1c;
+  font-size: 0.87rem;
+  font-weight: 700;
+  text-align: left;
+}
+
+.mfa-ana,
+.mfa-ikincil {
+  font: inherit;
+  font-weight: 800;
+  border-radius: var(--yt-r-pil);
+  padding: 0.65rem 1.3rem;
+  cursor: pointer;
+  border: var(--yt-cizgi-kalinlik) solid transparent;
+  transition: background var(--yt-gecis), border-color var(--yt-gecis),
+    color var(--yt-gecis);
+}
+
+.mfa-ana {
+  background: var(--yt-vurgu);
+  color: #fff;
+}
+
+.mfa-ana:hover:not(:disabled) {
+  background: #0f7c80;
+}
+
+.mfa-ikincil {
+  background: transparent;
+  border-color: var(--yt-cizgi);
+  color: var(--yt-soluk);
+  font-weight: 700;
+}
+
+.mfa-ikincil:hover:not(:disabled) {
+  border-color: var(--yt-lacivert);
+  color: var(--yt-lacivert);
+}
+
+.mfa-ana:focus-visible,
+.mfa-ikincil:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+.mfa-ana:disabled,
+.mfa-ikincil:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.mfa-yontem-yardimci {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.1rem;
+  padding-top: 0.9rem;
+  border-top: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+}
+
+@media (max-width: 480px) {
+  .mfa-kart {
+    padding: 1.4rem 1.1rem;
+  }
+  .mfa-alan input {
+    font-size: 1.3rem;
+    letter-spacing: 0.25em;
+  }
+  .mfa-ana,
+  .mfa-ikincil {
+    width: 100%;
+  }
+}

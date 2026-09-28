@@ -13,7 +13,7 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiHttpError, backendApiUrl } from "../services/api";
+import { ApiHttpError } from "../services/api";
 import { mfaCancel, mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
 
 /* Deployment test (Sprint 10.7) */
@@ -40,8 +40,10 @@ export function MfaLoginPage() {
   const [emailGonderildi, setEmailGonderildi] = useState(false);
   const [gonderimHatasi, setGonderimHatasi] = useState<string | null>(null);
   const [cooldown, setCooldown] = useState(0); // saniye
-  const [providerReady, setProviderReady] = useState(true);
-  const [needsGmailOAuth, setNeedsGmailOAuth] = useState(false);
+  // Sprint 11.66: `providerReady` / `needsGmailOAuth` bayrakları bu ekranda
+  // artık KULLANILMIYOR. E-posta seçilince doğrudan kod ekranına geçilir;
+  // gönderilemezse gerçek hata gösterilir. Kurumsal Google OAuth yalnızca
+  // /admin/oauth (E-posta Ayarları) sayfasında yapılandırılır.
   // Onur feedback (Sprint 10.7+): initial state TRUE. /method cevabı gelene
   // kadar form render ETME — yoksa PreMfa cookie yokken bile sayfa açılıyor
   // (1-2 frame flash) ve Çıkış - Ana Sayfa sonrası URL'den yazınca yine
@@ -61,9 +63,6 @@ export function MfaLoginPage() {
       .then((m) => {
         const yontem: Method = m.method === "Email" ? "Email" : "Totp";
         setKayitliYontem(yontem);
-        // Onur feedback (Sprint 10.5): Gmail OAuth handshake durumunu da al.
-        if (typeof m.providerReady === "boolean") setProviderReady(m.providerReady);
-        if (typeof m.needsGmailOAuth === "boolean") setNeedsGmailOAuth(m.needsGmailOAuth);
         setYukleniyor(false);
       })
       .catch((e) => {
@@ -94,26 +93,27 @@ export function MfaLoginPage() {
   }, [cooldown]);
 
   function yontemSec(yontem: Method) {
-    // Onur feedback (Sprint 10.7+++): Email seçildi ve Gmail OAuth handshake
-    // tamamlanmamışsa → OTP göndermeden önce OAuth flow'a yönlendir.
-    // Backend `mfaSendEmailOtp` RefreshToken yoksa "Gmail OAuth yapılandırması
-    // eksik" hatası atar — bu durumda kullanıcıyı E-posta ekranına sokmak
-    // kötü UX, doğrudan handshake'e at.
-    if (yontem === "Email" && needsGmailOAuth) {
-      setHata(
-        "E-posta sağlayıcısı henüz bağlı değil. Gmail hesabınızla doğrulama için Google'a yönlendiriliyorsunuz…"
-      );
-      const returnTo = encodeURIComponent(window.location.pathname);
-      window.location.assign(backendApiUrl(`/api/auth/gmail-oauth/start?returnTo=${returnTo}`));
-      return;
-    }
+    // Sprint 11.66 (Onur): "E-posta seçeneğini seçince hem otp kurma çıkıyor
+    // önce sonra değişip otp kod yollama çıkıyor, burada bug var, direk doğru
+    // olan kısım çıkmalı."
+    //
+    // Sebep: burada `needsGmailOAuth` doğruysa kullanıcı Google OAuth
+    // ekranına atılıyordu. Sprint 11.51'de Gmail refresh token'ı
+    // "her kullanıcıya bağla" modelinden "sistem genelinde tek gönderici"
+    // modeline taşındı; DB tablosu düşürüldü, token artık ortam
+    // değişkeninden okunuyor. Bu ekrandaki OAuth yönlendirmesi o eski
+    // modelden kalma bir artık.
+    //
+    // Doğrusu: E-posta seçilince DOĞRUDAN kod ekranına geç, OTP'yi gönder.
+    // Gönderilemezse gerçek hata mesajı gösterilir — kullanıcı yanlış
+    // ekrana atılmaz. Kurumsal Google OAuth yalnızca /admin/oauth
+    // (E-posta Ayarları) sayfasında anlamlıdır.
     setSeciliYontem(yontem);
     setKod("");
     setHata(null);
     setGonderimHatasi(null);
     setEmailGonderildi(false);
     setEkran("giris");
-    // Email seçildiyse otomatik OTP gönder.
     if (yontem === "Email") {
       void emailOtpGonder(true);
     }
@@ -212,8 +212,12 @@ export function MfaLoginPage() {
   // kullanıcıya hiç gösterilmemeli (race condition + form flash yok).
   if (yukleniyor) {
     return (
-      <main className="sayfa-ortak mfa-login">
-        <p className="mfa-aciklama">Oturum kontrol ediliyor…</p>
+      <main className="sayfa-ortak mfa-kart-sayfa">
+        <div className="mfa-kart">
+          <p className="mfa-aciklama" role="status" aria-live="polite">
+            Oturum kontrol ediliyor…
+          </p>
+        </div>
       </main>
     );
   }
@@ -221,65 +225,86 @@ export function MfaLoginPage() {
   // === SEÇİM EKRANI ===
   if (ekran === "secim") {
     return (
-      <main className="sayfa-ortak mfa-login mfa-secim">
-        <h1>🔐 İki adımlı doğrulama</h1>
-        <p className="mfa-aciklama">
-          Girişinizi tamamlamak için bir doğrulama yöntemi seçin.
-        </p>
+      <main className="sayfa-ortak mfa-kart-sayfa">
+        <div className="mfa-kart mfa-kart-genis">
+          <span className="mfa-kart-ikon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>
+          </span>
+          <h1>İki adımlı doğrulama</h1>
+          <p className="mfa-aciklama">
+            Girişinizi tamamlamak için bir doğrulama yöntemi seçin.
+          </p>
 
-        <div className="mfa-yontem-secim">
+          <div className="mfa-yontem-secim">
+            <button
+              type="button"
+              className={`mfa-yontem-kart${kayitliYontem === "Totp" ? " onerilen" : ""}`}
+              onClick={() => yontemSec("Totp")}
+            >
+              <span className="mfa-yontem-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg>
+              </span>
+              <span className="mfa-yontem-baslik">Authenticator Uygulaması</span>
+              <span className="mfa-yontem-aciklama">
+                Telefonunuzdaki uygulamada görünen 6 haneli kodu girin.
+              </span>
+              {kayitliYontem === "Totp" && (
+                <span className="mfa-yontem-rozet">Kayıtlı yönteminiz</span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className={`mfa-yontem-kart${kayitliYontem === "Email" ? " onerilen" : ""}`}
+              onClick={() => yontemSec("Email")}
+            >
+              <span className="mfa-yontem-ikon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 6L2 7" /></svg>
+              </span>
+              <span className="mfa-yontem-baslik">E-posta kodu</span>
+              <span className="mfa-yontem-aciklama">
+                Adresinize 6 haneli kod gönderelim (5 dakika geçerli).
+              </span>
+              {kayitliYontem === "Email" && (
+                <span className="mfa-yontem-rozet">Kayıtlı yönteminiz</span>
+              )}
+            </button>
+          </div>
+
           <button
             type="button"
-            className={`mfa-yontem-kart${kayitliYontem === "Totp" ? " onerilen" : ""}`}
-            onClick={() => yontemSec("Totp")}
+            className="mfa-ikincil"
+            onClick={handleCikis}
+            disabled={calisiyor}
           >
-            <span className="mfa-yontem-ikon">📱</span>
-            <span className="mfa-yontem-baslik">Authenticator Uygulaması</span>
-            <span className="mfa-yontem-aciklama">
-              Telefonunuzdaki Google Authenticator / Microsoft Authenticator
-              uygulamasında görünen 6 haneli kodu girin.
-            </span>
-            {kayitliYontem === "Totp" && (
-              <span className="mfa-yontem-rozet">Önerilen</span>
-            )}
-          </button>
-
-          <button
-            type="button"
-            className={`mfa-yontem-kart${kayitliYontem === "Email" ? " onerilen" : ""}`}
-            onClick={() => yontemSec("Email")}
-          >
-            <span className="mfa-yontem-ikon">📧</span>
-            <span className="mfa-yontem-baslik">E-posta kodu</span>
-            <span className="mfa-yontem-aciklama">
-              E-posta adresinize 6 haneli bir kod gönderelim (5 dakika geçerli).
-            </span>
-            {kayitliYontem === "Email" && (
-              <span className="mfa-yontem-rozet">Önerilen</span>
-            )}
+            {calisiyor ? "Çıkış yapılıyor…" : "Çıkış — Ana Sayfa"}
           </button>
         </div>
-
-        <button type="button" className="btn-link" onClick={handleCikis} disabled={calisiyor}>
-          {calisiyor ? "Çıkış yapılıyor…" : "Çıkış - Ana Sayfa"}
-        </button>
       </main>
     );
   }
 
   // === GİRİŞ EKRANI ===
   const emailModu = seciliYontem === "Email";
-  const baslik = emailModu ? "📧 E-posta doğrulama" : "📱 Authenticator kodu";
+  const baslik = emailModu ? "E-posta doğrulama" : "Authenticator kodu";
   const aciklama = emailModu
     ? emailGonderildi
       ? "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin."
-      : "E-posta kodu hazırlanıyor…"
+      : "E-posta kodu gönderiliyor…"
     : "Authenticator uygulamanızda görünen 6 haneli kodu girin.";
 
   return (
-    <main className="sayfa-ortak mfa-login mfa-giris">
-      <h1>{baslik}</h1>
-      <p className="mfa-aciklama">{aciklama}</p>
+    <main className="sayfa-ortak mfa-kart-sayfa">
+      <div className="mfa-kart">
+        <span className="mfa-kart-ikon" aria-hidden="true">
+          {emailModu ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 6L2 7" /></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></svg>
+          )}
+        </span>
+        <h1>{baslik}</h1>
+        <p className="mfa-aciklama">{aciklama}</p>
 
       {/* Onur feedback (Sprint 10.4): Demo banner kaldırıldı.
           Kod otomatik input'a yazılsa bile kullanıcı "Demo" yazısını görmesin.
@@ -299,15 +324,21 @@ export function MfaLoginPage() {
             required
             value={kod}
             onChange={(e) => setKod(e.target.value.replace(/\D/g, ""))}
-            placeholder="123456"
+            placeholder="000000"
+            aria-describedby="mfa-kod-yardim"
           />
         </label>
+        <span id="mfa-kod-yardim" className="mfa-alan-hint">
+          {emailModu
+            ? "Kod gelmediyse spam klasörünü kontrol edin."
+            : "Kod uygulamada 30 saniyede bir yenilenir."}
+        </span>
         {hata && (
-          <div className="durum-banner durum-banner--hata" role="alert">
-            <span>{hata}</span>
+          <div className="mfa-hata" role="alert">
+            {hata}
           </div>
         )}
-        <button type="submit" className="btn-ana" disabled={calisiyor}>
+        <button type="submit" className="mfa-ana" disabled={calisiyor}>
           {calisiyor ? "Doğrulanıyor…" : "Giriş yap"}
         </button>
       </form>
@@ -316,27 +347,24 @@ export function MfaLoginPage() {
         {emailModu && (
           <button
             type="button"
-            className="btn-link"
+            className="mfa-ikincil"
             onClick={handleTekrarGonder}
             disabled={cooldown > 0 || calisiyor}
           >
             {cooldown > 0
-              ? `Kodu tekrar gönder (${cooldown}sn)`
+              ? `Kodu tekrar gönder (${cooldown} sn)`
               : "Kodu tekrar gönder"}
           </button>
         )}
         {gonderimHatasi && (
-          <div
-            className="durum-banner durum-banner--hata"
-            role="alert"
-            style={{ marginTop: "0.6rem" }}
-          >
-            <span>{gonderimHatasi}</span>
+          <div className="mfa-hata" role="alert">
+            {gonderimHatasi}
           </div>
         )}
-        <button type="button" className="btn-link" onClick={geriDonSecim}>
+        <button type="button" className="mfa-ikincil" onClick={geriDonSecim}>
           ← Yöntem seçimine dön
         </button>
+      </div>
       </div>
     </main>
   );

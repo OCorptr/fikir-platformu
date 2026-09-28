@@ -270,7 +270,7 @@ export function UserListPage() {
             ))}
           </select>
         </label>
-        <fieldset className="adm-alan" style={{ border: 0, padding: 0, margin: 0 }}>
+        <fieldset className="adm-alan adm-alan-genis" style={{ border: 0, padding: 0, margin: 0 }}>
           <legend className="adm-etiket">Rol</legend>
           <div className="adm-cip-grup" role="radiogroup" aria-label="Rol filtresi">
             <button
@@ -284,6 +284,12 @@ export function UserListPage() {
             >
               Tümü
             </button>
+            {/* Sprint 11.66 (Onur): "Tümü / Yönetim / Yönetim / İl AR-GE
+                Yöneticileri / İl AR-GE Değerlendiricileri" — Yönetim iki kez
+                görünüyordu. Sebep: GRUP_BASLIKLARI grup başlığını döndürüyor,
+                SystemAdmin ve MinistryOfficial ikisi de "Yonetim" grubuna
+                düşüyor. Artık ROL ADI gösteriliyor (rolAdi), hem tekrar yok
+                hem de tek rollü kuralıyla birebir örtüşüyor. */}
             {ALLOWED_ROLES.map((r) => (
               <button
                 key={r}
@@ -295,7 +301,7 @@ export function UserListPage() {
                 }
                 onClick={() => filterGuncelle("rol", r)}
               >
-                {GRUP_BASLIKLARI[grupBelirle([r])] ?? r}
+                {rolAdi(r)}
               </button>
             ))}
           </div>

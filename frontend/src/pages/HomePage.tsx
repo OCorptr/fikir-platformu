@@ -178,19 +178,38 @@ export function HomePage() {
           </div>
         )}
 
-        <div className="ozellikler" style={{ marginTop: "2.4rem", paddingBottom: "1.6rem" }}>
-          <button className="ozellik ozellik-arsiv" type="button" onClick={() => setArsivAcik(true)}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v4a5 5 0 0 1-10 0z" /><path d="M17 5h3a1 1 0 0 1 1 1c0 2-1.5 3.5-3.5 3.5" /><path d="M7 5H4a1 1 0 0 0-1 1c0 2 1.5 3.5 3.5 3.5" /></svg>
-            Ayın Fikri Arşivi
+        {/* Sprint 11.66 (Onur): "en alttaki Ayın Fikri Arşivi ile Yetkili
+            Girişi kısımları çok belirsiz, daha düzgün bir tema uygula,
+            ikisi de aynı temalı olsun." Önceden yalnızca ikon + metin,
+            8rem boşlukla ortalanmış iki düğmeydi; tıklanabilirlikleri
+            belli olmuyordu. Artık ikisi de aynı kart temasında
+            (anasayfa-tema.css). */}
+        <div className="ozellikler">
+          <button
+            className="ozellik ozellik-arsiv"
+            type="button"
+            onClick={() => setArsivAcik(true)}
+          >
+            <span className="oz-ikon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 21h8" /><path d="M12 17v4" /><path d="M7 4h10v4a5 5 0 0 1-10 0z" /><path d="M17 5h3a1 1 0 0 1 1 1c0 2-1.5 3.5-3.5 3.5" /><path d="M7 5H4a1 1 0 0 0-1 1c0 2 1.5 3.5 3.5 3.5" /></svg>
+            </span>
+            <span className="oz-metin">
+              Ayın Fikri Arşivi
+              <small>Önceki aylarda seçilen kazanan fikirler</small>
+            </span>
           </button>
           <button
             className="ozellik ozellik-yetkili"
             type="button"
             onClick={() => setYetkiliGirisAcik(true)}
-            aria-label="Yetkili Girişi — İl AR-GE ve Bakanlık hesapları için"
           >
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            Yetkili Girişi
+            <span className="oz-ikon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+            </span>
+            <span className="oz-metin">
+              Yetkili Girişi
+              <small>İl AR-GE, bakanlık ve sistem yönetimi hesapları</small>
+            </span>
           </button>
         </div>
 

@@ -100,6 +100,39 @@ const ikon = {
 
 export const panelIkon = ikon;
 
+/** Menü öğesini benzersiz tanımlayan anahtar (aktiflik karşılaştırması için). */
+function menuKimligi(m: PanelMenuItem): string {
+  return m.hedef;
+}
+
+/** Bir öğenin verilen yolla eşleşip eşleşmediği (birebir ya da önek). */
+function eslesiyorMu(yol: string, oge: PanelMenuItem): boolean {
+  if (oge.aktifYol) return yol === oge.hedef || yol === oge.aktifYol || yol.startsWith(`${oge.aktifYol}/`);
+  return yol === oge.hedef || yol.startsWith(`${oge.hedef}/`);
+}
+
+/**
+ * Sprint 11.66 — aktif menü öğesini belirler.
+ *
+ * Birden fazla öğe önek olarak eşleşebilir (`/admin/users` ve
+ * `/admin/users/bulk`, yol `/admin/users/bulk` ikisine de uyar). En UZUN
+ * eşleşme kazanır; hiçbiri eşleşmezse boş dönüş. Böylece aynı anda iki öğe
+ * birden vurgulanmaz.
+ */
+function aktifHedef(yol: string, menu: PanelMenuItem[]): string {
+  let kazanan = "";
+  let kazananUzunluk = -1;
+  for (const oge of menu) {
+    if (!eslesiyorMu(yol, oge)) continue;
+    const olasi = oge.aktifYol ?? oge.hedef;
+    if (olasi.length > kazananUzunluk) {
+      kazananUzunluk = olasi.length;
+      kazanan = menuKimligi(oge);
+    }
+  }
+  return kazanan;
+}
+
 export function AdminLayout({
   ben, baslik, aciklama, donemRozet, children, menu, cikisBaglami,
 }: AdminLayoutProps) {
@@ -147,6 +180,7 @@ export function AdminLayout({
   ];
 
   const aktifMenu = menu ?? (ministryMi ? ministryMenu : ilMenu);
+  const aktifOge = aktifHedef(yol, aktifMenu);
   // Kenar-marka alt basligi: panel turu yerine kisinin adi yazsin.
   const baslikMetni = ben
     ? `${ben.firstName} ${ben.lastName}`
@@ -185,12 +219,18 @@ export function AdminLayout({
         </div>
         <nav className="kenar-menu">
           {aktifMenu.map((m) => {
-            // Sprint 11.65: `aktifYol` verilmişse tam yol yerine önek eşleşmesi
-            // yapılır. /admin/users/:id açıkken "Kullanıcılar" menüsü de
-            // aktif görünür (eskiden yalnızca birebir eşleşmede yanıyordu).
-            const aktif = m.aktifYol
-              ? yol === m.aktifYol || yol.startsWith(m.aktifYol)
-              : yol === m.hedef;
+            // Sprint 11.66 (Onur): "sol taraftaki dikey panelde sadece seçili
+            // olan sarı renk olması lazım ama bazılarında başka seçim yapsan
+            // da aktif olmayan kısım yine sarı renkli kalıyor. Örnek
+            // Kullanıcılar."
+            //
+            // Sebep: her öğe kendi eşleşmesini ayrı hesaplıyordu. `/admin/users`
+            // öneki `/admin/users/bulk` yolunda da eşleştiği için hem
+            // "Kullanıcılar" hem "Toplu Ekleme" aynı anda sarı kalıyordu.
+            //
+            // Düzeltme: aktif olan EN UZUN eşleşen yol belirleyicidir. Alt
+            // öğe kazanırsa üst öğe pasif kalır.
+            const aktif = aktifOge === menuKimligi(m);
             return (
               <Link
                 key={m.hedef}
