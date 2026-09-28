@@ -238,7 +238,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
             </div>
           )}
 
-          <div className={`drawer-alan ${alanHatalari.email ? "hata" : ""}`}>
+          <div className={`adm-alan ${alanHatalari.email ? "hata" : ""}`}>
             <label htmlFor="dc-email">
               E-posta <span style={{ color: "#d8402f" }}>*</span>
             </label>
@@ -259,7 +259,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
-            <div className={`drawer-alan ${alanHatalari.firstName ? "hata" : ""}`}>
+            <div className={`adm-alan ${alanHatalari.firstName ? "hata" : ""}`}>
               <label htmlFor="dc-ad">
                 Ad <span style={{ color: "#d8402f" }}>*</span>
               </label>
@@ -275,7 +275,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
               />
               {alanHatalari.firstName && <span className="adm-alan-hata">{alanHatalari.firstName}</span>}
             </div>
-            <div className={`drawer-alan ${alanHatalari.lastName ? "hata" : ""}`}>
+            <div className={`adm-alan ${alanHatalari.lastName ? "hata" : ""}`}>
               <label htmlFor="dc-soyad">
                 Soyad <span style={{ color: "#d8402f" }}>*</span>
               </label>
@@ -293,7 +293,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
             </div>
           </div>
 
-          <div className={`drawer-alan ${alanHatalari.password ? "hata" : ""}`}>
+          <div className={`adm-alan ${alanHatalari.password ? "hata" : ""}`}>
             <label htmlFor="dc-sifre">
               Geçici Şifre <span style={{ color: "#d8402f" }}>*</span>
             </label>
@@ -345,7 +345,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
           )}
 
           {ilSecimiGerekli && (
-            <div className={`drawer-alan ${alanHatalari.ilKodu ? "hata" : ""}`}>
+            <div className={`adm-alan ${alanHatalari.ilKodu ? "hata" : ""}`}>
               <label htmlFor="dc-il">
                 İl <span style={{ color: "#d8402f" }}>*</span>
               </label>
