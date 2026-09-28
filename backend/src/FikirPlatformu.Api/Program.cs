@@ -218,6 +218,20 @@ var securePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy
 var corsOrigins = builder.Configuration
     .GetSection("Cors:AllowedOrigins")
     .Get<string[]>();
+
+// Sprint 11.28c: Env fallback — `Cors__AllowedOrigins__0` array binding
+// bazen bos donuyor (env format degisikligi). Manuel env tek deger oku.
+if (corsOrigins == null || corsOrigins.Length == 0)
+{
+    var tekDeger = builder.Configuration["Cors:AllowedOrigins:0"]
+        ?? builder.Configuration["Cors__AllowedOrigins__0"]
+        ?? builder.Configuration["Cors__AllowedOrigins"];
+    if (!string.IsNullOrWhiteSpace(tekDeger) && tekDeger != "value")
+    {
+        corsOrigins = tekDeger.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+}
+
 if (corsOrigins == null || corsOrigins.Length == 0)
 {
     corsOrigins = builder.Environment.IsDevelopment()
