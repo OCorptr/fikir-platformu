@@ -231,31 +231,36 @@ export function UserListPage() {
   }
 
   return (
-    <section className="admin-panel">
-      <div className="admin-panel-aksiyonlar admin-panel-aksiyonlar-sag">
-        <Link to="/admin/users/bulk" className="btn btn-ghost">
-          <span aria-hidden="true">📥</span> Toplu İçe Aktar
+    <div className="adm-sayfa">
+      <div className="adm-satir-ara" style={{ marginBottom: "1rem" }}>
+        <p className="adm-aciklama" style={{ margin: 0 }}>
+          Sistem yöneticileri, bakanlık yetkilileri ve il AR-GE personeli.
+        </p>
+        <Link to="/admin/users/bulk" className="adm-btn">
+          Toplu İçe Aktar
         </Link>
       </div>
 
-      <div className="admin-filtre-cubugu admin-filtre-cubugu-sticky">
-        <label className="admin-filtre-alan admin-filtre-arama">
-          <span className="admin-filtre-etiket">Ara</span>
+      <div className="adm-filtre-cubugu">
+        <label className="adm-alan">
+          <span className="adm-etiket">Ara</span>
           <input
+            className="adm-input"
             type="search"
+            name="q"
             inputMode="search"
-            placeholder="Ad, e-posta, il…"
+            placeholder="Ad, e-posta veya il…"
             value={searchTerm}
             onChange={(e) => filterGuncelle("q", e.target.value)}
-            aria-label="Kullanıcı ara"
           />
         </label>
-        <label className="admin-filtre-alan admin-filtre-il">
-          <span className="admin-filtre-etiket">İl</span>
+        <label className="adm-alan">
+          <span className="adm-etiket">İl</span>
           <select
+            className="adm-input"
+            name="il"
             value={ilFilter > 0 ? String(ilFilter) : ""}
             onChange={(e) => filterGuncelle("il", e.target.value)}
-            aria-label="İl filtresi"
           >
             <option value="">Tümü (81 il)</option>
             {iller.map((i) => (
@@ -265,59 +270,77 @@ export function UserListPage() {
             ))}
           </select>
         </label>
-        <div className="admin-filtre-chipleri" role="radiogroup" aria-label="Rol filtresi">
-          <button
-            type="button"
-            role="radio"
-            aria-checked={rolFilter === ""}
-            className={`chip ${rolFilter === "" ? "chip-active" : ""}`}
-            onClick={() => filterGuncelle("rol", "")}
-          >
-            Tümü
-          </button>
-          {ALLOWED_ROLES.map((r) => (
+        <fieldset className="adm-alan" style={{ border: 0, padding: 0, margin: 0 }}>
+          <legend className="adm-etiket">Rol</legend>
+          <div className="adm-cip-grup" role="radiogroup" aria-label="Rol filtresi">
             <button
-              key={r}
               type="button"
               role="radio"
-              aria-checked={rolFilter === r}
-              className={`chip ${rolFilter === r ? "chip-active" : ""}`}
-              onClick={() => filterGuncelle("rol", r)}
+              aria-checked={rolFilter === ""}
+              className={
+                rolFilter === "" ? "adm-cip adm-cip-aktif" : "adm-cip"
+              }
+              onClick={() => filterGuncelle("rol", "")}
             >
-              {GRUP_BASLIKLARI[grupBelirle([r])] ?? r}
+              Tümü
             </button>
-          ))}
-        </div>
-        <p className="admin-filtre-sonuc" aria-live="polite">
-          {calisiyor ? "Yükleniyor…" : `${filtrelenmis.length} / ${toplam} kullanıcı`}
+            {ALLOWED_ROLES.map((r) => (
+              <button
+                key={r}
+                type="button"
+                role="radio"
+                aria-checked={rolFilter === r}
+                className={
+                  rolFilter === r ? "adm-cip adm-cip-aktif" : "adm-cip"
+                }
+                onClick={() => filterGuncelle("rol", r)}
+              >
+                {GRUP_BASLIKLARI[grupBelirle([r])] ?? r}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+        <p className="adm-meta" aria-live="polite" style={{ margin: 0 }}>
+          {calisiyor
+            ? "Yükleniyor…"
+            : `${filtrelenmis.length} / ${toplam} kullanıcı`}
         </p>
       </div>
 
       {hata && (
-        <div className="admin-hata" role="alert" aria-live="assertive">
-          {hata}
+        <div className="adm-bildirim adm-bildirim-hata" role="alert">
+          <span aria-hidden="true">⚠</span>
+          <span>{hata}</span>
         </div>
       )}
 
       {!calisiyor && filtrelenmis.length === 0 ? (
-        <div className="admin-bos-durum">
-          <h3>Kullanıcı bulunamadı</h3>
+        <div className="adm-bos-durum">
+          <h3 className="adm-h2" style={{ marginTop: 0 }}>
+            Kullanıcı bulunamadı
+          </h3>
           <p>
             {searchTerm || rolFilter || ilFilter
-              ? "Filtreye uyan kullanıcı yok."
+              ? "Seçtiğiniz filtreye uyan kullanıcı yok."
               : "Henüz kullanıcı oluşturulmadı."}
           </p>
           {(searchTerm || rolFilter || ilFilter) && (
-            <button type="button" className="btn btn-ghost" onClick={filtreTemizle}>
-              Filtreleri temizle
+            <button
+              type="button"
+              className="adm-btn"
+              onClick={filtreTemizle}
+              style={{ marginTop: "0.6rem" }}
+            >
+              Filtreleri Temizle
             </button>
           )}
         </div>
       ) : (
-        <div className="admin-gruplar">
+        <div className="adm-yigin">
           {(Object.keys(GRUP_BASLIKLARI) as GrupKodu[]).map((kod) => {
             const liste = gruplar[kod];
-            if (rolFilter && grupBelirle([rolFilter]) !== kod && liste.length === 0) return null;
+            if (rolFilter && grupBelirle([rolFilter]) !== kod && liste.length === 0)
+              return null;
             return (
               <GrupKarti
                 key={kod}
@@ -345,7 +368,7 @@ export function UserListPage() {
         ilAdi={ekleIlAdi}
         basariliCallback={() => { void yukle(); }}
       />
-    </section>
+    </div>
   );
 }
 
@@ -375,46 +398,51 @@ function GrupKarti({
   const ilGruplu = kod === "IlManager" || kod === "IlEvaluator";
 
   return (
-    <section className="admin-grup" aria-labelledby={baslikId}>
-      <div className="admin-grup-baslik-satir">
+    <section className="adm-kart" aria-labelledby={baslikId}>
+      <div className="adm-grup-ust">
         <button
           type="button"
-          className="admin-grup-baslik"
+          className="adm-grup-baslik"
           aria-expanded={acik}
           aria-controls={govdeId}
           onClick={() => onToggle(!acik)}
         >
-          <span className="admin-grup-toggle" aria-hidden="true">{acik ? "▾" : "▸"}</span>
-          <span className="admin-grup-isim" id={baslikId}>{GRUP_BASLIKLARI[kod]}</span>
-          <span className="admin-grup-sayi" aria-label={`${kullanicilar.length} kullanıcı`}>
+          <span className="adm-grup-ok" aria-hidden="true">
+            {acik ? "▾" : "▸"}
+          </span>
+          <span className="adm-grup-ad" id={baslikId}>
+            {GRUP_BASLIKLARI[kod]}
+          </span>
+          <span
+            className="adm-rozet adm-rozet-mavi adm-rozet-sayi"
+            aria-label={`${kullanicilar.length} kullanıcı`}
+          >
             {kullanicilar.length}
           </span>
-          <span className="admin-grup-aciklama">{GRUP_ACIKLAMALARI[kod]}</span>
+          <span className="adm-meta">{GRUP_ACIKLAMALARI[kod]}</span>
         </button>
         <button
           type="button"
-          className="btn btn-primary btn-ekle"
+          className="adm-btn adm-btn-ana"
           aria-label={`${GRUP_BASLIKLARI[kod]} grubuna yeni kullanıcı ekle`}
-          onClick={(e) => {
-            e.stopPropagation();
-            onKullaniciEkle(kod);
-          }}
+          onClick={() => onKullaniciEkle(kod)}
         >
-          <span aria-hidden="true">＋</span> Yönetici Ekle
+          Yönetici Ekle
         </button>
       </div>
 
       {acik && (
-        <div id={govdeId} className="admin-grup-govde">
+        <div id={govdeId} style={{ marginTop: "0.9rem" }}>
           {kullanicilar.length === 0 ? (
-            <div className="admin-grup-bos">
-              <p>Bu grupta henüz kullanıcı yok.</p>
+            <div className="adm-bos-durum">
+              <p style={{ margin: 0 }}>Bu grupta henüz kullanıcı yok.</p>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="adm-btn adm-btn-ana"
                 onClick={() => onKullaniciEkle(kod)}
+                style={{ marginTop: "0.6rem" }}
               >
-                <span aria-hidden="true">＋</span> İlk Kullanıcıyı Ekle
+                İlk Kullanıcıyı Ekle
               </button>
             </div>
           ) : ilGruplu ? (
@@ -459,78 +487,91 @@ function IlAltGruplari({
   const { iller, atamamis } = ilGruplariHazirla(kullanicilar);
   if (iller.length === 0 && atamamis.length === 0) {
     return (
-      <div className="admin-grup-bos">
-        <p>Bu grupta henüz kullanıcı yok.</p>
+      <div className="adm-bos-durum">
+        <p style={{ margin: 0 }}>Bu grupta henüz kullanıcı yok.</p>
         <button
           type="button"
-          className="btn btn-primary"
+          className="adm-btn adm-btn-ana"
           onClick={() => onKullaniciEkle(grupKodu)}
+          style={{ marginTop: "0.6rem" }}
         >
-          <span aria-hidden="true">＋</span> İlk Kullanıcıyı Ekle
+          İlk Kullanıcıyı Ekle
         </button>
       </div>
     );
   }
   return (
-    <div className="admin-il-alt-gruplar">
+    <div className="adm-yigin">
       {iller.map((il) => (
-        <details key={il.ilKodu} className="admin-il-grup">
-          <summary>
-            <span className="admin-il-adi">{il.ilAdi}</span>
-            <span className="admin-il-plaka">{String(il.ilKodu).padStart(2, "0")}</span>
-            <span className="admin-il-sayi" aria-label={`${il.kullanicilar.length} kullanıcı`}>
+        <details key={il.ilKodu} className="adm-kart" style={{ marginBottom: 0 }}>
+          <summary className="adm-grup-baslik" style={{ listStyle: "none" }}>
+            <span className="adm-grup-ok" aria-hidden="true">
+              ▸
+            </span>
+            <span className="adm-grup-ad">{il.ilAdi}</span>
+            <span className="adm-rozet adm-rozet-sayi" aria-label={`${il.ilKodu} plaka kodu`}>
+              {String(il.ilKodu).padStart(2, "0")}
+            </span>
+            <span
+              className="adm-rozet adm-rozet-mavi"
+              aria-label={`${il.kullanicilar.length} kullanıcı`}
+            >
               {il.kullanicilar.length}
             </span>
+          </summary>
+          <div style={{ marginTop: "0.75rem" }}>
+            <KullaniciListesi
+              kullanicilar={il.kullanicilar}
+              onDuzenle={onDuzenle}
+              onSil={onSil}
+              onMfaReset={onMfaReset}
+              onSifreReset={onSifreReset}
+            />
             <button
               type="button"
-              className="btn btn-primary btn-ekle-sm"
+              className="adm-btn"
+              style={{ marginTop: "0.6rem" }}
               aria-label={`${il.ilAdi} için yeni kullanıcı ekle`}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onKullaniciEkle(grupKodu, il.ilKodu);
-              }}
+              onClick={() => onKullaniciEkle(grupKodu, il.ilKodu)}
             >
-              <span aria-hidden="true">＋</span> Ekle
+              Bu ile kullanıcı ekle
             </button>
-          </summary>
-          <KullaniciListesi
-            kullanicilar={il.kullanicilar}
-            onDuzenle={onDuzenle}
-            onSil={onSil}
-            onMfaReset={onMfaReset}
-            onSifreReset={onSifreReset}
-          />
+          </div>
         </details>
       ))}
       {atamamis.length > 0 && (
-        <details className="admin-il-grup" open>
-          <summary>
-            <span className="admin-il-adi">İl ataması yapılmamış</span>
-            <span className="admin-il-sayi">{atamamis.length}</span>
+        <details className="adm-kart" open style={{ marginBottom: 0 }}>
+          <summary className="adm-grup-baslik" style={{ listStyle: "none" }}>
+            <span className="adm-grup-ok" aria-hidden="true">
+              ▾
+            </span>
+            <span className="adm-grup-ad">İl ataması yapılmamış</span>
+            <span className="adm-rozet adm-rozet-sari">{atamamis.length}</span>
+          </summary>
+          <div style={{ marginTop: "0.75rem" }}>
+            <div className="adm-bildirim adm-bildirim-uyari" role="status">
+              <span aria-hidden="true">ℹ</span>
+              <span>
+                Bu kullanıcıların il ataması yok. İl atamak için
+                &quot;Düzenle&quot; ile il bilgisini girin.
+              </span>
+            </div>
+            <KullaniciListesi
+              kullanicilar={atamamis}
+              onDuzenle={onDuzenle}
+              onSil={onSil}
+              onMfaReset={onMfaReset}
+              onSifreReset={onSifreReset}
+            />
             <button
               type="button"
-              className="btn btn-primary btn-ekle-sm"
-              aria-label="İl ataması olmadan yeni kullanıcı ekle"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onKullaniciEkle(grupKodu);
-              }}
+              className="adm-btn"
+              style={{ marginTop: "0.6rem" }}
+              onClick={() => onKullaniciEkle(grupKodu)}
             >
-              <span aria-hidden="true">＋</span> Ekle
+              Bu gruba kullanıcı ekle
             </button>
-          </summary>
-          <KullaniciListesi
-            kullanicilar={atamamis}
-            onDuzenle={onDuzenle}
-            onSil={onSil}
-            onMfaReset={onMfaReset}
-            onSifreReset={onSifreReset}
-          />
-          <p className="admin-uyari">
-            Bu kullanıcıların il ataması yok. İl atamak için "Düzenle" ile province_id gerekli.
-          </p>
+          </div>
         </details>
       )}
     </div>
@@ -546,24 +587,44 @@ function KullaniciListesi({
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
 }) {
+  if (kullanicilar.length === 0) {
+    return null;
+  }
+
   return (
-    <ul className="admin-kullanici-listesi" role="list">
-      {kullanicilar.map((u) => (
-        <li key={u.id} className="admin-kullanici-kart">
-          <KullaniciKarti
+    <table className="adm-tablo">
+      <caption className="sr-only">
+        Kullanıcı listesi — düzenle, MFA sıfırla, şifre sıfırla ve sil işlemleri
+        için satır sonundaki düğmeleri kullanın.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Ad Soyad</th>
+          <th scope="col">E-posta</th>
+          <th scope="col">İl</th>
+          <th scope="col">Rol</th>
+          <th scope="col">Güvenlik</th>
+          <th scope="col">Son Giriş</th>
+          <th scope="col">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {kullanicilar.map((u) => (
+          <KullaniciSatiri
+            key={u.id}
             kullanici={u}
             onDuzenle={onDuzenle}
             onSil={onSil}
             onMfaReset={onMfaReset}
             onSifreReset={onSifreReset}
           />
-        </li>
-      ))}
-    </ul>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
-function KullaniciKarti({
+function KullaniciSatiri({
   kullanici: u,
   onDuzenle, onSil, onMfaReset, onSifreReset,
 }: {
@@ -573,66 +634,84 @@ function KullaniciKarti({
   onMfaReset: (u: AdminUserListItem) => void;
   onSifreReset: (u: AdminUserListItem) => void;
 }) {
-  const initial = `${u.firstName?.[0] ?? ""}${u.lastName?.[0] ?? ""}`.toUpperCase() || "?";
   const roller = u.roller ?? [];
   const il = ilBul(roller, u.ilAtamalari ?? []);
 
   return (
-    <article className="admin-kart admin-kart-compact" aria-label={`${u.firstName} ${u.lastName}`}>
-      <div className="admin-kart-avatar admin-kart-avatar-sm" aria-hidden="true">
-        {initial}
-      </div>
-      <div className="admin-kart-icerik">
-        <div className="admin-kart-baslik">
-          <span className="admin-kart-isim">
-            {u.firstName} {u.lastName}
-          </span>
-          <span className="admin-kart-eposta">{u.email}</span>
-          {il && (
-            <span className="badge badge-il">
-              <span aria-hidden="true">📍</span> {il.ilAdi}
-            </span>
-          )}
-        </div>
-        <div className="admin-kart-meta">
-          {roller.map((r) => (
-            <span key={r} className={`badge badge-rol badge-${r.toLowerCase()}`}>
-              {rolAdi(r)}
-            </span>
-          ))}
-          {u.twoFactorEnabled ? (
-            <span className="badge badge-ok" title="MFA etkin">MFA ✓</span>
+    <tr>
+      <th scope="row" style={{ fontWeight: 700, color: "var(--yt-lacivert)" }}>
+        {u.firstName} {u.lastName}
+      </th>
+      <td>
+        <span style={{ overflowWrap: "anywhere" }}>{u.email}</span>
+      </td>
+      <td>{il ? il.ilAdi : <span className="adm-meta">—</span>}</td>
+      <td>
+        <span className="adm-rozet-grup">
+          {roller.length === 0 ? (
+            <span className="adm-meta">rol yok</span>
           ) : (
-            <span className="badge badge-uyari" title="MFA kurulmamış">MFA yok</span>
+            roller.map((r) => (
+              <span key={r} className="adm-rozet adm-rozet-mavi">
+                {rolAdi(r)}
+              </span>
+            ))
           )}
-          {u.mustChangePassword && <span className="badge badge-uyari">Şifre değişmeli</span>}
-          {u.sonGirisAt && (
-            <span className="admin-kart-songiris">
-              Son giriş {new Date(u.sonGirisAt).toLocaleDateString("tr-TR")}
-            </span>
+        </span>
+      </td>
+      <td>
+        <span className="adm-rozet-grup">
+          {u.twoFactorEnabled ? (
+            <span className="adm-rozet adm-rozet-yesil">MFA etkin</span>
+          ) : (
+            <span className="adm-rozet adm-rozet-sari">MFA yok</span>
           )}
-        </div>
-      </div>
-      <div className="admin-kart-aksiyonlar">
-        <button type="button" className="btn-icon" onClick={() => onDuzenle(u)} aria-label={`${u.email} düzenle`} title="Düzenle">
-          <span aria-hidden="true">✎</span>
-        </button>
-        <button type="button" className="btn-icon" onClick={() => onMfaReset(u)} aria-label={`${u.email} MFA sıfırla`} title="MFA sıfırla">
-          <span aria-hidden="true">🔑</span>
-        </button>
-        <button type="button" className="btn-icon" onClick={() => onSifreReset(u)} aria-label={`${u.email} şifre sıfırla`} title="Şifre sıfırla">
-          <span aria-hidden="true">🔗</span>
-        </button>
-        <button
-          type="button"
-          className="btn-icon btn-icon-danger"
-          onClick={() => onSil(u)}
-          aria-label={`${u.email} sil`}
-          title="Sil"
-        >
-          <span aria-hidden="true">✕</span>
-        </button>
-      </div>
-    </article>
+          {u.mustChangePassword && (
+            <span className="adm-rozet adm-rozet-sari">Şifre değişmeli</span>
+          )}
+        </span>
+      </td>
+      <td className="adm-tablo-sayisal">
+        {u.sonGirisAt
+          ? new Date(u.sonGirisAt).toLocaleDateString("tr-TR")
+          : "—"}
+      </td>
+      <td>
+        <span className="adm-islem-grup">
+          <button
+            type="button"
+            className="adm-btn"
+            onClick={() => onDuzenle(u)}
+            aria-label={`${u.email} — düzenle`}
+          >
+            Düzenle
+          </button>
+          <button
+            type="button"
+            className="adm-btn"
+            onClick={() => onMfaReset(u)}
+            aria-label={`${u.email} — MFA sıfırla`}
+          >
+            MFA
+          </button>
+          <button
+            type="button"
+            className="adm-btn"
+            onClick={() => onSifreReset(u)}
+            aria-label={`${u.email} — şifre sıfırlama bağlantısı gönder`}
+          >
+            Şifre
+          </button>
+          <button
+            type="button"
+            className="adm-btn adm-btn-tehlike"
+            onClick={() => onSil(u)}
+            aria-label={`${u.email} — kullanıcıyı sil`}
+          >
+            Sil
+          </button>
+        </span>
+      </td>
+    </tr>
   );
 }

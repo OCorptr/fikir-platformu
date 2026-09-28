@@ -197,18 +197,18 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
 
   return (
     <div
-      className="drawer-overlay"
+      className="adm-modal-perde"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
       role="presentation"
     >
       <div
         ref={dialogRef}
-        className="drawer-panel"
+        className="adm-modal"
         role="dialog"
         aria-modal="true"
         aria-labelledby="drawer-baslik"
       >
-        <header className="drawer-header">
+        <header className="adm-modal-ust">
           <div>
             <h2 id="drawer-baslik">{baslikMetni}</h2>
             <small>
@@ -218,7 +218,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
           </div>
           <button
             type="button"
-            className="drawer-close"
+            className="adm-modal-kapat"
             onClick={onClose}
             aria-label="Kapat"
           >
@@ -226,14 +226,14 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
           </button>
         </header>
 
-        <form onSubmit={gonder} className="drawer-body" noValidate>
+        <form onSubmit={gonder} className="adm-modal-govde" noValidate>
           {genelHata && (
-            <div className="admin-hata" role="alert" aria-live="assertive" style={{ marginBottom: "1rem" }}>
+            <div className="adm-bildirim adm-bildirim-hata" role="alert" aria-live="assertive" style={{ marginBottom: "1rem" }}>
               {genelHata}
             </div>
           )}
           {sonOlusturulan && (
-            <div className="drawer-toast" role="status" aria-live="polite">
+            <div className="adm-bildirim adm-bildirim-basari" role="status" aria-live="polite">
               ✓ Kullanıcı oluşturuldu.
             </div>
           )}
@@ -255,7 +255,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
               aria-describedby={alanHatalari.email ? "dc-email-hata" : undefined}
               required
             />
-            {alanHatalari.email && <span id="dc-email-hata" className="drawer-alan-hata">{alanHatalari.email}</span>}
+            {alanHatalari.email && <span id="dc-email-hata" className="adm-alan-hata">{alanHatalari.email}</span>}
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
@@ -273,7 +273,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
                 aria-invalid={!!alanHatalari.firstName}
                 required
               />
-              {alanHatalari.firstName && <span className="drawer-alan-hata">{alanHatalari.firstName}</span>}
+              {alanHatalari.firstName && <span className="adm-alan-hata">{alanHatalari.firstName}</span>}
             </div>
             <div className={`drawer-alan ${alanHatalari.lastName ? "hata" : ""}`}>
               <label htmlFor="dc-soyad">
@@ -289,7 +289,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
                 aria-invalid={!!alanHatalari.lastName}
                 required
               />
-              {alanHatalari.lastName && <span className="drawer-alan-hata">{alanHatalari.lastName}</span>}
+              {alanHatalari.lastName && <span className="adm-alan-hata">{alanHatalari.lastName}</span>}
             </div>
           </div>
 
@@ -297,7 +297,7 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
             <label htmlFor="dc-sifre">
               Geçici Şifre <span style={{ color: "#d8402f" }}>*</span>
             </label>
-            <div className="drawer-oto-sifre">
+            <div className="adm-sifre-kutu">
               <code aria-live="polite">{sifreGizli ? "•".repeat(password.length) : password}</code>
               <button
                 type="button"
@@ -314,13 +314,13 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
                 🔄 Yeni Şifre
               </button>
             </div>
-            <span className="drawer-yardimci">
+            <span className="adm-etiket-hint">
               Şifreyi kullanıcıya iletin, ilk girişte değiştirmesi istenir.
             </span>
           </div>
 
           {(grupKodu === "Yonetim") && (
-            <div className="drawer-alan">
+            <div className="adm-alan">
               <label htmlFor="dc-rol">
                 Rol <span style={{ color: "#d8402f" }}>*</span>
               </label>
@@ -365,23 +365,23 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
                   </option>
                 ))}
               </select>
-              {alanHatalari.ilKodu && <span className="drawer-alan-hata">{alanHatalari.ilKodu}</span>}
+              {alanHatalari.ilKodu && <span className="adm-alan-hata">{alanHatalari.ilKodu}</span>}
             </div>
           )}
         </form>
 
-        <footer className="drawer-footer">
-          <button type="button" className="btn btn-ghost" onClick={onClose} disabled={calisiyor}>
+        <footer className="adm-modal-alt">
+          <button type="button" className="adm-btn adm-btn-sessiz" onClick={onClose} disabled={calisiyor}>
             İptal
           </button>
           {sonOlusturulan && (
-            <button type="button" className="btn btn-ghost" onClick={panoyaKopyala}>
+            <button type="button" className="adm-btn adm-btn-sessiz" onClick={panoyaKopyala}>
               📋 Şifreyi Kopyala
             </button>
           )}
           <button
             type="submit"
-            className="btn btn-primary"
+            className="adm-btn adm-btn-ana"
             onClick={(e) => gonder(e as unknown as React.FormEvent)}
             disabled={calisiyor}
           >

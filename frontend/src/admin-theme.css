@@ -492,6 +492,116 @@ body.sayfa-admin {
   gap: 0.5rem;
 }
 
+/* ---------- Grup başlığı (Yönetim / İl Yöneticisi / İl Değerlendirici) ---------- */
+
+.adm-grup-ust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adm-grup-baslik {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.7rem;
+  align-items: baseline;
+  flex: 1 1 20rem;
+  font: inherit;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: var(--yt-lacivert);
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.adm-grup-ok {
+  color: var(--yt-vurgu);
+  font-size: 1rem;
+  width: 1ch;
+}
+
+.adm-grup-ad {
+  text-wrap: balance;
+}
+
+.adm-rozet-sayi {
+  font-variant-numeric: tabular-nums;
+  min-width: 2.2rem;
+  justify-content: center;
+}
+
+summary.adm-grup-baslik:hover .adm-grup-ad {
+  color: var(--yt-vurgu);
+}
+
+/* Rol çipleri (filtre çubuğu). */
+.adm-cip-grup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.adm-cip {
+  font: inherit;
+  font-size: 0.83rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  border-radius: var(--yt-r-pil);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  background: var(--yt-yuzey);
+  color: var(--yt-soluk);
+  cursor: pointer;
+  transition: background var(--yt-gecis), color var(--yt-gecis),
+    border-color var(--yt-gecis);
+}
+
+.adm-cip:hover {
+  border-color: var(--yt-lacivert);
+  color: var(--yt-lacivert);
+}
+
+.adm-cip-aktif {
+  background: var(--yt-vurgu);
+  border-color: var(--yt-vurgu);
+  color: #fff;
+}
+
+.adm-cip-aktif:hover {
+  color: #fff;
+  border-color: var(--yt-vurgu);
+}
+
+.adm-cip:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+/* ---------- Tablo hücre grupları ---------- */
+
+.adm-rozet-grup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.adm-islem-grup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  justify-content: flex-end;
+}
+
+.adm-islem-grup .adm-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 .adm-satir-ara {
   display: flex;
   flex-wrap: wrap;
@@ -504,6 +614,150 @@ body.sayfa-admin {
   color: var(--yt-soluk);
   font-size: 0.85rem;
   line-height: 1.5;
+}
+
+/* ---------- Modal (kullanıcı oluşturma) ---------- */
+
+.adm-modal-perde {
+  position: fixed;
+  inset: 0;
+  background: rgb(22 53 92 / 45%);
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  z-index: 1000;
+  /* Vercel kuralı: modalda kaydırma zinciri dışarı sızmasın. */
+  overscroll-behavior: contain;
+}
+
+.adm-modal {
+  background: var(--yt-yuzey);
+  border-radius: var(--yt-r-kart);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  width: min(40rem, 100%);
+  max-height: calc(100svh - 2rem);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 12px 32px rgb(22 53 92 / 22%);
+}
+
+.adm-modal-ust {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.1rem 0.75rem;
+  border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+}
+
+.adm-modal-ust h2 {
+  margin: 0;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--yt-lacivert);
+  text-wrap: balance;
+}
+
+.adm-modal-ust small {
+  display: block;
+  color: var(--yt-soluk);
+  font-size: 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.adm-modal-kapat {
+  margin-left: auto;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--yt-r-kucuk);
+  border: var(--yt-cizgi-kalinlik) solid transparent;
+  background: transparent;
+  color: var(--yt-soluk);
+  cursor: pointer;
+  transition: background var(--yt-gecis), color var(--yt-gecis);
+}
+
+.adm-modal-kapat:hover {
+  background: var(--yt-baslik-zemin);
+  color: var(--yt-lacivert);
+}
+
+.adm-modal-kapat:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+.adm-modal-govde {
+  padding: 1rem 1.1rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+}
+
+.adm-modal-alt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.75rem 1.1rem 1rem;
+  border-top: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+}
+
+.adm-alan-hata {
+  display: block;
+  color: var(--yt-tehlike);
+  font-size: 0.83rem;
+  font-weight: 700;
+  margin-top: 0.25rem;
+}
+
+.adm-modal-govde .adm-alan-hata + input,
+input[aria-invalid="true"].adm-input {
+  border-color: var(--yt-tehlike);
+  background: var(--yt-tehlike-zemin);
+}
+
+.adm-sifre-kutu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  background: var(--yt-yuzey-2);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kucuk);
+  padding: 0.4rem 0.5rem;
+  margin-top: 0.3rem;
+}
+
+.adm-sifre-kutu code {
+  flex: 1 1 10rem;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+  color: var(--yt-lacivert);
+}
+
+.adm-sifre-kutu button {
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--yt-r-pil);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  background: var(--yt-yuzey);
+  color: var(--yt-soluk);
+  cursor: pointer;
+}
+
+.adm-sifre-kutu button:hover {
+  border-color: var(--yt-lacivert);
+  color: var(--yt-lacivert);
+}
+
+.adm-sifre-kutu button:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
 }
 
 .adm-yukleniyor {
