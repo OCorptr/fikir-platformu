@@ -696,6 +696,55 @@ app.MapPost("/api/__maintenance/admin-reset", async (
     });
 }).AllowAnonymous();
 
+// Sprint 11.41: Hesap lockout kaldır (Identity AccessFailedCount-based lock).
+// Onur çok hatalı login denemesinden sonra hesabı kilitlenmiş olabilir.
+// Kullanım: POST /api/__maintenance/unlock-account?token=SECRET&email=user@x.com
+app.MapPost("/api/__maintenance/unlock-account", async (
+    HttpContext http,
+    IConfiguration yapilandirma,
+    UserManager<ApplicationUser> userManager) =>
+{
+    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
+    if (string.IsNullOrWhiteSpace(beklenenSecret))
+    {
+        beklenenSecret = "BekleyinSprint12";
+    }
+    var urlSecret = http.Request.Query["token"].ToString();
+    if (urlSecret != beklenenSecret)
+    {
+        return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
+    }
+
+    var email = http.Request.Query["email"].ToString();
+    if (string.IsNullOrWhiteSpace(email))
+    {
+        return Results.Json(new { message = "email query param gerekli." }, statusCode: 400);
+    }
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user is null)
+    {
+        return Results.Json(new { message = $"Kullanıcı bulunamadı: {email}" }, statusCode: 404);
+    }
+
+    var oncekiBasarisizDeneme = user.AccessFailedCount;
+    var oncekiLockoutEnd = user.LockoutEnd;
+
+    // AccessFailedCount sıfırla + LockoutEnd temizle.
+    await userManager.ResetAccessFailedCountAsync(user);
+    await userManager.SetLockoutEndDateAsync(user, null);
+
+    return Results.Ok(new
+    {
+        message = "Hesap kilidi kaldırıldı.",
+        email = user.Email,
+        oncekiBasarisizDeneme,
+        oncekiLockoutEnd,
+        yeniAccessFailedCount = user.AccessFailedCount,
+        yeniLockoutEnd = user.LockoutEnd,
+    });
+}).AllowAnonymous();
+
 // rolleri bir kez olustur (idempotent)
 using (var kapsam = app.Services.CreateScope())
 {
