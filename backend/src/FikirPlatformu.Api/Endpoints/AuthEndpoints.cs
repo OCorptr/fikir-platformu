@@ -131,12 +131,18 @@ public static class AuthEndpoints
             [FromQuery] string? role,
             SignInManager<ApplicationUser> girisYoneticisi,
             FikirPlatformuDbContext veritabani,
-            HttpContext http) =>
+            HttpContext http,
+            ILogger<Program> logger) =>
         // Rate limit: 5 deneme / dakika / IP (plan §5.1 — login brute-force koruması).
         {
+            // Sprint 11.27: Login debug log — Onur 'Giriş başarısız' alıyor, detay gerekli.
+            logger.LogInformation("[LOGIN] DENEME: Email={Email}, CaptchaIdLen={CaptchaIdLen}, CaptchaAnsLen={CaptchaAnsLen}",
+                istek.Email, istek.CaptchaId?.Length ?? 0, istek.CaptchaAnswer?.Length ?? 0);
             // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
             if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
             {
+                logger.LogWarning("[LOGIN] CAPTCHA basarisiz: Email={Email}, CaptchaId={CaptchaId}",
+                    istek.Email, istek.CaptchaId);
                 return Results.Json(new { message = "CAPTCHA doğrulaması başarısız. Lütfen yeni bir soru çözün." }, statusCode: 400);
             }
 
