@@ -37,6 +37,11 @@
 
 ### 4) Refresh token al (tek seferlik)
 
+> ⚠️ **Sprint 11.36+ bu adım env'e yazılmıyor.** Callback artık refresh token'ı
+> PBKDF2 ile şifreleyip `gmail_refresh_tokens` tablosuna (Id=1) kaydediyor.
+> Aşağıdaki adım yalnızca token expire olduysa veya debug için ham JSON'u
+> görmek istiyorsan gerekli.
+
 Browser'da bu URL'ye git:
 
 ```
@@ -67,11 +72,18 @@ https://fikir-platformu.onrender.com/api/auth/gmail-oauth/start
 | `Mail__Gmail__ClientId` | `xxx.apps.googleusercontent.com` (Adım 3'teki) |
 | `Mail__Gmail__ClientSecret` | `GOCSPX-xxx` (Adım 3'teki) |
 | `Mail__Gmail__RedirectUri` | `https://fikir-platformu.onrender.com/api/auth/gmail-oauth/callback` |
-| `Mail__Gmail__RefreshToken` | `1//0eXxx...` (Adım 4'teki) |
-| `Mail__Gmail__SenderAddress` | `onur35bilisim@gmail.com` |
+| `Mail__Gmail__SenderAddress` | `fikir.platformu.iletisim@gmail.com` |
 | `Mail__Gmail__SenderName` | `Geleceğin Fikri` |
+| ~~`Mail__Gmail__RefreshToken`~~ | **Artık gerekmiyor** — DB'de (`gmail_refresh_tokens`) saklanıyor |
 
 **Save** → Render otomatik redeploy yapar (~3dk).
+
+**Doğrulama:**
+
+```bash
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=BekleyinSprint12"
+# dbRefreshTokenVar: true olmalı (false ise OAuth handshake tekrarla)
+```
 
 ---
 
@@ -103,7 +115,11 @@ Backend log'unda göreceğin:
 
 ## Not
 
-- **Refresh token** uzun ömürlüdür — kullanıcı revoke etmedikçe veya 6 ay kullanılmadıkça expire olmaz.
+- **Refresh token** DB'de şifreli saklanır (`gmail_refresh_tokens`, PBKDF2). Env'de tutulmaz.
+- OAuth callback `/api/auth/gmail-oauth/callback` → DB upsert → `returnTo`'ya redirect.
+  Elle env'e yazma adımı **Sprint 11.36 ile kaldırıldı**.
+- **Token expire olursa:** `/admin/oauth` sayfasından handshake'i tekrarla (Sprint 11.36).
+  Google Test Mode refresh token 7 gün; Production domain doğrulaması sonrası 6 ay.
 - Birden fazla alıcıya gönderimde bile Gmail API tek seferde en fazla 100 alıcı destekler; YEĞİTEK için yeterli.
 - App Password **gerekmez** — OAuth2 refresh token ile çalışır.
-- Bu endpoint'ler (`/gmail-oauth/start`, `/gmail-oauth/callback`) **kimlik doğrulama gerektirmez** — sadece setup aşamasında kullanılır, production'da public kapatılabilir.
+- Bu endpoint'ler (`/gmail-oauth/start`, `/gmail-oauth/callback`) **kimlik doğrulama gerektirmez** — state cookie CSRF koruması sağlıyor; production'da public kapatılabilir.

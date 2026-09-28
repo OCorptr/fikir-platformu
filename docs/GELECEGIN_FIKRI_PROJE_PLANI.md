@@ -1,5 +1,11 @@
 # Geleceğin Fikri Platformu — Ayrıntılı Proje Planı
 
+> ⚠️ **PLAN DOKÜMANI — Sprint 1-2 döneminde yazıldı.** İçindeki **PostgreSQL 18**
+> referansları tarihseldir; Sprint 4'te veritabanı **TiDB Cloud MySQL**'e (Pomelo
+> provider) taşındı. Uygulamanın güncel durumu için `HANDOVER.md` +
+> `docs/architecture.md` okunmalı. Bu dosya gereksinim/spec kaynağı olarak
+> değerlidir, mevcut yapı kaynağı olarak **değildir**.
+
 > Belge sürümü: 1.0  
 > Tarih: 16 Eylül 2026  
 > Durum: Planlama ve gereksinim mutabakatı  

@@ -19,7 +19,7 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 ### Backend — .NET 10 + EF Core 9
 
 - **Mimari:** Clean-ish (API / Application / Infrastructure / Domain). `FikirPlatformu.Api`, `FikirPlatformu.Application`, `FikirPlatformu.Infrastructure`, `FikirPlatformu.Domain`.
-- **Auth:** ASP.NET Core Identity 9. Multi-scheme (yetkili = `IdentityConstants.ApplicationScheme` ile cookie; öğrenci için ayrı scheme). `SignInManager` ile cookie set. MFA scheme `IdentityConstants.TwoFactorUserIdScheme`.
+- **Auth:** ASP.NET Core Identity 9. 4 cookie scheme: `IdentityConstants.ApplicationScheme` (öğrenci + yetkili), `ProvinceScheme`, `MinistryScheme`, `PreMfaScheme` (login sonrası MFA öncesi yarım cookie). `SignInManager` ile cookie set.
 - **MFA:** TOTP (RFC 6238) + Email OTP. `TotpAuthenticator` + custom `IUserTwoFactorTokenProvider<ApplicationUser>` `EmailOtpTokenProvider`. Secret DB'de encrypted.
 - **Email sender factory:** 4 mod — GmailApiEmailSender (HTTPS OAuth2, port 443, Render SMTP bloklu) > ResendHttpEmailSender > SMTP > DevelopmentEmailSender. Mod seçici `Program.cs:99`. Sistem sabit Gmail (`Mail__Type=gmail`, `Mail__Gmail__*` env).
 - **PasswordHash:** PBKDF2 default. `BypassPasswordValidator` Identity DI'da kayıtlı (Sprint 11.7 — `Bilisim35sse` gibi policy'yi bypass eden şifreler için).
@@ -69,11 +69,15 @@ AdminMaintenance__Secret=BekleyinSprint12
 
 | Dosya | Amaç |
 |---|---|
-| `backend/src/FikirPlatformu.Api/Program.cs` | Startup, CORS pipeline, Identity DI, route mapping, **maintenance endpoints** (`/api/__maintenance/*` + `/api/auth/__debug/*` + `/api/admin/*`) |
-| `backend/src/FikirPlatformu.Api/Endpoints/AuthEndpoints.cs` | Login/logout/register/forgot-password/reset-password, **debug state** (`SifreResetDebug`, `LoginDenemesi`) |
-| `backend/src/FikirPlatformu.Api/Endpoints/MfaEndpoints.cs` | `/method`, `/verify-otp`, `/send-email-otp`, `/setup/start`, `/setup/verify` |
-| `backend/src/FikirPlatformu.Api/Endpoints/AdminUsersEndpoint.cs` | `/api/admin/users*` CRUD, role whitelist, MFA reset, password reset |
+| `backend/src/FikirPlatformu.Api/Program.cs` | Startup, CORS pipeline, Identity DI, route mapping, **maintenance endpoints** (`/api/__maintenance/*` + `/api/__debug/cors-config`) |
+| `backend/src/FikirPlatformu.Api/Endpoints/AuthEndpoints.cs` | Login/logout/register/forgot-password/reset-password, Gmail OAuth start/callback, **debug state** (`SifreResetDebug`, `LoginDenemesi`) |
+| `backend/src/FikirPlatformu.Api/Endpoints/MfaEndpoints.cs` | `/api/auth/mfa/*` → `setup`, `method`, `send-email-otp`, `verify-setup`, `verify`, `disable`, `cancel` |
+| `backend/src/FikirPlatformu.Api/Endpoints/AdminEndpoints.cs` | `/api/admin/users*` CRUD, role whitelist, MFA reset, password reset, bulk CSV import |
 | `backend/src/FikirPlatformu.Api/Endpoints/CaptchaEndpoints.cs` | `/api/auth/captcha/new` (mod 5), `/verify` |
+| `backend/src/FikirPlatformu.Api/Endpoints/StudentIdeaEndpoints.cs` | `/api/student/ideas*` — öğrenci taslak/gönderim |
+| `backend/src/FikirPlatformu.Api/Endpoints/ProvinceEndpoints.cs` | `/api/province/*` — inbox, read, assign, evaluators, evaluations, candidates, approve, implementations |
+| `backend/src/FikirPlatformu.Api/Endpoints/MinistryEndpoints.cs` | `/api/ministry/periods*`, `/api/ministry/implementations` |
+| `backend/tests/FikirPlatformu.Tests/` | xUnit — `IdeaTests`, `ProfanityTextMatcherTests`, `SubmitIdeaServiceTests` (17 test) |
 | `backend/src/FikirPlatformu.Infrastructure/Email/GmailApiEmailSender.cs` | OAuth2 HTTPS, `EncodeSubjectRfc2047` (Türkçe karakter), HTML body base64 |
 | `backend/src/FikirPlatformu.Infrastructure/Auth/GmailRefreshToken.cs` | Entity (encrypted token persist) |
 | `backend/src/FikirPlatformu.Infrastructure/Security/HassasVeriSifreleme.cs` | PBKDF2 encrypt `SifreleGmail/CozGmail` |
@@ -90,24 +94,35 @@ AdminMaintenance__Secret=BekleyinSprint12
 | `frontend/src/pages/MfaLoginPage.tsx` | `yukleniyor` state, OAuth handshake trigger on `yontemSec("Email")` |
 | `frontend/src/pages/MfaSetupPage.tsx` | Method selection → TOTP/Email setup → verify |
 | `frontend/src/components/YetkiliGirisModal.tsx` | `window.location.href` for navigation (Modal SPA nav bug) |
+| `frontend/src/pages/admin/AdminLayout.tsx` | Admin panel shell (üst bar + sidebar) |
 | `frontend/src/pages/admin/UserListPage.tsx` | 3-group accordion, il alt-groups, UserCreateModal trigger |
 | `frontend/src/pages/admin/UserCreateModal.tsx` | **Sprint 11.49 yeni** — slide-in drawer, auto-password, form validation |
+| `frontend/src/pages/admin/UserEditPage.tsx` | `/admin/users/:id` — kullanıcı detay/düzenleme |
 | `frontend/src/pages/admin/UserBulkPage.tsx` | CSV import — Sprint 11.49 yeniden tasarım (3-adım rehber + sütun tablosu) |
 | `frontend/src/pages/admin/OAuthAyarlaPage.tsx` | `/admin/oauth` — Gmail OAuth handshake trigger |
+| `frontend/src/pages/ProvinceInboxPage.tsx` | `/il-panel` — gelen kutusu |
+| `frontend/src/pages/CandidatesPage.tsx` | `/il-panel/adaylar` — aday havuzu |
+| `frontend/src/pages/EkipPage.tsx` | `/il-panel/ekip` — evaluator yönetimi |
+| `frontend/src/pages/ProvinceReportPage.tsx` | `/il-panel/rapor` — uygulama raporları |
+| `frontend/src/pages/ApplicationDetailPage.tsx` | `/il-panel/fikir/:id` — puanla/onayla/uygulama raporu |
+| `frontend/src/pages/MinistryPage.tsx` | `/bakanlik` + `/bakanlik/donemler` |
 | `frontend/src/styles.css` | ~1800 satır, tüm component stilleri |
 
 ### Docs
 
 | Dosya | Amaç |
 |---|---|
+| `AGENTS.md` | AI agent talimatı — build/test komutları, kırmızı çizgiler, conventions |
+| `HANDOVER.md` | Sprint state + açık işler (bu dosyanın kardeşi) |
 | `README.md` | Proje özeti |
-| `DEPLOYMENT.md` | Render deployment |
-| `SECURITY.md` | Güvenlik politikası |
+| `DEPLOYMENT.md` | Render / nginx / systemd / docker-compose deployment |
+| `SECURITY.md` | Güvenlik politikası + YEĞİTEK 41 madde uyum matrisi |
 | `docs/GOOGLE-OAUTH-SETUP.md` | Gmail OAuth kurulum adımları |
-| `docs/architecture.md` | **Sprint 11.50 yeni** — Mimari diyagramlar |
-| `docs/runbook.md` | **Sprint 11.50 yeni** — Operations + maintenance endpoint rehberi |
-| `docs/adr/0001-sistem-sabit-gmail.md` | **Sprint 11.50 yeni** — ADR: Gmail mimari kararı |
-| `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` | Plan (Sprint 4 T35/T36 O-Freeze legacy backlog) |
+| `docs/architecture.md` | **Sprint 11.50** — Mimari diyagramlar, veri akışları |
+| `docs/runbook.md` | **Sprint 11.50** — Operations + maintenance endpoint rehberi |
+| `docs/adr/0001-sistem-sabit-gmail.md` | **Sprint 11.50** — ADR: Gmail mimari kararı |
+| `docs/DURUM.md` | Aşama 0-10 geçmiş kaydı (eski — PostgreSQL bilgisi içerir, güncel değil) |
+| `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` | Plan (40+ bölüm, Sprint 4 T35/T36 O-Freeze legacy backlog) |
 
 ---
 
@@ -115,6 +130,7 @@ AdminMaintenance__Secret=BekleyinSprint12
 
 | Sprint | Commit | Kök neden | Düzeltme |
 |---|---|---|---|
+| **11.50** | `64bbb7a` | Dokümantasyon dağınıktı, AI oturumları sürekli yanlış bilgi okuyordu | `AGENTS.md` + `CLAUDE.md` + `HANDOVER.md` + `docs/architecture.md` + `docs/runbook.md` + ADR |
 | **11.49** | `007c575` | İlkel ekleme ekranı + çift buton | Slide-in drawer modal, CSV rehber, üst +Yeni butonu kaldırıldı |
 | **11.48** | `d44069f` | `MustChangePassword=true` flag | Maintenance endpoint clear-flag |
 | **11.46** | `33f3055` | MFA kart hover'da yazılar görünmüyor | Hover/focus/active state'te gradient + beyaz yazı |
@@ -134,7 +150,7 @@ AdminMaintenance__Secret=BekleyinSprint12
 
 ---
 
-## 🎯 Sprint state (HEAD: `007c575`)
+## 🎯 Sprint state (HEAD: `64bbb7a`)
 
 ### Tamamlanan (Sprint 11 — Admin Panel)
 

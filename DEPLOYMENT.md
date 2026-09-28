@@ -191,8 +191,8 @@ pnpm run build
 | `Mail__ApiKey` | Resend API key (sadece `Mail__Type=resend`) | `re_xxxxxxxx` |
 | `Mail__Gmail__ClientId` | Google Cloud OAuth client ID | `xxx.apps.googleusercontent.com` |
 | `Mail__Gmail__ClientSecret` | Google OAuth client secret | `GOCSPX-xxx` |
-| `Mail__Gmail__RefreshToken` | OAuth2 handshake sonrası alınan refresh token | `1//0eXxx` |
-| `Mail__Gmail__SenderAddress` | Gmail adresi | `noreply@fikir.meb.gov.tr` |
+| `Mail__Gmail__RedirectUri` | Google'da tanımlı redirect URI ile **birebir aynı** olmalı | `https://fikir.meb.gov.tr/api/auth/gmail-oauth/callback` |
+| `Mail__Gmail__SenderAddress` | Gönderen hesabın adresi | `noreply@fikir.meb.gov.tr` |
 | `Mail__Gmail__SenderName` | Gönderici görünen adı | `Geleceğin Fikri` |
 | `Mail__Host` | Özel SMTP host (opsiyonel) | `smtp.kurum.gov.tr` |
 | `Mail__Port` | SMTP port | `587` |
@@ -200,8 +200,20 @@ pnpm run build
 | `Mail__Pass` | SMTP şifre | (kurum SMTP credential) |
 | `Mail__From` | SMTP From adresi | (kurum adresi) |
 | `Mail__FromName` | SMTP From adı | `Geleceğin Fikri` |
+| `AdminMaintenance__Secret` | `/api/__maintenance/*` + debug endpoint gizli anahtarı | (güçlü rastgele — Sprint 12'de kaldırılacak) |
+
+> ✅ **Refresh token env'de tutulmaz.** Sprint 11.36'dan itibaren OAuth callback'i
+> refresh token'ı PBKDF2 ile şifreleyip `gmail_refresh_tokens` tablosuna yazar
+> (Id=1, sistem sabit). `Mail__Gmail__RefreshToken` env değişkenine **gerek yoktur**.
+> Token expire olduysa `/admin/oauth` ekranından OAuth handshake'i tekrarla
+> (bkz. `docs/GOOGLE-OAUTH-SETUP.md` ve `docs/runbook.md`).
 
 > ⚠️ **Aynı domain** mimarisinde `Cors__AllowedOrigins__0` **boş** olmalı. Sistem otomatik olarak `SameSite=Lax` cookie ve CORS'sız çalışır.
+>
+> ⚠️ Sprint 10.7'den beri `Cors__AllowedOrigins` **boş olsa bile** kod içinde hardcoded
+> production fallback devreye girer (`https://fikir-platformu-web.onrender.com` +
+> `http://localhost:5173/5174`). Aynı domain kurulumunda bunu kapatmak için
+> `Program.cs` içindeki fallback listesini düzenle veya env'i production origin'iyle doldur.
 >
 > **Cross-origin** gerekirse (ör. frontend ayrı subdomain'de) bu değeri doldurun — sistem `SameSite=None; Secure` cookie'ye geçer.
 >
@@ -309,24 +321,20 @@ sudo systemctl status fikir-api
 
 ### 7) EF Migration'larını uygula
 
-Sunucuda, backend klasöründe:
+**Otomatik:** Backend startup'ta `dbContext.Database.Migrate()` çalıştırır (`Program.cs`).
+`sudo systemctl restart fikir-api` yeterlidir; manuel migration adımı **gerekmez**.
+
+Elle kontrol etmek veya rollback için:
 
 ```bash
 cd /opt/fikir-platformu/backend
-# user-secrets'e connection string'i yaz (systemd yerine alternatif)
-dotnet user-secrets set "ConnectionStrings:MySql" "Server=...;..." --project src/FikirPlatformu.Api
-
-# Migration uygula (tabloları oluştur)
 dotnet ef database update --project src/FikirPlatformu.Infrastructure --startup-project src/FikirPlatformu.Api
+
+# Beklenen migration sırası: InitialMySql → AddAuthEvents → AddDataProtectionKeys → AddTwoFactorMethod
 ```
 
-Veya doğrudan Publish klasöründeki connection string ile:
-
-```bash
-ConnectionStrings__MySql="Server=..." dotnet FikirPlatformu.Api.dll --migrate
-```
-
-(Backend kodu otomatik migration çalıştırmaz — bu adım Manuel/Deploy script'inde yapılmalı)
+> ⚠️ `dotnet ef migrations add` Windows kernel sandbox'ta dosya yazamıyor.
+> Yeni migration CI'da veya temiz bash ortamında üretilmeli.
 
 ### 8) İlk admin kullanıcı
 
@@ -524,5 +532,8 @@ Bir context'te (student/province/ministry) oturum açıksa diğer context'in mod
 ## 📞 Destek
 
 Geliştirici ekibi: **Onur** (Windows kernel driver developer — O-Freeze projesi)
-Son güncelleme: 2026-09-26 (Sprint 10 — MFA Email OTP + Gmail API + cache headers)
+Son güncelleme: Sprint 11.50 — dokümantasyon düzeltmeleri (HEAD `64bbb7a`)
 GitHub: https://github.com/OCorptr/fikir-platformu
+
+> Operasyon sorunları için `docs/runbook.md`, mimari için `docs/architecture.md`,
+> aktif sprint durumu için `HANDOVER.md`.

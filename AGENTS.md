@@ -11,7 +11,7 @@
 - **Domain:** YEGİTEK ulusal fikir platformu. İl AR-GE birimleri + bakanlık yetkilileri için fikir değerlendirme sistemi.
 - **Stack:**
   - Backend: .NET 10 + EF Core 9 + ASP.NET Core Identity 9 (Pomelo MySQL provider)
-  - Frontend: React 19 + Vite 8 + TypeScript 7 (sadece 3 runtime deps: react, react-dom, react-router)
+  - Frontend: React 19 + Vite 8 + TypeScript 7 (sadece 3 runtime deps: react, react-dom, react-router-dom; pnpm 11)
   - DB: TiDB Cloud Frankfurt (`gateway01.eu-central-1.prod.aws.tidbcloud.com:4000`)
   - Mail: Sistem sabit Gmail OAuth2 (`fikir.platformu.iletisim@gmail.com`) — sprint 12'de per-user mimarisine geçilecek.
 - **Deploy:** Render auto-deploy main branch push → backend Docker, frontend Static Site.
@@ -36,10 +36,10 @@
 
 - **Sandbox:** Windows kernel sandbox. `dotnet ef migrations add` dosya yazma sorunu var — Sprint 11'de startup idempotent raw SQL ile çözüldü. **Yeni migration gerekirse lokal geliştirici makinede CI veya temiz bash'te üret.**
 - **Backend `dotnet build`** → tüm projeler derlenir. `cd backend && dotnet build -c Release --nologo` kullan (Release, hızlı).
-- **Frontend `npm run build`** → Vite content-based hash bundle üretir. Build sonrası `dist/assets/` içinde SHA-prefixed dosyalar.
+- **Frontend `pnpm build`** → Vite content-based hash bundle üretir. Build sonrası `dist/assets/` içinde SHA-prefixed dosyalar. (paket yöneticisi **pnpm 11**, `npm` değil)
 - **Git config:** `git -c user.name=OnurCorptr -c user.email=onur35bilisim@gmail.com commit` — global config yok.
 - **Internet search zorunlu** her fix öncesi (Onur kuralı). `Microsoft Learn`, `context7`, `brave_web_search` tool'ları kullan.
-- **Test yok** — proje smoke-test yaklaşımı: Playwright ile manual UI doğrulama. İleride xUnit + Vitest eklenecek.
+- **Test:** Backend'de xUnit var — `backend/tests/FikirPlatformu.Tests` (17 test, 3 dosya: `IdeaTests`, `ProfanityTextMatcherTests`, `SubmitIdeaServiceTests`). `scripts/verify.ps1` `dotnet test` çalıştırır. **Frontend'de Vitest yok** — UI doğrulama Playwright ile manual.
 
 ## 🧪 Testing & verification
 
@@ -70,7 +70,7 @@
 
 ## ⚠️ Kırmızı çizgiler (asla yapma)
 
-- ❌ `Mail__Gmail__ClientSecret` veya `Mail__Gmail__RefreshToken` **ASLA** repo'ya commit etme. SECRET env'den okunur.
+- ❌ `Mail__Gmail__ClientSecret` **ASLA** repo'ya commit etme. SECRET env'den okunur. (`Mail__Gmail__RefreshToken` Sprint 11.36 ile tamamen kalktı — token DB'de şifreli, `gmail_refresh_tokens`.)
 - ❌ Production DB'de student kayıt bilgilerine `/api/admin/users*` endpoint'inden erişim. Admin scope filtre zorunlu (`/api/admin/users` whitelist: SystemAdmin, MinistryOfficial, ProvinceManager, ProvinceEvaluator). Sprint 11 privacy guard.
 - ❌ Frontend bundle'da `import.meta.env.DEV` ile hardcoded secret. Sadece `VITE_*` env'ler bundle'a girer.
 - ❌ CORS preflight 401 dönüyorsa `UseAuthentication`'ı `UseCors`'tan önce koyma — Microsoft Learn: UseCors after UseRouting, before UseAuthorization.

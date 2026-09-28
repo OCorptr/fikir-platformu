@@ -1,11 +1,18 @@
-# Proje Durumu — YENİ OTURUM AÇILDIGINDA ÖNCE BU DOSYAYI OKU
+# Proje Durumu — Aşama 0-10 Geçmiş Kaydı
 
+> ⚠️ **BU DOSYA ARŞİVDİR.** Aşama 0-10 (2026-09-20'ye kadar) tarihsel kaydıdır.
+> **Güncel sprint state için `HANDOVER.md`**, mimari için `docs/architecture.md`,
+> operasyon için `docs/runbook.md` okunmalı.
+> Bu dosyada Sprint 1-2 dönemine ait **PostgreSQL** bilgileri ve Sprint 9 öncesi
+> endpoint adları vardır; artık **TiDB Cloud MySQL** ve `/api/admin/users` kullanılıyor.
+> Doğrulanmamış bilgiyi kaynak olarak kullanma.
+>
 > Son güncelleme: 2026-09-26 (Sprint 9-10 — SystemAdmin + MFA setup + MFA Email OTP + Gmail API)
 > Ana plan: `docs/GELECEGIN_FIKRI_PROJE_PLANI.md` (40 bölüm + §41–44 karar günlüğü)
 > Kaynak belge: `Fikir Platformu 11.08.2026.pdf`
 > Aktif deployment: https://fikir-platformu-web.onrender.com
 
-Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten sonra
+Bu dosya, "hangi aşamadayız?" sorusunun Aşama 0-10 dönemi için tek kaynağıdır. Her önemli işten sonra
 "Bir bakışta durum" bölümü güncellenir ve commit edilir.
 
 > **ÖNEMLİ — kullanıcı kararı (2026-09-19):** React tarafındaki kayıt / giriş / doğrulama /
@@ -38,7 +45,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 | 7 — Ana sayfa / arşiv / sertifika | ⬜ Plan §1660 — büyük iş (dinamik vitrin + arşiv filtreleri + sertifika PDF + e-posta); şu an HomePage vitrini sahte veriyle |
 | 8 — Hayata geçirme (backend) | ✅ Tamam — ImplementationReport entity, implementation_reports migration, SubmitImplementationReportService (Planned → ImplementationInProgress → ImplementationCompleted/Failed), ImplementationSummaryQueryService (Bakanlık özeti); uçtan uca test |
 | 8 — Hayata geçirme (frontend) | ✅ Tamam — ApplicationDetailPage'de Manager için 'Uygulama Raporu' formu + geçmiş listesi; MinistryPage'de 'Uygulama Takibi' tablosu |
-| 9 — SystemAdmin kullanıcı yönetimi | ✅ Tamam — `/api/admin/create-user` + `/api/admin/list-users` uçları; SystemAdmin-only authorization policy (Sprint 9); CAPTCHA eklemesi; seed/ilk_hesaplar.py (9 ilk hesap) |
+| 9 — SystemAdmin kullanıcı yönetimi | ✅ Tamam — `POST /api/admin/users` + `GET /api/admin/users` uçları (Sprint 11'de `AdminEndpoints.cs` altında birleşti); SystemAdmin-only authorization policy (Sprint 9); CAPTCHA eklemesi; seed/ilk_hesaplar.py (9 ilk hesap) |
 | 9 — MFA setup akışı (login sonrası) | ✅ Tamam — PreMfaScheme 10dk cookie, `/api/auth/mfa/setup` (Totp+Email), `/verify-setup`, `/disable` (privileged roller için kapalı); login → `mfaSetupRequired:true` → `/mfa-setup` |
 | 9 — docker-compose + Render | ✅ Tamam — backend (Dockerfile, TiDB Cloud uyumlu) + frontend (nginx) + opsiyonel `with-mysql` profile + .env.example |
 | 10 — MFA Email OTP yöntemi | ✅ Tamam — kullanıcı kurulum sırasında TOTP veya Email OTP seçer; `/api/auth/mfa/setup?method=Email` OTP kodu gönderir, `/verify-setup` ile etkinleştirilir; `/send-email-otp` login akışında (TOTP user da fallback olarak email kodu isteyebilir) |
@@ -62,19 +69,19 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 
 ## Ortam bilgileri (bu makineye özel)
 
-- **Veritabanı:** PostgreSQL 18 **doğrudan kuruldu** (Docker kullanılmıyor).
-  Bağlantı: `Host=localhost;Port=5432;Database=fikir_platformu;Username=postgres`
-  Şifre: `backend/src/FikirPlatformu.Api/appsettings.json` içinde (yerel geliştirme şifresi, üretime çıkmaz).
-- **PostgreSQL başlatma (PC yeniden başladıysa):** kurulum servisi kaydetmeden yapıldı,
-  elle başlatılır: `& "C:\Program Files\PostgreSQL\18\bin\pg_ctl.exe" -D "C:\Program Files\PostgreSQL\18\data" start`
-  (Kalıcı çözüm: yönetici PowerShell'de `pg_ctl register -N postgresql-x64-18 -D "C:\Program Files\PostgreSQL\18\data"`)
+> ⚠️ **Bu bölüm Sprint 4 DB geçişinden kalma.** Sprint 1-2'de PostgreSQL 18 kullanılıyordu;
+> Sprint 4'te **TiDB Cloud MySQL**'e geçildi. Aşağıdaki PostgreSQL bilgileri artık geçerli değil.
+
+- **Veritabanı (ESKİ — PostgreSQL 18, artık kullanılmıyor):** `Host=localhost;Port=5432;Database=fikir_platformu;Username=postgres`
+- **Veritabanı (GÜNCEL):** TiDB Cloud MySQL — `gateway01.eu-central-1.prod.aws.tidbcloud.com:4000`
+  bağlantı dizesi `ConnectionStrings__MySql` env ile verilir. `compose.yaml` de Sprint 1-2'den
+  kalma **PostgreSQL 18** image'ı kullandığı için güncel değildir — MySQL için `docker-compose.yml` kullan.
 - **Backend çalıştırma:** `dotnet run --project backend/src/FikirPlatformu.Api` → http://localhost:5000
 - **Frontend çalıştırma:** `cd frontend && pnpm dev` → http://localhost:5173 (`/api` proxy'si 5000'e gider)
-- **Tüm kontroller:** `powershell -File scripts/verify.ps1`
+- **Tüm kontroller:** `powershell -File scripts/verify.ps1` (restore + Release build + xUnit testleri + frontend typecheck + build)
 - **Migration oluşturma:** `cd backend && dotnet ef migrations add <Ad> --project src/FikirPlatformu.Infrastructure --startup-project src/FikirPlatformu.Api`
-- **Migration uygulama:** aynı komutla `... database update`
-- **Geliştirme e-postaları:** `backend/src/FikirPlatformu.Api/dev-email/` klasörüne dosya olarak yazılır
-  (doğrulama/sıfırlama bağlantıları burada — token içerdiği için git'e girmez)
+- **Migration uygulama:** backend startup'ta `Database.Migrate()` otomatik çalışır (`Program.cs`).
+- **Geliştirme e-postaları:** `DevelopmentEmailSender` modunda log'a yazar. `Mail__Type` boşsa aktif olur.
 - **Yükleme paketi:** `Fikir_Platformu_yukle_yeni.zip` (statik prototip Netlify paketi — prototip değişince yenilenir)
 
 ---
@@ -93,7 +100,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
   - `IClock`, `IEmailSender`, `IFileStorage`, `IDocumentGenerator` arayüzleri (taşınabilirlik)
   - `FikirPlatformuDbContext` + `/api/health` + `/api/health/db` uçları
 - `frontend/`: React + TypeScript + Vite iskeleti, health API istemcisi, netlify.toml (frontend klasörüne özel), vite proxy
-- `compose.yaml` (PostgreSQL 18 — Docker alternatifi), `scripts/verify.ps1` (tek komutla tüm kontroller)
+- `compose.yaml` (⚠️ Sprint 1-2 dönemi — PostgreSQL 18; artık MySQL/TiDB kullanılıyor), `scripts/verify.ps1` (tek komutla tüm kontroller)
 
 ### Aşama 2 — Kimlik ve öğrenci profili (backend)
 - ASP.NET Core Identity, **HttpOnly çerez** kimliği (localStorage token yasak — plan §8.4)
@@ -125,7 +132,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun tek kaynağıdır. Her önemli işten 
 - `blocked_terms` tablosu `Block` ve ileride kullanılabilecek `Flag` seviyelerini destekliyor.
 - İnternet listesi doğrudan aktarılmadı; lisans ve yanlış pozitif incelemesinden sonra kurumca
   onaylanan liste veritabanına yüklenecek.
-- `IdeaSubmissionAndModeration` migration'ı yerel PostgreSQL'e uygulandı.
+- `IdeaSubmissionAndModeration` migration'ı yerel DB'ye uygulandı. (⚠️ Sprint 1-2 dönemi: PostgreSQL. Sprint 4'te TiDB Cloud MySQL'e geçildi, bu migration MySQL'e çevrildi.)
 - xUnit test projesi eklendi; `scripts/verify.ps1` artık testleri de çalıştırıyor.
 - **Otomatik test:** 17/17 birim testi ✓
 - **Uçtan uca test:** kayıt/doğrulama/giriş → 1.500 sınırı → taslak → il değişikliği →

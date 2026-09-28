@@ -1,4 +1,4 @@
-# Handover — Fikir Platformu (HEAD: `007c575`)
+# Handover — Fikir Platformu (HEAD: `64bbb7a`)
 
 > **Amaç:** Yeni AI oturumu açıldığında **HANDOVER + CLAUDE.md** okuyunca sprint state ve açık işler net olsun. Tüm detay için `CLAUDE.md`, mimari için `docs/architecture.md`, operasyon için `docs/runbook.md`.
 
@@ -6,7 +6,7 @@
 
 ## 📌 HEAD
 
-- **Commit:** `007c575` (Sprint 11.49 — Admin Panel tasarım yenileme)
+- **Commit:** `64bbb7a` (Sprint 11.50 — Proje dokümantasyon sistemi: AGENTS.md + CLAUDE.md + docs/)
 - **Branch:** main
 - **Last deploy:** Render auto-deploy main push (~2-3 dk backend, ~1-2 dk frontend)
 
@@ -29,7 +29,7 @@
 
 **Sistem Admin** (alternative): `fikir.platformu.iletisim@gmail.com` / `Bilisim35sse` (nokta YOK).
 
-## 🎯 Sprint State (HEAD: `007c575`)
+## 🎯 Sprint State (HEAD: `64bbb7a`)
 
 ### ✅ Tamamlanan — Sprint 11 (Admin Panel + Gmail DB-persist)
 
@@ -57,7 +57,13 @@
 **Kararlar:**
 - Sistem sabit Gmail mimarisi (ADR 0001, Sprint 12'de per-user'a geçiş)
 - KVKK retention: 4+ yıl önce login olan Student'lar yıllık job ile silinir
-- Pasif hesap kilitleme: tamamen kaldırıldı (Sprint 11.29)
+- Pasif hesap kilitleme: tamamen kaldırıldı (Sprint 11.29) — `PasifHesapTespitService` `Program.cs:177` yorum satırı
+
+**Dokümantasyon (Sprint 11.50):**
+- `AGENTS.md` (AI agent talimatı, kırmızı çizgiler) + `CLAUDE.md` (derin mimari + bug tarihçesi) + `HANDOVER.md` (bu dosya)
+- `docs/architecture.md` (mimari diyagramlar, veri akışları) + `docs/runbook.md` (operasyon + maintenance endpoint'ler)
+- `docs/adr/0001-sistem-sabit-gmail.md` (ADR)
+- `docs/DURUM.md` Aşama 0-10 geçmiş kaydı (eski şema bilgisi içerir, güncel durum için HANDOVER.md)
 
 ### 🚧 Açık işler (Sprint 12 backlog)
 
@@ -75,6 +81,8 @@
 - **EF Core CLI sandbox sorunu** — `dotnet ef migrations add` dosya yazmıyor. Lokal geliştirici makinede CI ile çalıştır.
 - **Modal SPA nav bug** — `useNavigate()` Modal context'inde çalışmıyor. `window.location.href` workaround.
 - **Gmail Test Mode refresh token 7 gün** — Sprint 12'de per-user OAuth handshake tekrarı gerekebilir.
+- **`compose.yaml` bayat** — Sprint 1-2'den kalma PostgreSQL 18 image kullanıyor, uygulama MySQL/Pomelo. Lokal DB için kullanma; TiDB Cloud veya `docker-compose.yml` (MySQL) kullan.
+- **`docs/DURUM.md` bayat bölümler** — PostgreSQL 18, `/api/admin/create-user`, `/api/admin/list-users` gibi Sprint 9 öncesi bilgiler içeriyor. Güncel endpoint listesi için `docs/architecture.md`.
 
 ## ⚡ Hızlı referans
 
@@ -119,11 +127,14 @@ Token default: `BekleyinSprint12` (Sprint 12'de admin panel'den yönetilecek).
 ## 📜 Son commit'ler (HEAD'den geriye 10)
 
 ```
+64bbb7a Sprint 11.50: Proje dokümantasyon sistemi - AGENTS.md + CLAUDE.md + docs/
 007c575 Sprint 11.49: Admin Panel tasarim yenileme - drawer modal + CSV rehber
 d44069f Sprint 11.48: MustChangePassword kapatma maintenance endpoint
 327c231 Sprint 11.47: MFA kart hover/focus/active state yazi fix
 33f3055 Sprint 11.46: MFA setup kart beyaz yazi fix
 1ae6e79 Sprint 11.45: MFA setup koyu arkaplan koyu yazi fix
+dab2e35 Sprint 11.43: set-password maintenance endpoint
+eb7115d Sprint 11.42: Login detayli debug state + /api/__debug/last-login
 ```
 
 ## 🚀 Yeni oturumda ilk iş

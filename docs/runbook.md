@@ -65,12 +65,14 @@ curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/clear-must-
 | `/api/__maintenance/set-password-raw` | POST | PasswordHash direkt set (raw SQL UPDATE) |
 | `/api/__maintenance/clear-must-change-password` | POST | MustChangePassword flag kapat |
 | `/api/__maintenance/admin-reset` | POST | Sistem Admin hesabı yeniden oluştur |
-| `/api/auth/__debug/cors-config` | GET | Aktif CORS policy |
+| `/api/__debug/cors-config` | GET | Aktif CORS policy |
 | `/api/auth/__debug/cors-test` | GET | OPTIONS preflight test |
 | `/api/auth/__debug/mail-mod` | GET | Aktif email sender modu |
 | `/api/auth/__debug/mail-sender` | GET | Sistem sabit Gmail bilgisi |
 | `/api/auth/__debug/last-login` | GET | Son login denemesinin detayı |
-| `/api/__debug/last-sifre-reset` | GET | Son şifre sıfırlama denemesinin detayı |
+| `/api/auth/__debug/last-sifre-reset` | GET | Son şifre sıfırlama denemesinin detayı |
+
+> Not: `cors-config` `/api/__debug/` altında (`Program.cs`), diğer debug endpoint'leri `/api/auth/__debug/` altında (`AuthEndpoints.cs`).
 
 ---
 
@@ -186,7 +188,7 @@ curl "https://fikir-platformu.onrender.com/api/auth/__debug/last-login?token=Bek
 
 ```bash
 # CORS config doğrula
-curl "https://fikir-platformu.onrender.com/api/auth/__debug/cors-config?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/__debug/cors-config?token=BekleyinSprint12"
 # {"corsOrigins":["https://fikir-platformu-web.onrender.com",...],...}
 
 # OPTIONS preflight test
