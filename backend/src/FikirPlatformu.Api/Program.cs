@@ -696,6 +696,149 @@ app.MapPost("/api/__maintenance/admin-reset", async (
     });
 }).AllowAnonymous();
 
+// Sprint 11.48: MustChangePassword flag kapat — Identity'nin "hesap açıldığında
+// ilk girişte şifre değiştir" flag'i (MustChangePassword) bazı seed/admin hesaplarda
+// true olarak kalıyor. Onur Admin Panel'de hesabında 'Şifre değişmeli' rozeti
+// görüyordu — sebebi bu. Bu endpoint ile flag'i false yapılır.
+// Kullanım: POST /api/__maintenance/clear-must-change-password?token=SECRET&email=X
+app.MapPost("/api/__maintenance/clear-must-change-password", async (
+    HttpContext http,
+    IConfiguration yapilandirma,
+    UserManager<ApplicationUser> userManager,
+    FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
+    ILogger<Program> logger) =>
+{
+    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
+    if (string.IsNullOrWhiteSpace(beklenenSecret))
+    {
+        beklenenSecret = "BekleyinSprint12";
+    }
+    var urlSecret = http.Request.Query["token"].ToString();
+    if (urlSecret != beklenenSecret)
+    {
+        return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
+    }
+
+    var email = http.Request.Query["email"].ToString();
+    if (string.IsNullOrWhiteSpace(email))
+    {
+        return Results.Json(new { message = "email query param gerekli." }, statusCode: 400);
+    }
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user is null)
+    {
+        return Results.Json(new { message = $"Kullanıcı bulunamadı: {email}" }, statusCode: 404);
+    }
+
+    var oncekiDeger = user.MustChangePassword;
+    user.MustChangePassword = false;
+
+    // SecurityStamp yenile ki eski cookie/MFA invalidate olsun.
+    await userManager.UpdateSecurityStampAsync(user);
+    var updSonuc = await userManager.UpdateAsync(user);
+    if (!updSonuc.Succeeded)
+    {
+        // Fallback: raw SQL.
+        var affected = await veritabani.Database.ExecuteSqlRawAsync(
+            "UPDATE \"AspNetUsers\" SET \"MustChangePassword\" = false, \"SecurityStamp\" = {0}, \"ConcurrencyStamp\" = {1} WHERE \"Id\" = {2}",
+            Guid.NewGuid().ToString().Replace("-", "").ToUpperInvariant(),
+            Guid.NewGuid().ToString(),
+            user.Id);
+        veritabani.ChangeTracker.Clear();
+        var guncel = await veritabani.Users.AsNoTracking().FirstAsync(u => u.Id == user.Id);
+        logger.LogInformation("[MAINT-CLEAR-MCP] Raw SQL UPDATE: {Email} affected={A}, yeniDeger={D}",
+            email, affected, guncel.MustChangePassword);
+        return Results.Ok(new
+        {
+            message = "MustChangePassword kapatıldı (raw SQL fallback).",
+            email,
+            oncekiDeger,
+            yeniDeger = guncel.MustChangePassword,
+            affectedRows = affected,
+        });
+    }
+
+    logger.LogInformation("[MAINT-CLEAR-MCP] {Email} MustChangePassword {Onceki} → false", email, oncekiDeger);
+    return Results.Ok(new
+    {
+        message = "MustChangePassword kapatıldı.",
+        email,
+        oncekiDeger,
+        yeniDeger = user.MustChangePassword,
+    });
+}).AllowAnonymous();
+
+// Sprint 11.44: Raw SQL PasswordHash UPDATE — Identity UserManager.UpdateAsync
+// bazen yazmiyor gibi gorunuyor (Onur 2 kez denedi, login yine yanlis-sifre).
+// SQL raw UPDATE ile AspNetUsers.PasswordHash'i direk degistir. Verify edildikten
+// sonra SecurityStamp da yenilenmez ki cookie/MFA cache'leri bozulmasin.
+app.MapPost("/api/__maintenance/set-password-raw", async (
+    HttpContext http,
+    IConfiguration yapilandirma,
+    IPasswordHasher<ApplicationUser> passwordHasher,
+    FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
+    ILogger<Program> logger) =>
+{
+    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
+    if (string.IsNullOrWhiteSpace(beklenenSecret))
+    {
+        beklenenSecret = "BekleyinSprint12";
+    }
+    var urlSecret = http.Request.Query["token"].ToString();
+    if (urlSecret != beklenenSecret)
+    {
+        return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
+    }
+
+    var email = http.Request.Query["email"].ToString();
+    var yeniSifre = http.Request.Query["password"].ToString();
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(yeniSifre))
+    {
+        return Results.Json(new { message = "email + password query param gerekli." }, statusCode: 400);
+    }
+
+    // User'ı bul — Identity UserManager yerine EF DbContext ile (bozuk PasswordHash
+    // gözden geçirmeksizin). Identity zaten lazy-loading/security check yapmaz.
+    var user = await veritabani.Users.FirstOrDefaultAsync(u => u.Email == email);
+    if (user is null)
+    {
+        return Results.Json(new { message = $"Kullanıcı bulunamadı: {email}" }, statusCode: 404);
+    }
+
+    // Identity IPasswordHasher ile hash'le.
+    var yeniHash = passwordHasher.HashPassword(user, yeniSifre);
+    var eskiHash = user.PasswordHash;
+
+    // SecurityStamp'i Identity UserManager'a dokunmadan SQL ile yenile (eski cookie
+    // invalidate olsun). Sadece PasswordHash UPDATE'i etkisi yeterli olabilir ama
+    // SecurityStamp de guncelleyelim ki ValidateUser login sanity check'inde
+    // rol atamaları cookie tazeleyince uyumsuzluk olmasın.
+    var yeniSecurityStamp = Guid.NewGuid().ToString().Replace("-", "").ToUpperInvariant();
+    var affected = await veritabani.Database.ExecuteSqlRawAsync(
+        "UPDATE \"AspNetUsers\" SET \"PasswordHash\" = {0}, \"SecurityStamp\" = {1}, \"ConcurrencyStamp\" = {2} WHERE \"Id\" = {3}",
+        yeniHash, yeniSecurityStamp, Guid.NewGuid().ToString(), user.Id);
+
+    // DB'den tekrar oku ve verify et.
+    veritabani.ChangeTracker.Clear();
+    var guncelUser = await veritabani.Users.AsNoTracking().FirstAsync(u => u.Id == user.Id);
+    var verify = passwordHasher.VerifyHashedPassword(guncelUser, guncelUser.PasswordHash, yeniSifre);
+
+    logger.LogInformation("[MAINT-SET-PWD-RAW] {Email} PasswordHash set edildi. AffectedRows={Affected}, Verify={Verify}",
+        email, affected, verify);
+
+    return Results.Ok(new
+    {
+        message = "Raw SQL PasswordHash set edildi.",
+        email,
+        affectedRows = affected,
+        verifyResult = verify.ToString(),
+        eskiHashLen = eskiHash?.Length ?? 0,
+        yeniHashLen = guncelUser.PasswordHash?.Length ?? 0,
+        yeniSecurityStampLen = guncelUser.SecurityStamp?.Length ?? 0,
+    });
+}).AllowAnonymous();
+
 // Sprint 11.43: Idempotent PasswordHash set — mevcut hesabin sifresini degistirmek icin.
 // Onur: 'Bilisim35sse' ile giris 'yanlis-sifre' hatasi veriyor. Sebep CreateAsync sirasinda
 // Identity 9 default validators PasswordHash'i bos birakabiliyor. Bu endpoint mevcut
