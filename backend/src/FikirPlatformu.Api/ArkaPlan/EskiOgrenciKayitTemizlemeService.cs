@@ -39,6 +39,9 @@ public sealed class EskiOgrenciKayitTemizlemeService(
         try { await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken); }
         catch (OperationCanceledException) { return; }
 
+        // Sprint 11.32: Defansif tek-çalışma — eğer herhangi bir adımda hata
+        // olursa DB'ye karışmadan çık. Böylece diğer background job'lar (auth
+        // event retention) ve ana uygulama etkilenmez.
         while (!stoppingToken.IsCancellationRequested)
         {
             try
@@ -48,6 +51,12 @@ public sealed class EskiOgrenciKayitTemizlemeService(
             catch (Exception hata) when (!stoppingToken.IsCancellationRequested)
             {
                 gunluk.LogError(hata, "EskiOgrenciKayitTemizlemeService hata aldı, bir sonraki döngüde tekrar denenecek.");
+            }
+            catch (Exception hata)
+            {
+                // stoppingToken iptal edilmiş durumda da logla (sessizce yutma).
+                gunluk.LogWarning(hata, "EskiOgrenciKayitTemizlemeService son hata (stopping token iptal).");
+                return;
             }
 
             try { await Task.Delay(CalismaAraligi, stoppingToken); }

@@ -169,9 +169,10 @@ builder.Services.AddScoped<IEmailSender>(sp =>
 });
 // Background job: auth_events 2 yıl retention (plan §1.7).
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetentionService>();
-// Sprint 11.30: KVKK öğrenci kayıt temizleme — sprint 11.31'de crash fix sonrası
-// yeniden aktifleştirilecek (EF Core snapshot invalid hatası).
-// builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.EskiOgrenciKayitTemizlemeService>();
+// Sprint 11.32: KVKK öğrenci kayıt temizleme — yeniden aktif, try-catch ile
+// ana servisi crash ettirmez. EF Core snapshot invalid riski için DB sorguları
+// startup'ta denenmez, sadece periyodik döngüde çalışır.
+builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.EskiOgrenciKayitTemizlemeService>();
 // Sprint 11.29: Pasif hesap kilitleme kaldırıldı.
 // builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
 
