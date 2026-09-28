@@ -612,6 +612,40 @@ grup.MapPost("/logout", async (
             });
         });
 
+        // Sprint 11.38: Aktif mail sender Mod bilgisi (Gmail/SMTP/Resend/Dev).
+        grup.MapGet("/__debug/mail-mod", (
+            [FromQuery] string? token,
+            IConfiguration yapilandirma,
+            IServiceProvider sp) =>
+        {
+            var beklenen = yapilandirma["AdminMaintenance:Secret"]
+                ?? yapilandirma["__maintenance:admin-reset:token"]
+                ?? "BekleyinSprint12";
+            if (string.IsNullOrEmpty(token) || token != beklenen)
+            {
+                return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+            }
+
+            var mailType = (yapilandirma["Mail:Type"] ?? "").ToLowerInvariant();
+            string aktifSenderAdi;
+            try
+            {
+                var concrete = sp.GetRequiredService<IEmailSender>();
+                aktifSenderAdi = concrete.GetType().Name;
+            }
+            catch (Exception ex)
+            {
+                aktifSenderAdi = "resolve-fail: " + ex.GetType().Name;
+            }
+            return Results.Ok(new
+            {
+                mailTypeEnv = string.IsNullOrEmpty(mailType) ? "(env yok)" : mailType,
+                aktifSender = aktifSenderAdi,
+                senderAdres = yapilandirma["Mail:Gmail:SenderAddress"] ?? "(yok)",
+                clientIdVar = !string.IsNullOrEmpty(yapilandirma["Mail:Gmail:ClientId"]),
+            });
+        });
+
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
         // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
         // icin" gostermek icin). Identity token dogrulamasi YAPILMAZ — sadece
