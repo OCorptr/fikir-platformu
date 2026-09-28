@@ -7,6 +7,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getCandidates } from "../services/province";
+import { ilYoneticiMi } from "../components/YetkiliPanelSecim";
 import { type CandidateSummary, type MeSession, sessionForContext } from "../types";
 
 const EMOJI: Record<string, string> = {
@@ -58,7 +59,9 @@ export function CandidatesPage() {
     return <Navigate to="/" replace />;
   }
 
-  const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
+  // Onur (S11.80): sistem yonetici de il yonetimi yapar (kurum istisnasi).
+  // Once yalnizca ProvinceManager kontrol ediliyordu ve sayfa bos ekrana dusuyordu.
+  const managerMi = ben ? ilYoneticiMi(ben.roles) : false;
   if (kimlikKontrolEdildi && ben && !managerMi) {
     return <Navigate to="/" replace />;
   }

@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { logout, type LoginContext } from "../services/auth";
+import { ilYoneticiMi } from "./YetkiliPanelSecim";
 import { rolAdi } from "../services/roles";
 import type { MeSession } from "../types";
 
@@ -168,8 +169,7 @@ export function AdminLayout({
   // Yöneticisi dışında kimsede birden fazla panele erişemez"), il AR-GE yönetim
   // işlerini de yapar. İl ataması kendisinde olmadığı için Ekip/Aday Havuzu
   // menüden gizleniyordu, oysa sayfalar ona açık (Ekip sayfasında il seçici var).
-  const sistemAdminMi = ben?.roles.includes("SystemAdmin") ?? false;
-  const managerMi = sistemAdminMi || (ben?.roles.includes("ProvinceManager") ?? false);
+  const managerMi = ben ? ilYoneticiMi(ben.roles) : false;
   const ministryMi = ben?.roles.includes("MinistryOfficial") ?? false;
 
   const ilMenu: PanelMenuItem[] = [

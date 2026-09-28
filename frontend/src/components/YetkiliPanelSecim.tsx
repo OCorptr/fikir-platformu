@@ -52,6 +52,25 @@ export function rolEtiketi(roller: readonly string[]): string | null {
   return ROL_ETIKETI.find(([r]) => roller.includes(r))?.[1] ?? null;
 }
 
+/**
+ * Onur (S11.80): "il-panel'de Aday Havuzu'na tıklayınca bomboş ekran."
+ *
+ * Aynı hata üç ayrı yerde tekrarladı (CandidatesPage, ApplicationDetailPage,
+ * AdminLayout) ve birinde boş ekran, birinde ana sayfaya atma, birinde
+ * eksik menü öğesi olarak belirdi. Hepsi aynı hatadan: "il yöneticiliği
+ * rol kontrolü" sistem yöneticisini dışarıda bırakıyor.
+ *
+ * KURUM KURALI: "Sistem Yöneticisi dışında kimsede birden fazla panele
+ * erişemez." Sistem yöneticisi istisnadır — üç panelin de yönetim işlerini
+ * yapar. Bu yüzden yetki kontrolleri ROLÜN VARLIĞINA değil, bu kurala bakar.
+ */
+export function ilYoneticiMi(roller: readonly string[]): boolean {
+  return (
+    roller.includes("SystemAdmin") ||
+    roller.includes("ProvinceManager")
+  );
+}
+
 interface Props {
   roller: readonly string[];
   /** Panel düğmesine basılınca çağrılır; yönlendirmeyi çağıran yapar. */

@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
+import { ilYoneticiMi } from "../components/YetkiliPanelSecim";
 import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
@@ -193,7 +194,8 @@ export function ApplicationDetailPage() {
     finally { setUygulamaCalisiyor(false); }
   }
 
-  const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
+  // Onur (S11.80): ayni kural - sistem yonetici istisnadir.
+  const managerMi = ben ? ilYoneticiMi(ben.roles) : false;
 
   return (
     <AdminLayout
