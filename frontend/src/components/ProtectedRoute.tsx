@@ -40,8 +40,30 @@ export function ProtectedRoute({ context }: Props) {
   }
 
   const oturumVar = cevap ? sessionForContext(cevap, context) : null;
-  if (!oturumVar) {
-    return <Navigate to="/" replace state={{ from: yol.pathname }} />;
+  if (oturumVar) return <Outlet />;
+
+  // Onur (S11.77): Sessizce ana sayfaya atmak bu hatayi gorunmez kiliyordu.
+  // "Sistem Yoneticisi il-panel'a giremiyor" 4 tur kok neden bulunamadi -
+  // tam da bu yuzden: kullanici hicbir mesaj gormuyor, ben tahmin yurutuyordum.
+  // Artik durum ACIKLANIR ve panel listesine donulur.
+  if (cevap?.authenticated) {
+    return (
+      <div className="mfa-kart-sayfa">
+        <div className="mfa-kart" role="alert">
+          <h1 className="mfa-baslik">Bu panele erişiminiz yok</h1>
+          <p className="mfa-mesaj">
+            Hesabınız açık ama bu panel için oturum bulunamadı. Hesabınızdaki
+            roller: {cevap.roles?.join(", ") || "belirlenmemiş"}
+          </p>
+          <div className="mfa-eylem">
+            <a className="mfa-geri" href="/">
+              Panellerime dön
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
-  return <Outlet />;
+
+  return <Navigate to="/" replace state={{ from: yol.pathname }} />;
 }

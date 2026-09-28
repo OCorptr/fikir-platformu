@@ -142,31 +142,9 @@ export function UserBulkPage() {
         yükleyin. En fazla 5&nbsp;MB, önerilen 1.000 satır.
       </p>
 
-      {/* Onur (S11.69): "Nasıl hazırlanır? ve CSV Sütunları tablolarını yan
-          yana tasarla boşa satır kaplıyorlar." Alt alta iki tam genişlik
-          bölüm sayfayı gereksiz uzatıyordu; iki sütuna alındı. */}
-      <div className="adm-ikili">
-      <section className="adm-kart" aria-labelledby="adm-nasil-baslik">
-        <h2 id="adm-nasil-baslik" className="adm-h2" style={{ marginTop: 0 }}>
-          Nasıl hazırlanır?
-        </h2>
-        <ol className="adm-kucuk-metin" style={{ lineHeight: 1.9, paddingLeft: "1.2rem" }}>
-          {ADIMLAR.map((a) => (
-            <li key={a.baslik}>
-              <strong style={{ color: "var(--yt-lacivert)" }}>{a.baslik}.</strong>{" "}
-              {a.metin}
-            </li>
-          ))}
-        </ol>
-        <div className="adm-btn-kuyruk">
-          <button type="button" className="adm-btn adm-btn-ana" onClick={sablonIndir}>
-            Örnek CSV İndir
-          </button>
-          <Link to="/admin/users" className="adm-btn adm-btn-sessiz">
-            ← Listeye Dön
-          </Link>
-        </div>
-      </section>
+      {/* Onur (S11.77): sıra değişti. En üstte CSV Sütunları (tam genişlik,
+          tek başına), altında yan yana "Nasıl hazırlanır?" (sol) ve "Dosyayı
+          Yükle" (sağ), en altta Örnek CSV içeriği. */}
 
       <section className="adm-kart" aria-labelledby="adm-sutun-baslik">
         <h2 id="adm-sutun-baslik" className="adm-h2" style={{ marginTop: 0 }}>
@@ -204,16 +182,29 @@ export function UserBulkPage() {
           </tbody>
         </table>
       </section>
-      </div>
 
-      <details className="adm-kart">
-        <summary className="adm-etiket" style={{ cursor: "pointer" }}>
-          Örnek CSV içeriği
-        </summary>
-        <pre className="adm-metin-kutusu" style={{ marginTop: "0.6rem" }}>
-          {ORNEK_CSV}
-        </pre>
-      </details>
+      <div className="adm-ikili">
+        <section className="adm-kart" aria-labelledby="adm-nasil-baslik">
+        <h2 id="adm-nasil-baslik" className="adm-h2" style={{ marginTop: 0 }}>
+          Nasıl hazırlanır?
+        </h2>
+        <ol className="adm-kucuk-metin" style={{ lineHeight: 1.9, paddingLeft: "1.2rem" }}>
+          {ADIMLAR.map((a) => (
+            <li key={a.baslik}>
+              <strong style={{ color: "var(--yt-lacivert)" }}>{a.baslik}.</strong>{" "}
+              {a.metin}
+            </li>
+          ))}
+        </ol>
+        <div className="adm-btn-kuyruk">
+          <button type="button" className="adm-btn adm-btn-ana" onClick={sablonIndir}>
+            Örnek CSV İndir
+          </button>
+          <Link to="/admin/users" className="adm-btn adm-btn-sessiz">
+            ← Listeye Dön
+          </Link>
+        </div>
+      </section>
 
       <section className="adm-kart" aria-labelledby="adm-yukle-baslik">
         <h2 id="adm-yukle-baslik" className="adm-h2" style={{ marginTop: 0 }}>
@@ -341,6 +332,16 @@ export function UserBulkPage() {
           </div>
         )}
       </section>
+      </div>
+
+      <details className="adm-kart">
+        <summary className="adm-etiket" style={{ cursor: "pointer" }}>
+          Örnek CSV içeriği
+        </summary>
+        <pre className="adm-metin-kutusu" style={{ marginTop: "0.6rem" }}>
+          {ORNEK_CSV}
+        </pre>
+      </details>
     </div>
   );
 }
