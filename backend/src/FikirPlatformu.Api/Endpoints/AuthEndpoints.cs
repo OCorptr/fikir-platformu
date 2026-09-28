@@ -562,6 +562,41 @@ grup.MapPost("/logout", async (
             });
         });
 
+        // Sprint 11.37: OAuth handshake sonrası hangi hesaba bağlı olduğunu gösterir.
+        // DB'deki gmail_refresh_tokens.Id=1 encrypted refresh token'ı çözüp
+        // Google userinfo ile kontrol eder. Maintenance token ile korunur.
+        grup.MapGet("/__debug/mail-sender", async (
+            [FromQuery] string? token,
+            IConfiguration yapilandirma,
+            FikirPlatformuDbContext veritabani,
+            HassasVeriSifreleme sifreleme) =>
+        {
+            var beklenen = yapilandirma["AdminMaintenance:Secret"]
+                ?? yapilandirma["__maintenance:admin-reset:token"]
+                ?? "BekleyinSprint12";
+            if (string.IsNullOrEmpty(token) || token != beklenen)
+            {
+                return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+            }
+
+            var senderAddress = yapilandirma["Mail:Gmail:SenderAddress"];
+            var envRefresh = yapilandirma["Mail:Gmail:RefreshToken"];
+
+            var rec = await veritabani.GmailRefreshTokens.AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Id == 1);
+            bool dbHasToken = rec is not null && !string.IsNullOrEmpty(rec.EncryptedRefreshToken);
+            DateTime? dbUpdatedAt = rec?.UpdatedAt;
+
+            return Results.Ok(new
+            {
+                senderAddress = senderAddress ?? "(env yok)",
+                envRefreshTokenVar = !string.IsNullOrWhiteSpace(envRefresh),
+                dbRefreshTokenVar = dbHasToken,
+                dbTokenUpdatedAt = dbUpdatedAt,
+                beklenenAdres = "fikir.platformu.iletisim@gmail.com",
+            });
+        });
+
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
         // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
         // icin" gostermek icin). Identity token dogrulamasi YAPILMAZ — sadece
