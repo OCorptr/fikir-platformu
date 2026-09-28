@@ -411,60 +411,6 @@ grup.MapPost("/forgot-password", async (
     });
 });
 
-// Throttle: IP başına 5 dakikada max 3 istek (basit in-memory tracker).
-// Production'da Redis/Cloudflare rate-limit önerilir ama Sprint 11.5'te yeterli.
-var forgotPasswordTimestamps = new Dictionary<string, List<DateTime>>();
-grup.MapPost("/reset-password", async (
-    SifreSifirlamaIstegi istek,
-    UserManager<ApplicationUser> kullaniciYoneticisi,
-    FikirPlatformuDbContext veritabani,
-    HttpContext http,
-    ILogger<Program> logger) =>
-{
-    if (string.IsNullOrWhiteSpace(istek.Email) ||
-        string.IsNullOrWhiteSpace(istek.Token) ||
-        string.IsNullOrWhiteSpace(istek.NewPassword))
-    {
-        return Results.Json(new { message = "Geçersiz istek." }, statusCode: 400);
-    }
-
-    var normalizedEmail = istek.Email.Trim().ToLowerInvariant();
-    var user = await kullaniciYoneticisi.FindByEmailAsync(normalizedEmail);
-    if (user is null)
-    {
-        // Email enumeration koruması — generic hata.
-        return Results.ValidationProblem(new Dictionary<string, string[]>
-        {
-            ["Email"] = new[] { "Geçersiz veya süresi dolmuş şifre sıfırlama bağlantısı." }
-        });
-    }
-
-    // Identity framework reset password (User objesi + token).
-    var sonuc = await kullaniciYoneticisi.ResetPasswordAsync(user, istek.Token, istek.NewPassword);
-    if (!sonuc.Succeeded)
-    {
-        var errors = sonuc.Errors
-            .GroupBy(e => e.Code)
-            .ToDictionary(g => g.Key, g => g.Select(e => e.Description).ToArray());
-        return Results.ValidationProblem(errors);
-    }
-
-    // Audit.
-    veritabani.AuthEvents.Add(new Domain.Auth.AuthEvent
-    {
-        Id = Guid.NewGuid(),
-        UserId = user.Id,
-        Email = KisiselVeriYardimci.EmailMaskele(user.Email),
-        IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
-        UserAgent = http.Request.Headers.UserAgent.ToString(),
-        EventType = Domain.Auth.AuthEventType.PasswordResetCompleted,
-        Success = true,
-        CreatedAt = DateTime.UtcNow,
-    });
-    await veritabani.SaveChangesAsync(http.RequestAborted);
-
-    return Results.Ok(new { message = "Şifreniz sıfırlandı. Yeni şifrenizle giriş yapabilirsiniz." });
-});
 
 grup.MapPost("/logout", async (
             [FromQuery] string? role,
