@@ -275,12 +275,22 @@ export function MfaLoginPage() {
 
   // === GİRİŞ EKRANI ===
   const emailModu = seciliYontem === "Email";
+  // Onur (S11.70): "mfa-login sayfası açıldığında önce E-posta hazırlama diye
+  // bir ekran görünüyor sonra E-posta doğrulama ekranı çıkıyor, bug var."
+  //
+  // Sebep: `emailGonderildi` başta false. setEkran("giris") ile OTP isteği
+  // arasında geçen ~1 saniyede alt başlık "E-posta kodu hazırlanıyor…"
+  // yazıyor, cevap gelince "gönderdik"ye dönüyor. Kullanıcı iki ayrı ekran
+  // gördüğünü sanıyor — aslında aynı ekranın iki durumu.
+  //
+  // Düzeltme: iki ayrı metin yerine TEK sabit metin. Gönderim sürerken
+  // durum yalnızca gönder butonunda görünür, kod alanı pasif kalır.
   const baslik = emailModu ? "📧 E-posta doğrulama" : "📱 Authenticator kodu";
   const aciklama = emailModu
-    ? emailGonderildi
-      ? "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin."
-      : "E-posta kodu hazırlanıyor…"
+    ? "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin."
     : "Authenticator uygulamanızda görünen 6 haneli kodu girin.";
+  // Kod henüz gönderilmediyse giriş denemesi anlamsız — input kilitli.
+  const kodGonderiliyor = emailModu && !emailGonderildi;
 
   return (
     <main className="sayfa-ortak">
@@ -304,6 +314,7 @@ export function MfaLoginPage() {
             autoComplete="one-time-code"
             autoFocus
             required
+            disabled={kodGonderiliyor}
             value={kod}
             onChange={(e) => setKod(e.target.value.replace(/\D/g, ""))}
             placeholder="123456"
@@ -314,8 +325,16 @@ export function MfaLoginPage() {
             <span>{hata}</span>
           </div>
         )}
-        <button type="submit" className="btn-ana" disabled={calisiyor}>
-          {calisiyor ? "Doğrulanıyor…" : "Giriş yap"}
+        <button
+          type="submit"
+          className="btn-ana"
+          disabled={calisiyor || kodGonderiliyor}
+        >
+          {kodGonderiliyor
+            ? "Kod gönderiliyor…"
+            : calisiyor
+              ? "Doğrulanıyor…"
+              : "Giriş yap"}
         </button>
       </form>
 

@@ -267,11 +267,56 @@ body.sayfa-admin {
 /* Sprint 11.66 (Onur): "2 satıra inmiş tek satır yap". Filtre çubuğu artık
    CSS grid: arama / il / rol çipleri / sonuç sayısı. Çipler `nowrap` ile
    kırılmaz; daralınca çubuk kendisi alt satıra iner (aşağıdaki breakpoint). */
+/* Onur (S11.70): "Şifre sıfırlama ekranlarındaki tema eski kalmış."
+   Bu sayfalar `--adn-*` token seti ve mavi/pembe gradyan zemin kullanıyordu;
+   MFA ve giriş ekranları `--yt-*` token setiyle düz beyaz kart kullanıyor.
+   Üçü de artık tek tema. Sadece CSS — TSX'e dokunulmadı. */
+.sayfa-sifre-sifirla {
+  background: var(--yt-zemin, #f5f8fc);
+}
+@media (prefers-color-scheme: dark) {
+  .sayfa-sifre-sifirla {
+    background: var(--yt-zemin, #0e1320);
+  }
+}
+.ss-kart {
+  width: min(480px, 100%);
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  padding: 1.6rem;
+  box-shadow: 0 0.4rem 1.2rem rgba(22, 53, 92, 0.07);
+}
+.ss-baslik-alani h2 {
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  color: var(--yt-lacivert);
+  letter-spacing: normal;
+}
+/* Şifremi Unuttum ayrı bir modal teması kullanıyordu; MFA kartına hizalandı. */
+.auth-modal-kart {
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  box-shadow: 0 0.4rem 1.2rem rgba(22, 53, 92, 0.07);
+  color: var(--yt-govde);
+}
+
+/* Onur (S11.70): "Ara İl Rol sütunlarının altındaki kısımlar tek satıra
+   sığmalı dedim bir sütü satır şeklinde şu anda."
+
+   Sebep: .adm-alan-genis (rol çipleri) `grid-column: 1 / -1` ile kendi
+   satırına alınmıştı — çubuk iki satıra bölünüyordu. Üçü de TEK satırda.
+   Çipler sığmazsa kendi içinde yatay kayar, çubuk büyümez. */
 .adm-filtre-cubugu {
   display: grid;
-  grid-template-columns: minmax(12rem, 1.4fr) minmax(9rem, 0.8fr) auto;
+  grid-template-columns:
+    minmax(9rem, 1fr)    /* Ara  */
+    minmax(7rem, 0.6fr)  /* İl   */
+    minmax(0, 2.2fr)     /* Rol  */
+    auto;                /* sayaç */
   align-items: end;
-  gap: 0.6rem 0.9rem;
+  gap: 0.6rem 0.7rem;
   background: var(--yt-yuzey);
   border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
   border-radius: var(--yt-r-kart);
@@ -279,12 +324,16 @@ body.sayfa-admin {
   margin-bottom: 1rem;
 }
 
-/* Rol çipleri hücresi kendi satırında tam genişlikte kalır ki
-   "Sistem Yöneticisi / Bakanlık AR-GE Yetkilisi / İl AR-GE Yöneticisi /
-   İl AR-GE Değerlendiricisi" tek satıra sığsın. */
+/* Rol çipleri: hücreye sığmazsa kendi içinde kayar, çubuk 2. satıra düşmez. */
 .adm-filtre-cubugu .adm-alan-genis {
-  grid-column: 1 / -1;
   min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  padding-bottom: 0.1rem;
+}
+.adm-filtre-cubugu .adm-alan-genis > * {
+  flex-wrap: nowrap;
+  min-width: max-content;
 }
 
 .adm-filtre-cubugu .adm-meta {
