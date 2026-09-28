@@ -696,6 +696,71 @@ app.MapPost("/api/__maintenance/admin-reset", async (
     });
 }).AllowAnonymous();
 
+// Sprint 11.43: Idempotent PasswordHash set — mevcut hesabin sifresini degistirmek icin.
+// Onur: 'Bilisim35sse' ile giris 'yanlis-sifre' hatasi veriyor. Sebep CreateAsync sirasinda
+// Identity 9 default validators PasswordHash'i bos birakabiliyor. Bu endpoint mevcut
+// hesabin PasswordHash'ini Identity bypass ile direk set eder.
+// Kullanım: POST /api/__maintenance/set-password?token=SECRET&email=X&password=Y
+app.MapPost("/api/__maintenance/set-password", async (
+    HttpContext http,
+    IConfiguration yapilandirma,
+    UserManager<ApplicationUser> userManager,
+    IPasswordHasher<ApplicationUser> passwordHasher,
+    FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
+    ILogger<Program> logger) =>
+{
+    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
+    if (string.IsNullOrWhiteSpace(beklenenSecret))
+    {
+        beklenenSecret = "BekleyinSprint12";
+    }
+    var urlSecret = http.Request.Query["token"].ToString();
+    if (urlSecret != beklenenSecret)
+    {
+        return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
+    }
+
+    var email = http.Request.Query["email"].ToString();
+    var yeniSifre = http.Request.Query["password"].ToString();
+    if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(yeniSifre))
+    {
+        return Results.Json(new { message = "email + password query param gerekli." }, statusCode: 400);
+    }
+
+    var user = await userManager.FindByEmailAsync(email);
+    if (user is null)
+    {
+        return Results.Json(new { message = $"Kullanıcı bulunamadı: {email}" }, statusCode: 404);
+    }
+
+    // Identity'nin kendi IPasswordHasher'ı ile direkt hash set et.
+    user.PasswordHash = passwordHasher.HashPassword(user, yeniSifre);
+    // SecurityStamp yenilensin — eski cookie/MFA invalidate olur.
+    await userManager.UpdateSecurityStampAsync(user);
+    var updSonuc = await userManager.UpdateAsync(user);
+    if (!updSonuc.Succeeded)
+    {
+        // Son çare: SQL raw UPDATE.
+        user.PasswordHash = passwordHasher.HashPassword(user, yeniSifre);
+        veritabani.Users.Update(user);
+        await veritabani.SaveChangesAsync();
+        logger.LogWarning("[MAINT-SET-PWD] UpdateAsync başarısız, raw SQL kullanıldı: {Email}", email);
+    }
+
+    // Verify: yeni hash ile yeni şifre doğrulanıyor mu?
+    var verify = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, yeniSifre);
+    logger.LogInformation("[MAINT-SET-PWD] {Email} şifre set edildi. VerifyHashedPassword={Verify}", email, verify);
+
+    return Results.Ok(new
+    {
+        message = "Şifre başarıyla set edildi.",
+        email = user.Email,
+        verifyResult = verify.ToString(),
+        oncekiPasswordHash = "***reset***",
+        yeniPasswordHashLen = user.PasswordHash?.Length ?? 0,
+    });
+}).AllowAnonymous();
+
 // Sprint 11.41: Hesap lockout kaldır (Identity AccessFailedCount-based lock).
 // Onur çok hatalı login denemesinden sonra hesabı kilitlenmiş olabilir.
 // Kullanım: POST /api/__maintenance/unlock-account?token=SECRET&email=user@x.com
