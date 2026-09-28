@@ -213,12 +213,17 @@ public sealed class GmailApiEmailSender : IEmailSender
     private static string BuildRfc2822(string from, string fromName, string to, string subject, string htmlBody)
     {
         var sb = new StringBuilder();
-        sb.Append("From: ").Append(fromName).Append(" <").Append(from).Append(">\r\n");
+        // Sprint 11.59: `From` başlığı da RFC 2047 ile kodlanmalıydı.
+        // Subject düzeltilmişti ama gönderen ADI ham UTF-8 olarak yazılıyordu;
+        // Gmail bunu Latin-1 sanıp "Geleceğin Fikri" yerine
+        // "GeleceÃ„ÂŸin Fikri" gösteriyordu. Header içindeki ASCII dışı
+        // karakterler encoded-word olmak ZORUNDA (RFC 2047 §2).
+        sb.Append("From: ").Append(EncodeHeaderRfc2047(fromName)).Append(" <").Append(from).Append(">\r\n");
         sb.Append("To: <").Append(to).Append(">\r\n");
         // Sprint 10.7+++ encoding fix: Subject header'da ASCII dışı karakterler
         // RFC 2047 Encoded-Word formatina cevrilir (=?UTF-8?B?base64?=). Önceki
         // raw byte yazimi Gmail'in parser'inda mojibake yaratıyordu.
-        sb.Append("Subject: ").Append(EncodeSubjectRfc2047(subject)).Append("\r\n");
+        sb.Append("Subject: ").Append(EncodeHeaderRfc2047(subject)).Append("\r\n");
         sb.Append("Content-Type: text/html; charset=UTF-8\r\n");
         sb.Append("Content-Transfer-Encoding: base64\r\n");
         sb.Append("MIME-Version: 1.0\r\n");
@@ -240,22 +245,30 @@ public sealed class GmailApiEmailSender : IEmailSender
     /// RFC 2047 Encoded-Word format — ASCII dışı başlık metinlerini standart
     /// encoded-word =?UTF-8?B?base64?= şeklinde sarmalar. Gmail + tüm RFC uyumlu
     /// parser'lar doğru okur. ASCII-only string'ler raw bırakılır.
+    ///
+    /// Subject VE From görünen adı için kullanılır; ikisi de header'da ASCII dışı
+    /// karakter barındırabilir.
     /// </summary>
-    private static string EncodeSubjectRfc2047(string subject)
+    private static string EncodeHeaderRfc2047(string deger)
     {
-        if (string.IsNullOrEmpty(subject)) return subject;
-        var bytes = Encoding.UTF8.GetBytes(subject);
+        if (string.IsNullOrEmpty(deger)) return deger;
+
+        // Zaten encoded-word ise tekrar sarmalama.
+        if (deger.StartsWith("=?UTF-8?B?", StringComparison.OrdinalIgnoreCase)) return deger;
+
+        var bytes = Encoding.UTF8.GetBytes(deger);
         // ASCII only — raw pass (transparent)
         bool asciiOnly = true;
         foreach (var b in bytes) if (b >= 128) { asciiOnly = false; break; }
-        if (asciiOnly) return subject;
+        if (asciiOnly) return deger;
+
         return "=?UTF-8?B?" + Convert.ToBase64String(bytes) + "?=";
     }
 
     /// <summary>
     /// Sprint 11.39 — Debug endpoint'in test edebilmesi için public wrapper.
     /// </summary>
-    public static string EncodeSubjectRfc2047Public(string subject) => EncodeSubjectRfc2047(subject);
+    public static string EncodeSubjectRfc2047Public(string subject) => EncodeHeaderRfc2047(subject);
 }
 
 /// <summary>
