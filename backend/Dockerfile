@@ -1,5 +1,11 @@
-# Multi-stage Dockerfile for FikirPlatformu.Api (Render.com deploy)
-# .NET 10 SDK build + ASP.NET runtime. TiDB Cloud bağlantısı env variable ile sağlanır.
+# Multi-stage Dockerfile for FikirPlatformu.Api
+# .NET 10 SDK build + ASP.NET runtime.
+# MySQL/TiDB bağlantısı ConnectionStrings__MySql env değişkeni ile sağlanır.
+#
+# Sprint 11.52: NuGet güvenlik denetimi (NuGetAudit) AÇILDI.
+#   Önceden -p:NuGetAudit=false ile kapatılmıştı; teslim edilen bir kamu
+#   kurulumunda güvenlik denetiminin susturulması kabul edilemez. GHSA
+#   uyarıları artık build logunda görünür ve ayrıca ele alınmalıdır.
 
 # ---------- Build stage ----------
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -12,12 +18,8 @@ COPY src/FikirPlatformu.Domain/*.csproj src/FikirPlatformu.Domain/
 COPY src/FikirPlatformu.Application/*.csproj src/FikirPlatformu.Application/
 COPY src/FikirPlatformu.Infrastructure/*.csproj src/FikirPlatformu.Infrastructure/
 COPY src/FikirPlatformu.Api/*.csproj src/FikirPlatformu.Api/
-# NuGetAudit=false: restore sirasinda GHSA guvenlik audit warning'lerini
-# gizle (production log'da NU1903 kirliligi onlenir). GHSA real risk degil —
-# .NET 10 SDK ile transitif gelen System.Security.Cryptography.Xml 9.0.0
-# paketi test/dev'de kullanilmiyor (XML signing attack surface yok).
-RUN dotnet restore src/FikirPlatformu.Api/FikirPlatformu.Api.csproj \
-    -p:NuGetAudit=false
+# NuGet güvenlik denetimi açık bırakıldı (teslim edilen kodda susturulmaz).
+RUN dotnet restore src/FikirPlatformu.Api/FikirPlatformu.Api.csproj
 
 # Tüm kaynak kodu kopyala → publish
 COPY src/ src/

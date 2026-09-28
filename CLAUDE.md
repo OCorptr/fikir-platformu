@@ -22,7 +22,8 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 - **Auth:** ASP.NET Core Identity 9. 4 cookie scheme: `IdentityConstants.ApplicationScheme` (öğrenci + yetkili), `ProvinceScheme`, `MinistryScheme`, `PreMfaScheme` (login sonrası MFA öncesi yarım cookie). `SignInManager` ile cookie set.
 - **MFA:** TOTP (RFC 6238) + Email OTP. `TotpAuthenticator` + custom `IUserTwoFactorTokenProvider<ApplicationUser>` `EmailOtpTokenProvider`. Secret DB'de encrypted.
 - **Email sender factory:** 4 mod — GmailApiEmailSender (HTTPS OAuth2, port 443, Render SMTP bloklu) > ResendHttpEmailSender > SMTP > DevelopmentEmailSender. Mod seçici `Program.cs:99`. Sistem sabit Gmail (`Mail__Type=gmail`, `Mail__Gmail__*` env).
-- **PasswordHash:** PBKDF2 default. `BypassPasswordValidator` Identity DI'da kayıtlı (Sprint 11.7 — `Bilisim35sse` gibi policy'yi bypass eden şifreler için).
+- **PasswordHash:** PBKDF2 default. Identity `PasswordOptions`: `RequiredLength=8`, `RequireUppercase=true`, `RequireLowercase=true`, `RequireDigit=false`, `RequireNonAlphanumeric=false`. (Sprint 11.52: rakam/özel karakter zorunluluğu kaldırıldı — kurum uyum şifreleri. **YEĞİTEK madde 16 ile çelişiyor, Sprint 12'de karar verilecek.**)
+- **İlk admin seed (Sprint 11.52):** Kod içi gömülü hesap **kaldırıldı**. `SeedSystemAdmin__Email` + `SeedSystemAdmin__Password` ortam değişkenleri tanımlıysa **ve veritabanı boşsa** sistem yöneticisi oluşturulur. Hesap varsa dokunulmaz. Alternatif: `dotnet run -- seed` (`KurulumSeedAraci`).
 - **Refresh token DB persist:** `GmailRefreshToken` entity (`gmail_refresh_tokens` tablosu). `HassasVeriSifreleme.SifreleGmail`/`CozGmail` PBKDF2 encrypt. Startup'ta idempotent `CREATE TABLE IF NOT EXISTS` raw SQL (EF CLI sandbox sorunu nedeniyle).
 
 ### Frontend — React 19 + Vite 8 + TypeScript 7
@@ -43,18 +44,23 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 
 ## 🔐 Kritik konfigürasyon (Render env)
 
-### Public (repo'ya yazılabilir)
+> 🔒 **Sprint 11.52:** Hiçbir gizli değer bu dosyada tutulmaz. Değerler Render dashboard
+> → Environment listesinde ve `.env.example` şablonunda. Aşağıdaki liste yalnızca
+> **hangi değişkenin** tanımlı olması gerektiğini gösterir.
 
-```
-Mail__Type=gmail
-Mail__Gmail__ClientId=243209544707-o5709qiuebe5a9b8lbe47el1kuh9v75o.apps.googleusercontent.com
-Mail__Gmail__RedirectUri=https://fikir-platformu.onrender.com/api/auth/gmail-oauth/callback
-Mail__Gmail__SenderName=Geleceğin Fikri
-Mail__Gmail__SenderAddress=fikir.platformu.iletisim@gmail.com
-Frontend__BaseUrl=https://fikir-platformu-web.onrender.com
-Cors__AllowedOrigins=https://fikir-platformu-web.onrender.com,http://localhost:5173,http://localhost:5174
-AdminMaintenance__Secret=BekleyinSprint12
-```
+| Değişken | Zorunlu | Not |
+|---|---|---|
+| `ConnectionStrings__MySql` | ✅ | SECRET — TiDB/MySQL bağlantı dizesi |
+| `Mail__Type` | ✅ | `gmail` / `smtp` / `resend` / boş (mail GÖNDERİLMEZ) |
+| `Mail__Gmail__ClientId` | gmail'de | Google OAuth client ID |
+| `Mail__Gmail__ClientSecret` | gmail'de | **SECRET** |
+| `Mail__Gmail__RedirectUri` | gmail'de | Google'da tanımlıyla birebir aynı olmalı |
+| `Mail__Gmail__SenderAddress` | gmail'de | gönderen hesap |
+| `Frontend__BaseUrl` | ✅ | doğrulama + şifre sıfırlama bağlantıları |
+| `Cors__AllowedOrigins` | Render'da ✅ | **Sprint 11.52'den beri zorunlu.** Render'da frontend ayrı origin → boş bırakılırsa CORS middleware kurulmaz ve tüm API istekleri tarayıcıda bloke olur |
+| `AdminMaintenance__Secret` | ✅ | **SECRET.** Sprint 11.52'de gömülü varsayılan anahtar silindi. Tanımlı değilse maintenance/debug endpoint'ler 403 döner |
+| `SeedSystemAdmin__Email` | ilk kurulumda | Sistem yöneticisi e-postası |
+| `SeedSystemAdmin__Password` | ilk kurulumda | **SECRET.** DB boşsa admin oluşturulur |
 
 ### SECRET (asla repo)
 
@@ -164,7 +170,7 @@ AdminMaintenance__Secret=BekleyinSprint12
 - ✅ Admin Panel Frontend (3-group accordion, il alt-groups, Turkish labels, 2-column grid)
 - ✅ Drawer modal for user creation (Sprint 11.49)
 - ✅ CSV format rehber (Sprint 11.49)
-- ✅ Sistem Admin seed (`fikir.platformu.iletisim@gmail.com` / `Bilisim35sse`)
+- ✅ Sistem Admin seed — `SeedSystemAdmin__Email`/`__Password` env'i ile (boş DB'de oluşur; var olan hesaba dokunmaz)
 - ✅ OAuth handshake DB-persist (Sprint 11.36)
 - ✅ Maintenance endpoints: `set-password-raw`, `unlock-account`, `clear-must-change-password`, `admin-reset`
 - ✅ Debug endpoints: `mail-mod`, `mail-sender`, `last-login`, `last-sifre-reset`, `cors-config`, `cors-test`
@@ -194,7 +200,7 @@ AdminMaintenance__Secret=BekleyinSprint12
 
 Bu projede Magic Context aktif. `ctx_search`, `ctx_expand`, `ctx_note`, `ctx_memory` tool'larıyla:
 - Eski oturumları ara (`ctx_search` ile).
-- Önemli kararları `ctx_memory`'ye yaz (örn: "Onur `Bilisim35sse` şifresi nokta olmadan").
+- Önemli kararları `ctx_memory`'ye yaz.
 - Bekleyen işleri `ctx_note` ile not al.
 
 **Yeni oturumda:**

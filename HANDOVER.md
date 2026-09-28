@@ -23,11 +23,17 @@
 | Field | Value |
 |---|---|
 | Email | `onur35bilisim@gmail.com` |
-| Password | `NewAudit456!` |
 | Roles | SystemAdmin + MinistryOfficial |
 | MFA | TOTP (Authenticator) |
 
-**Sistem Admin** (alternative): `fikir.platformu.iletisim@gmail.com` / `Bilisim35sse` (nokta YOK).
+> 🔒 **Şifreler bu dosyada tutulmaz.** Sprint 11.52'de tüm kimlik bilgileri
+> dokümanlardan kaldırıldı. Şifreler:
+> - Render env (`SEED_ADMIN_PASSWORD`) veya
+> - 1Password / Bitwarden gibi bir parola kasasında.
+>
+> Üretimdeki sistem yöneticisi hesabı `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password`
+> ortam değişkenlerinden oluşturulur. **Kodda gömülü hesap kalmadı** — bilinen şifreyle
+> her açılışta admin yaratma davranışı kaldırıldı.
 
 ## 🎯 Sprint State (HEAD: `64bbb7a`)
 
@@ -81,28 +87,27 @@
 - **EF Core CLI sandbox sorunu** — `dotnet ef migrations add` dosya yazmıyor. Lokal geliştirici makinede CI ile çalıştır.
 - **Modal SPA nav bug** — `useNavigate()` Modal context'inde çalışmıyor. `window.location.href` workaround.
 - **Gmail Test Mode refresh token 7 gün** — Sprint 12'de per-user OAuth handshake tekrarı gerekebilir.
-- **`compose.yaml` bayat** — Sprint 1-2'den kalma PostgreSQL 18 image kullanıyor, uygulama MySQL/Pomelo. Lokal DB için kullanma; TiDB Cloud veya `docker-compose.yml` (MySQL) kullan.
+- **`compose.yaml` bayat** — Sprint 1-2'den kalma PostgreSQL 18 image kullanıyor, uygulama MySQL/Pomelo. **Sprint 11.52'de silindi.** Lokal DB için TiDB Cloud veya `docker-compose.yml` (MySQL) kullan.
 - **`docs/DURUM.md` bayat bölümler** — PostgreSQL 18, `/api/admin/create-user`, `/api/admin/list-users` gibi Sprint 9 öncesi bilgiler içeriyor. Güncel endpoint listesi için `docs/architecture.md`.
 
 ## ⚡ Hızlı referans
 
-### Env (public — repo'da görünebilir)
+### Env — Render panelinde tanımlı olanlar
 
-```
-Mail__Type=gmail
-Mail__Gmail__ClientId=243209544707-o5709qiuebe5a9b8lbe47el1kuh9v75o.apps.googleusercontent.com
-Mail__Gmail__RedirectUri=https://fikir-platformu.onrender.com/api/auth/gmail-oauth/callback
-Mail__Gmail__SenderName=Geleceğin Fikri
-Mail__Gmail__SenderAddress=fikir.platformu.iletisim@gmail.com
-Frontend__BaseUrl=https://fikir-platformu-web.onrender.com
-Cors__AllowedOrigins=https://fikir-platformu-web.onrender.com,http://localhost:5173,http://localhost:5174
-AdminMaintenance__Secret=BekleyinSprint12
-```
+Değerler **bu dosyada tutulmaz** (Sprint 11.52). Render dashboard → Environment listesinden bak.
 
-### Env (SECRET — repo'da ASLA)
-
-- `Mail__Gmail__ClientSecret` — Google Cloud Console
-- ~~`Mail__Gmail__RefreshToken`~~ — **DB'de persist** (`gmail_refresh_tokens.Id=1`), env'den silindi.
+| Değişken | Not |
+|---|---|
+| `ConnectionStrings__MySql` | SECRET — Render secret |
+| `Mail__Type` | `gmail` |
+| `Mail__Gmail__ClientId` | Google OAuth client ID |
+| `Mail__Gmail__ClientSecret` | **SECRET** |
+| `Mail__Gmail__RedirectUri` | callback adresi |
+| `Mail__Gmail__SenderAddress` | gönderen hesap |
+| `Frontend__BaseUrl` | `https://fikir-platformu-web.onrender.com` |
+| `Cors__AllowedOrigins` | Sprint 11.52'den beri **zorunlu** — Render'da farklı origin olduğu için boş bırakılamaz |
+| `AdminMaintenance__Secret` | **SECRET** — Sprint 11.52'de gömülü varsayılan kaldırıldı, mutlaka güçlü bir değer ver |
+| `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password` | İlk admin. Sprint 11.52'de kod içi seed kaldırıldı → bu ikisi olmadan admin oluşmaz |
 
 ### Maintenance endpoints
 
@@ -115,7 +120,9 @@ AdminMaintenance__Secret=BekleyinSprint12
 | `GET /api/auth/__debug/last-login?token=...` | Son login denemesinin detayı |
 | `GET /api/auth/__debug/mail-sender?token=...` | Gmail sender bilgisi |
 
-Token default: `BekleyinSprint12` (Sprint 12'de admin panel'den yönetilecek).
+> Token = `AdminMaintenance__Secret` ortam değişkeninin değeri. **Gömülü varsayılan
+> kaldırıldı (Sprint 11.52).** Değişken tanımlı değilse tüm bu endpoint'ler 403 döner.
+> Bu endpoint'ler Sprint 12'de tamamen kaldırılacak.
 
 ### Kullanıcı iletişim tarzı
 

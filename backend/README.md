@@ -43,7 +43,7 @@ frontend tip kontrolü ve frontend üretim derlemesini birlikte çalıştırır.
 
 - **Üretim/demo:** TiDB Cloud (MySQL-compatible, Frankfurt)
 - **Yerel self-hosted:** `docker-compose.yml` (MySQL) — `docker compose up -d`
-- ⚠️ Depo kökündeki `compose.yaml` Sprint 1-2'den kalma **PostgreSQL 18** tanımı içerir;
-  uygulama MySQL kullandığı için **kullanma**.
+- Repo kökündeki `docker-compose.yml` MySQL 8.0 kullanır. (Sprint 1-2'den kalma PostgreSQL
+  tanımı içeren `compose.yaml` **Sprint 11.52'de silindi**.)
 
 Yerel geliştirme parolaları kodda tutulmaz; ortam değişkenleri veya user-secrets kullanılır.

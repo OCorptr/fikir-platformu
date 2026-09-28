@@ -81,7 +81,7 @@ https://fikir-platformu.onrender.com/api/auth/gmail-oauth/start
 **Doğrulama:**
 
 ```bash
-curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=$Bakim_Anahtari"
 # dbRefreshTokenVar: true olmalı (false ise OAuth handshake tekrarla)
 ```
 

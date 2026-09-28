@@ -22,7 +22,7 @@ curl https://fikir-platformu.onrender.com/api/health
 
 ```bash
 # Identity AccessFailedCount-based lockout temizle
-curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/unlock-account?token=BekleyinSprint12&email=USER@EMAIL.com"
+curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/unlock-account?token=$Bakim_Anahtari&email=USER@EMAIL.com"
 # Beklenen: {"message":"Hesap kilidi kaldırıldı.","oncekiBasarisizDeneme":N,"yeniAccessFailedCount":0}
 ```
 
@@ -30,7 +30,7 @@ curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/unlock-acco
 
 ```bash
 # Identity validator bypass ile direkt PasswordHash set et
-curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/set-password-raw?token=BekleyinSprint12&email=USER@EMAIL.com&password=NEW_PASSWORD"
+curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/set-password-raw?token=$Bakim_Anahtari&email=USER@EMAIL.com&password=NEW_PASSWORD"
 # Beklenen: {"message":"Raw SQL PasswordHash set edildi.","verifyResult":"Success","yeniHashLen":84}
 ```
 
@@ -38,7 +38,7 @@ curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/set-passwor
 
 ```bash
 # Mevcut hesabı sil + CreateAsync ile yeniden oluştur
-curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset?token=BekleyinSprint12"
+curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset?token=$Bakim_Anahtari"
 # Beklenen: {"message":"Sistem Admin oluşturuldu.","email":"fikir.platformu.iletisim@gmail.com"}
 ```
 
@@ -46,7 +46,7 @@ curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset
 
 ```bash
 # Identity default olarak CreateAsync sonrası true set edebiliyor
-curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/clear-must-change-password?token=BekleyinSprint12&email=USER@EMAIL.com"
+curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/clear-must-change-password?token=$Bakim_Anahtari&email=USER@EMAIL.com"
 # Beklenen: {"message":"MustChangePassword kapatıldı.","oncekiDeger":true,"yeniDeger":false}
 ```
 
@@ -54,7 +54,16 @@ curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/clear-must-
 
 ## 🔧 Maintenance endpoints
 
-**Güvenlik:** Tüm `/api/__maintenance/*` ve `/api/auth/__debug/*` endpoint'leri `?token=BekleyinSprint12` query string token kontrolü yapar. `AdminMaintenance__Secret` env ile override edilebilir.
+**Güvenlik (Sprint 11.52 değişikliği):** Tüm `/api/__maintenance/*`, `/api/__debug/*` ve
+`/api/auth/__debug/*` endpoint'leri `?token=<ANAHTAR>` query string kontrolü yapar.
+Anahtar **`AdminMaintenance__Secret`** ortam değişkeninden okunur.
+
+> ⚠️ **Kod içinde varsayılan anahtar artık YOK.** (Sprint 11.52'de silindi.)
+> Değişken tanımlı değilse bu endpoint'ler **403 döner** (fail-closed) —
+> yani kurulmamışsa kapalıdır.
+>
+> Kurulumda üretin: `openssl rand -base64 32`
+> Aşağıdaki komutlarda `<ANAHTAR>` yerine bu değeri yazın.
 
 > ⚠️ **Sprint 12'de kaldırılacak.** Production'da kalıcı bırakılmamalı. Acil durumlar için.
 
@@ -94,7 +103,7 @@ curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/clear-must-
 **Doğrulama:**
 
 ```bash
-curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=$Bakim_Anahtari"
 # Beklenen:
 # {
 #   "senderAddress": "fikir.platformu.iletisim@gmail.com",
@@ -119,11 +128,11 @@ curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=Be
 
 ```bash
 # 1. Mail mod kontrol
-curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-mod?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-mod?token=$Bakim_Anahtari"
 # Beklenen: {"mailTypeEnv":"gmail","aktifSender":"GmailApiEmailSender",...}
 
 # 2. Mail sender kontrol
-curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=$Bakim_Anahtari"
 # dbRefreshTokenVar:false ise OAuth handshake gerekli
 
 # 3. OAuth handshake sonrası tekrar test
@@ -171,7 +180,7 @@ Frontend generic fallback — backend response'u parse edilmiyor.
 
 ```bash
 # Login hatası detay
-curl "https://fikir-platformu.onrender.com/api/auth/__debug/last-login?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/last-login?token=$Bakim_Anahtari"
 # {"denemeVar":true,"deneme":{"captchaGecti":true,"userBulundu":true,"sifreDogrulandi":false,...,"sonuc":"yanlis-sifre"}}
 ```
 
@@ -188,7 +197,7 @@ curl "https://fikir-platformu.onrender.com/api/auth/__debug/last-login?token=Bek
 
 ```bash
 # CORS config doğrula
-curl "https://fikir-platformu.onrender.com/api/__debug/cors-config?token=BekleyinSprint12"
+curl "https://fikir-platformu.onrender.com/api/__debug/cors-config?token=$Bakim_Anahtari"
 # {"corsOrigins":["https://fikir-platformu-web.onrender.com",...],...}
 
 # OPTIONS preflight test
@@ -268,7 +277,7 @@ curl -X OPTIONS "https://fikir-platformu.onrender.com/api/auth/login" \
 
 - [ ] `Mail__Gmail__ClientSecret` Render env'de, repo'da DEĞİL.
 - [ ] `Mail__Gmail__RefreshToken` DB'de encrypted (Sprint 11.36+), env'de DEĞİL.
-- [ ] `AdminMaintenance__Secret` strong random, default `BekleyinSprint12` (geçici).
+- [x] `AdminMaintenance__Secret` — gömülü varsayılan anahtar Sprint 11.52'de **silindi**. Anahtar yalnızca ortam değişkeninden okunur; tanımlı değilse endpoint'ler 403 döner. Üretimde `openssl rand -base64 32` ile üretin.
 - [ ] CORS whitelist sadece gerekli origin'ler (production + dev).
 - [ ] HTTPS-only cookies (`SameSite=None; Secure`).
 - [ ] `/api/__maintenance/*` Sprint 12'de kaldırılacak.

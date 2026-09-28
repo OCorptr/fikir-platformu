@@ -17,6 +17,21 @@ public static class CaptchaEndpoints
     private static readonly ConcurrentDictionary<string, CaptchaChallenge> Challenges = new();
     private static readonly TimeSpan YasamSuresi = TimeSpan.FromMinutes(5);
 
+    /// <summary>
+    /// Sprint 11.52 (YEĞİTEK madde 2): "Güvenlik testi aşamasında kapça devre dışı
+    /// bırakılabilir." Kapça, ortam değişkeni <c>Captcha__Disabled=true</c> ile
+    /// kapatılabilir. Varsayılan KAPALI DEĞİL — production'da kapça açık olmalıdır.
+    /// Kapatıldığında her istek otomatik geçerli sayılır ve <c>/new</c> uçları
+    /// bunu bildirir.
+    /// </summary>
+    private static bool DevreDisi;
+
+    /// <summary>Program.cs tarafından başlangıçta çağrılır.</summary>
+    public static void Ayarla(bool devreDisi) => DevreDisi = devreDisi;
+
+    /// <summary>Kapça şu anda devre dışı mı? (sağlık/debug uçları için)</summary>
+    public static bool DevreDisiMi => DevreDisi;
+
     public sealed record CaptchaSoruIstegi;
 
     public sealed record CaptchaSoruCevabi(
@@ -31,6 +46,17 @@ public static class CaptchaEndpoints
 
         grup.MapGet("/new", () =>
         {
+            if (DevreDisi)
+            {
+                return Results.Ok(new
+                {
+                    id = "",
+                    question = "",
+                    devreDisi = true,
+                    message = "CAPTCHA güvenlik testi için devre dışı bırakıldı (Captcha__Disabled=true)."
+                });
+            }
+
             // Temizle: süresi dolmuş challenge'ları sil (10 dk'dan eski).
             Temizle();
 
@@ -50,6 +76,8 @@ public static class CaptchaEndpoints
 
         grup.MapPost("/verify", (CaptchaSoruCevabi istek) =>
         {
+            if (DevreDisi) return Results.Ok(new { valid = true, devreDisi = true });
+
             if (!Challenges.TryGetValue(istek.Id, out var challenge))
                 return Results.Json(new { message = "CAPTCHA süresi dolmuş veya geçersiz." }, statusCode: 400);
 
@@ -72,6 +100,9 @@ public static class CaptchaEndpoints
     /// <summary>Login/register endpoint'leri bununla doğrular — eğer challenge hâlâ bellekteyse geçerli.</summary>
     public static bool CaptchaGecerliMi(string? challengeId, string? cevap)
     {
+        // Sprint 11.52: güvenlik testi modunda kapça atlanır.
+        if (DevreDisi) return true;
+
         if (string.IsNullOrEmpty(challengeId) || string.IsNullOrEmpty(cevap)) return false;
         if (!Challenges.TryGetValue(challengeId, out var ch)) return false;
         Challenges.TryRemove(challengeId, out _);

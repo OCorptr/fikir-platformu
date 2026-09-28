@@ -8,8 +8,12 @@
 
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { backendOrigin } from "../../services/api";
 
-const OAUTH_START_URL = "https://fikir-platformu.onrender.com/api/auth/gmail-oauth/start";
+// Sprint 11.52: Adres kodda gömülüydü. Kendi sunucusunu kuran kurulumda
+// yönetici, geliştiricinin Render sunucusuna yönlendirilirdi. Artık
+// aynı-origin varsayılan; env ile farklı origin verilebilir.
+const OAUTH_START_URL = `${backendOrigin()}/api/auth/gmail-oauth/start`;
 
 export function OAuthAyarlaPage() {
   const [mevcut, setMevcut] = useState<{ hasToken: boolean } | null>(null);

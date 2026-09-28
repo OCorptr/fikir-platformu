@@ -38,15 +38,16 @@ cd ../frontend
 pnpm install --frozen-lockfile
 pnpm run build  # VITE_API_BASE_URL boş → relative /api (nginx proxy'ler)
 
-# 6) Seed: ilk 9 hesap
-cd ..
-TIDB_HOST=localhost TIDB_USER=fikir_app TIDB_PASS=GUCLU_SIFRE python3 seed/ilk_hesaplar.py
+# 6) İlk sistem yöneticisi hesabı
+#    .env'teki SeedSystemAdmin__Email + SeedSystemAdmin__Password ile oluşur (DB boşsa),
+#    ya da elle:  cd backend && SEED_ADMIN_PASSWORD='<güçlü>' dotnet run --project src/FikirPlatformu.Api -- seed
+#    Diğer hesaplar (il yöneticisi, değerlendirici, öğrenci) uygulama içinden açılır.
 
 # 7) systemd + nginx ayarla (Bölüm 5-6)
 sudo systemctl enable --now fikir-api
 sudo nginx -t && sudo systemctl reload nginx
 
-# 8) Test: https://fikir.meb.gov.tr → "Yetkili Girişi" → system.admin@fikir.local / NewAudit456!
+# 8) Test: https://fikir.meb.gov.tr → "Yetkili Girişi" → .env'teki SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
 ```
 
 ### B) docker-compose ile (kendi MySQL'in yoksa)
@@ -56,7 +57,7 @@ cd /opt/FikirPlatformu
 cp .env.example .env
 # .env'de DB_CONNECTION_STRING="Server=mysql;Port=3306;Database=fikir_platformu;User=fikir;Password=FikirGuclu2026!;SslMode=Preferred;"
 docker compose --profile with-mysql up -d
-TIDB_HOST=localhost TIDB_USER=fikir TIDB_PASS=FikirGuclu2026! python3 seed/ilk_hesaplar.py
+# İlk sistem yöneticisi: .env'teki SEED_ADMIN_* değerleriyle otomatik oluşur (DB boşsa)
 ```
 
 ### C) Sadece backend + frontend (mevcut MySQL'iniz var)
@@ -66,7 +67,7 @@ cd /opt/FikirPlatformu
 cp .env.example .env
 nano .env  # DB_CONNECTION_STRING'i kendi MySQL'inize göre düzenle
 docker compose up -d backend frontend
-python3 seed/ilk_hesaplar.py
+# İlk sistem yöneticisi: .env'teki SEED_ADMIN_* değerleriyle otomatik oluşur (DB boşsa)
 ```
 
 ---
@@ -428,26 +429,28 @@ VITE_API_BASE_URL=https://api.fikir.meb.gov.tr
 
 ## 🔑 İlk giriş ve MFA kurulumu
 
-`seed/ilk_hesaplar.py` çalıştırıldıktan sonra aşağıdaki 9 hesap oluşur (şifre: `NewAudit456!`):
+### İlk sistem yöneticisi hesabı
 
-| E-posta | Rol | MFA |
-|---|---|---|
-| `system.admin@fikir.local` | SystemAdmin | Zorunlu |
-| `bakanlik@fikir.local` | MinistryOfficial | Zorunlu |
-| `il.istanbul@fikir.local` | ProvinceManager | Zorunlu |
-| `il.ankara@fikir.local` | ProvinceManager | Zorunlu |
-| `il.izmir@fikir.local` | ProvinceManager | Zorunlu |
-| `deg.istanbul@fikir.local` | ProvinceEvaluator | Zorunlu |
-| `deg.ankara@fikir.local` | ProvinceEvaluator | Zorunlu |
-| `deg.izmir@fikir.local` | ProvinceEvaluator | Zorunlu |
-| `demo.ogrenci@fikir.local` | Student | Yok |
+İlk kurulumda **tek** bir sistem yöneticisi hesabı oluşur. Şifresi sizin belirlediğiniz
+`SeedSystemAdmin__Password` değeridir ve **bu dokümanda yazmaz** (güvenlik).
 
-### Test akışı (Sistem Yöneticisi olarak)
+Oluşma koşulu: veritabanı boşsa. Hesap zaten varsa hiçbir şey yapılmaz.
+
+Elle oluşturmak için:
+```bash
+cd backend
+SEED_ADMIN_PASSWORD='<güçlü şifre>' dotnet run --project src/FikirPlatformu.Api -- seed
+```
+
+Kurulum tamamlandıktan sonra `.env` içindeki `SEED_ADMIN_PASSWORD` ve
+`SEED_ADMIN_EMAIL` değerlerini silin.
+
+### İlk giriş akışı (Sistem Yöneticisi)
 
 1. **Siteye git:** `https://fikir.meb.gov.tr`
 2. **Anasayfada** "Yetkili Girişi" butonuna tıkla
-3. **Email:** `system.admin@fikir.local`
-4. **Şifre:** `NewAudit456!`
+3. **E-posta:** `.env`'de verdiğiniz `SEED_ADMIN_EMAIL`
+4. **Şifre:** `.env`'de verdiğiniz `SEED_ADMIN_PASSWORD`
 5. **CAPTCHA** sorusunu çöz
 6. **MFA kurulum sayfası** açılır:
    - Google Authenticator veya Microsoft Authenticator uygulamasını aç
@@ -462,11 +465,16 @@ VITE_API_BASE_URL=https://api.fikir.meb.gov.tr
 
 ### Şifre değiştirme
 
-İlk girişten sonra her kullanıcı kendi şifresini değiştirmeli (`/api/auth/change-password`). Sistem yöneticisi bu zorunluluğu `MustChangePassword=true` ile zorlar (seed script bunu zaten yapmaz; production'da yeni kullanıcılar için true önerilir).
+İlk girişten sonra her kullanıcı kendi şifresini değiştirmeli (`/api/auth/change-password`). Sistem yöneticisi bu zorunluluğu `MustChangePassword=true` ile zorlar.
 
-### Demo hesap (öğrenci, MFA yok)
+### Diğer hesapları oluşturma
 
-`demo.ogrenci@fikir.local / NewAudit456!` → doğrudan öğrenci paneline giriş.
+İl yöneticisi, değerlendirici, bakanlık yetkilisi ve öğrenci hesapları **uygulama içinden**
+açılır: **Admin Panel → Kullanıcı Yönetimi**. Toplu import için **Kullanıcı Yönetimi →
+Toplu Ekleme** (CSV).
+
+Test/demo hesapları kodu içinde **yoktur** — yalnızca `Development` ortamında
+`Program.cs` demo seed'i çalışır; production'da çalışmaz.
 
 ---
 

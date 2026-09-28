@@ -26,12 +26,17 @@ Bu doküman `SECURITY_IMPLEMENTATION_PLAN.md` ile birlikte production öncesi ya
 ## Uygulanan Kontroller
 
 ### Kimlik Doğrulama (plan §2)
-- Şifre politikası (`Program.cs` Identity options): `RequiredLength = 8`, `RequireNonAlphanumeric = false`
-- **Uyum şifreler (nokta içermeyen) için `BypassPasswordValidator` DI'da kayıtlı** (Sprint 11.7) —
-  `Bilisim35sse` gibi Identity kuralına takılmayan şifreler kabul edilir
-- Öğrenci kayıt uçları daha gevşek: min 5 karakter (hedef kitle küçük çocuklar)
-- Lockout: 5 başarısız deneme → 15 dk (Identity)
-- Şifre süre sonu: 90 gün zorla, 75 gün uyarı (frontend `passwordWarn` flag'i)
+- Şifre politikası (`Program.cs` Identity options):
+  `RequiredLength = 8`, `RequireUppercase = true`, `RequireLowercase = true`,
+  `RequireDigit = false`, `RequireNonAlphanumeric = false`
+- **⚠️ YEĞİTEK madde 16 ile çelişiyor** (bkz. `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md`).
+  Madde "büyük/küçük harf, rakam, özel karakter" istiyor; uygulamada rakam ve özel
+  karakter zorunlu değil. Kurum uyum şifreleri için bilinçli olarak gevşetildi.
+  Sprint 12'de karar verilecek.
+- Öğrenci kayıt uçları da **aynı** politikayı uygular (min 8 + büyük/küçük harf)
+- Lockout: 5 başarısız deneme → **5 dakika** (Identity varsayılanı; özel ayar yok)
+- Şifre süre sonu: 90 gün eşiği **hesaplanıyor ama zorlanmıyor** (Sprint 12'de kapatılacak,
+  YEĞİTEK madde 17)
 - MFA: TOTP (RFC 6238), Otp.NET 1.4.1
   - Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) için **zorunlu**
   - Diğer kullanıcılar opt-in

@@ -29,17 +29,25 @@ export function apiUrl(path: string): string {
   return API_BASE ? `${API_BASE}/${temiz}` : `/${temiz}`;
 }
 
-// Onur dashboard'nda VITE_API_BASE_URL henüz set edilmediğinden
-// production için hardcoded fallback gerekli. Gelecekte özel domain
-// (fikrimnet.gov.tr) aktifleşince env variable'ı set etmek yeterli.
-const PRODUCTION_BACKEND_ORIGIN = "https://fikir-platformu.onrender.com";
-
+// Backend origin çözümü.
+//
+// Sprint 11.52 GÜVENLİK DÜZELTMESİ:
+//   Önceden Render production origin'i BURAYA GÖMÜLÜYDÜ. Kendi sunucusunu kuran
+//   bir kurulum (nginx aynı-domain, Docker, kendi domain'i) boş `VITE_API_BASE_URL`
+//   ile build edildiğinde MFA girişi dahil TÜM akış geliştiricinin sunucusuna
+//   gidiyordu. Artık hiçbir adres kodda gömülü değil.
+//
+// Çözümleme sırası:
+//   1. VITE_API_BASE_URL tanımlıysa onu kullan.
+//   2. Tarayıcıda sayfanın kendi origin'ini kullan (nginx / Docker reverse proxy
+//      aynı-origin ise doğru cevap budur) — `/api/...` göreli gider.
+//   3. Node/Vite ortamında (window yoksa) `VITE_DEV_BACKEND_ORIGIN` veya localhost:5000.
 export function backendOrigin(): string {
-  if (API_BASE) return API_BASE; // env variable varsa onu kullan
-  // Dev server'da (Vite proxy `/api` → :5000) kendi origin doğru.
-  // Production'da `https://fikir-platformu-web.onrender.com` origin'i
-  // `/api/...` için static SPA fallback olur — backend origin'i şart.
-  return PRODUCTION_BACKEND_ORIGIN;
+  if (API_BASE) return API_BASE;
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+  return import.meta.env.VITE_DEV_BACKEND_ORIGIN || "http://localhost:5000";
 }
 
 export function backendApiUrl(path: string): string {

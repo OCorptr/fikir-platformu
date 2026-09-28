@@ -620,7 +620,9 @@ public static class AdminEndpoints
             catch (Exception ex)
             {
                 mailHatasi = ex.Message;
-                logger.LogError(ex, "[ADMIN-SIFRE] reset mail gönderilemedi: {Email}", user.Email);
+                // Sprint 11.52: E-posta maskelendi (YG-09 — loglarda düz metin PII olmaz).
+                logger.LogError(ex, "[ADMIN-SIFRE] reset mail gönderilemedi: {Email}",
+                    KisiselVeriYardimci.EmailMaskele(user.Email));
             }
 
             // İlk girişte şifre değiştirme zorunluluğu.

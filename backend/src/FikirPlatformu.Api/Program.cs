@@ -1,3 +1,4 @@
+using FikirPlatformu.Api;
 using FikirPlatformu.Api.Endpoints;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Evaluations;
@@ -213,35 +214,13 @@ builder.Services
 //   - Absolute timeout=8 saat: ASP.NET Core cookie auth'da yok; OnValidatePrincipal + IssueDate ile manuel uygulanır.
 var isProduction = builder.Environment.IsProduction();
 var securePolicy = isProduction ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
-// Cross-origin (CORS whitelist dolu) → SameSite=None gerekli.
-// Same-origin (nginx reverse proxy) → Lax yeterli + daha güvenli.
-// Sprint 10.7+ fix: Cors:AllowedOrigins Render env'de YOK'tu → useCors
-// hiç çağrılmıyor, cross-origin 401. Default fallback ekle:
-//   - Development → Vite localhost
-//   - Production  → Render frontend URL (env override mümkün)
-var corsOrigins = builder.Configuration
-    .GetSection("Cors:AllowedOrigins")
-    .Get<string[]>();
-
-// Sprint 11.28c: Env fallback — `Cors__AllowedOrigins__0` array binding
-// bazen bos donuyor (env format degisikligi). Manuel env tek deger oku.
-if (corsOrigins == null || corsOrigins.Length == 0)
-{
-    var tekDeger = builder.Configuration["Cors:AllowedOrigins:0"]
-        ?? builder.Configuration["Cors__AllowedOrigins__0"]
-        ?? builder.Configuration["Cors__AllowedOrigins"];
-    if (!string.IsNullOrWhiteSpace(tekDeger) && tekDeger != "value")
-    {
-        corsOrigins = tekDeger.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-    }
-}
-
-if (corsOrigins == null || corsOrigins.Length == 0)
-{
-    corsOrigins = builder.Environment.IsDevelopment()
-        ? new[] { "http://localhost:5173", "http://localhost:5174" }
-        : new[] { "https://fikir-platformu-web.onrender.com" };
-}
+// CORS beyaz listesi + cookie SameSite kararı.
+//   - Liste DOLU  → cross-origin: CORS middleware açılır, cookie'ler SameSite=None (Secure zorunlu).
+//   - Liste BOŞ   → same-origin (nginx reverse proxy veya aynı domain): CORS kurulmaz, SameSite=Lax.
+// Sprint 11.52: Üretimdeki gömülü Render fallback kaldırıldı; artık `Cors__AllowedOrigins`
+//   açıkça verilmezse same-origin moduna düşer. Render dağıtımı için
+//   `Cors__AllowedOrigins` veya `Cors__AllowRenderFallback=true` ayarlanmalıdır.
+var corsOrigins = BakimCORS.AktifOriginler(builder.Configuration, builder.Environment);
 var sameSite = corsOrigins.Length > 0 ? SameSiteMode.None : SameSiteMode.Lax;
 
 // Mutlak oturum süresi: kullanıcının cookie yazıldıktan sonra en fazla açık kalabileceği süre.
@@ -424,6 +403,10 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Sprint 11.52 (YEĞİTEK madde 2): Kapça güvenlik testi sırasında kapatılabilir.
+// Ortam değişkeni: Captcha__Disabled=true  (varsayılan: açık)
+CaptchaEndpoints.Ayarla(builder.Configuration.GetValue("Captcha:Disabled", false));
+
 var app = builder.Build();
 
 // EF Core migration'ları otomatik uygula (Sprint 10 — yoksa deployment'ta yeni
@@ -455,11 +438,26 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+// Sprint 11.52: Kurulum seed komutu — `dotnet run -- seed` ile ilk hesapları oluşturur.
+// Eski `seed/ilk_hesaplar.py` canlı DB kimlik bilgisi içeriyordu ve geliştiricinin
+// production DB'sindeki bir satıra bağımlıydı; artık Python'a gerek yok.
+// Hedef veritabanı boş değilse hiçbir şey yazılmaz (fail-closed).
+if (KurulumSeedAraci.CalistirilacakMi(args))
+{
+    var seedLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("KurulumSeed");
+    await KurulumSeedAraci.CalistirAsync(app.Services, builder.Configuration, seedLogger);
+    return;
+}
+
 // Güvenlik header'ları (Sprint 5 — ek savunma katmanı).
 // X-Content-Type-Options: MIME sniffing engeli
 // X-Frame-Options: clickjacking koruması
 // Referrer-Policy: referrer bilgisi sızıntısı azaltma
 // Permissions-Policy: gereksiz tarayıcı özelliklerini kapatma
+// Content-Security-Policy + Strict-Transport-Security: Sprint 11.52 (YG-07, YEĞİTEK maddeleri)
+//
+// HSTS yalnızca HTTPS üzerinden gönderilir; HTTP'de tarayıcı bunu yok sayar.
+var hstsAktif = builder.Environment.IsProduction();
 app.Use(async (ctx, next) =>
 {
     var h = ctx.Response.Headers;
@@ -467,6 +465,26 @@ app.Use(async (ctx, next) =>
     h["X-Frame-Options"] = "DENY";
     h["Referrer-Policy"] = "strict-origin-when-cross-origin";
     h["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()";
+
+    // Sprint 11.52: Content-Security-Policy. React derlemesi 'unsafe-inline' stil
+    // ve 'unsafe-eval' gerektirir; kaynak yalnızca kendi origin'ine (connect-src dahil)
+    // ve Gmail/Resend API'lerine açıktır. Başka origin'e script yüklenemez.
+    h["Content-Security-Policy"] = builder.Configuration["Security:ContentSecurityPolicy"]
+        ?? "default-src 'self'; " +
+           "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+           "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+           "font-src 'self' data: https://fonts.gstatic.com; " +
+           "img-src 'self' data: blob:; " +
+           "connect-src 'self' https://www.googleapis.com https://gmail.googleapis.com https://api.resend.com; " +
+           "frame-ancestors 'none'; " +
+           "base-uri 'self'; " +
+           "form-action 'self'";
+
+    if (hstsAktif && ctx.Request.IsHttps)
+    {
+        h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
+    }
+
     await next();
 });
 
@@ -505,7 +523,11 @@ app.UseRateLimiter();
 /// UseCors must be called after UseRouting but before UseAuthorization,
 /// but the implicit UseRouting in minimal API may not be active yet.
 /// Tüm middleware'lerden once cagirmak en guvenli yol.
-app.UseCors(FrontendCorsPolicy);
+// Sprint 11.52: Liste boşsa (same-origin mod) CORS middleware hiç kurulmaz.
+if (corsOrigins.Length > 0)
+{
+    app.UseCors(FrontendCorsPolicy);
+}
 
 // Sprint 11.28: CORS preflight OPTIONS request'leri 204 ile kısa devre yapsın
 // — UseStatusCodePages middleware'i 404 fallback'i bu istekleri yakalıyor.
@@ -528,11 +550,9 @@ app.MapGet("/api/__debug/cors-config", (
     HttpContext http,
     IConfiguration cfg) =>
 {
-    var token = http.Request.Query["token"].ToString();
-    var beklenen = cfg["AdminMaintenance:Secret"]
-        ?? cfg["__maintenance:admin-reset:token"]
-        ?? "BekleyinSprint12";
-    if (string.IsNullOrEmpty(token) || token != beklenen)
+    // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı — `AdminMaintenance__Secret`
+    // tanımlı değilse bu debug endpoint kapalıdır (fail-closed).
+    if (!BakimGizliAnahtar.Gecerli(http, cfg))
     {
         return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
     }
@@ -542,6 +562,8 @@ app.MapGet("/api/__debug/cors-config", (
         corsSectionLength = corsSection?.Length ?? 0,
         corsSectionValues = corsSection ?? Array.Empty<string>(),
         envHasKey = cfg.GetSection("Cors:AllowedOrigins").Exists(),
+        // Sprint 11.52: Gerçek CORS whitelist'i (env boşsa hardcoded fallback dahil) göster.
+        aktifCorsOrigins = BakimCORS.AktifOriginler(cfg, app.Environment),
     });
 });
 
@@ -555,8 +577,10 @@ app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 app.MapGet("/api/health/db", async (FikirPlatformuDbContext db, CancellationToken cancellationToken) =>
 {
     var connected = await db.Database.CanConnectAsync(cancellationToken);
+    // Sprint 11.52: Bu uç PostgreSQL diyordu ama uygulama Pomelo MySQL / TiDB kullanıyor.
+    var motor = db.Database.ProviderName ?? "bilinmiyor";
     return connected
-        ? Results.Ok(new { status = "connected", database = "PostgreSQL" })
+        ? Results.Ok(new { status = "connected", database = "MySQL/TiDB", provider = motor })
         : Results.StatusCode(503);
 });
 
@@ -570,13 +594,12 @@ app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
 app.MapMinistryEndpoints();
 
-// Sprint 11.7 — anonymous maintenance endpoint (System Admin sıfırlama).
-// Identity 9 default validators 'Bilisim35sse'yi normal yoldan reddediyor.
-// Bu endpoint IPasswordHasher ile direkt PasswordHash set eder (validators bypass).
+// Bakım endpoint'i — sistem yöneticisi hesabını oluşturur/sıfırlar.
+// Hesap bilgileri `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password`
+// ortam değişkenlerinden okunur; hiçbiri kodda gömülü değildir (Sprint 11.52).
 //
-// Production'da AdminMaintenance:Secret env değişkeni set edilmeli; yoksa fallback
-// hardcoded (sadece bilinen taraf erişir). Sprint 12 sonrası admin panelinden
-// SystemAdmin yönetimi yapılınca bu kaldırılır.
+// Güvenlik: `AdminMaintenance__Secret` tanımlı değilse endpoint 403 döner (fail-closed).
+// Sprint 12'de admin panelinden SystemAdmin yönetimi yapılınca bu kaldırılacak.
 //
 // Kullanım:
 //   curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset?token=SECRET"
@@ -598,24 +621,25 @@ app.MapPost("/api/__maintenance/admin-reset", async (
     FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
     ILogger<Program> logger) =>
 {
-    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
-    if (string.IsNullOrWhiteSpace(beklenenSecret))
-    {
-        beklenenSecret = "BekleyinSprint12"; // Geçici default — sprint 12 sonrası kaldır.
-    }
-
-    var urlSecret = http.Request.Query["token"].ToString();
-    if (urlSecret != beklenenSecret)
+    // Sprint 11.52: Kod içine gömülü varsayılan anahtar kaldırıldı.
+    // `AdminMaintenance__Secret` tanımlı değilse endpoint fail-closed (403) kalır.
+    if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
     {
         return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
     }
 
-    const string hedefEposta = "fikir.platformu.iletisim@gmail.com";
-    // Onur Sprint 11.7 talebi: 'Bilisim35sse' — Identity 9 default validator
-    // (RequireDigit=true, RequireNonAlphanumeric=true) bu şifreyi normal yoldan
-    // reddeder. Maintenance endpoint IPasswordHasher ile direkt PasswordHash set eder,
-    // validators pipeline bypass. Üretim ortamı için bu şifre Onur'un tercihi.
-    const string hedefSifre = "Bilisim35sse";
+    // Sprint 11.52: Gömülü e-posta + şifre kaldırıldı. Artık `SeedSystemAdmin__Email`
+    // ve `SeedSystemAdmin__Password` ortam değişkenlerinden okunur. Tanımlı değilse
+    // endpoint 503 döner (fail-closed) — teslim edilen kodda bilinen kimlik yok.
+    var hedefEposta = yapilandirma["SeedSystemAdmin:Email"];
+    var hedefSifre = yapilandirma["SeedSystemAdmin:Password"];
+    if (string.IsNullOrWhiteSpace(hedefEposta) || string.IsNullOrWhiteSpace(hedefSifre))
+    {
+        logger.LogError("[MAINT] SeedSystemAdmin__Email / SeedSystemAdmin__Password tanımlı değil — admin oluşturulamadı.");
+        return Results.Json(
+            new { message = "Sunucu yapılandırması eksik: SeedSystemAdmin__Email ve SeedSystemAdmin__Password gerekli." },
+            statusCode: 503);
+    }
 
     var mevcut = await userManager.FindByEmailAsync(hedefEposta);
     if (mevcut is not null)
@@ -708,13 +732,9 @@ app.MapPost("/api/__maintenance/clear-must-change-password", async (
     FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
     ILogger<Program> logger) =>
 {
-    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
-    if (string.IsNullOrWhiteSpace(beklenenSecret))
-    {
-        beklenenSecret = "BekleyinSprint12";
-    }
-    var urlSecret = http.Request.Query["token"].ToString();
-    if (urlSecret != beklenenSecret)
+    // Sprint 11.52: Kod içine gömülü varsayılan anahtar kaldırıldı.
+    // `AdminMaintenance__Secret` tanımlı değilse endpoint fail-closed (403) kalır.
+    if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
     {
         return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
     }
@@ -740,8 +760,10 @@ app.MapPost("/api/__maintenance/clear-must-change-password", async (
     if (!updSonuc.Succeeded)
     {
         // Fallback: raw SQL.
+        // Sprint 11.52: Tırnak içinde çift tırnak ("AspNetUsers") PostgreSQL tanımıydı.
+        // MySQL/TiDB'de çift tırnak string literal sayılır → syntax error. Backtick'e çevrildi.
         var affected = await veritabani.Database.ExecuteSqlRawAsync(
-            "UPDATE \"AspNetUsers\" SET \"MustChangePassword\" = false, \"SecurityStamp\" = {0}, \"ConcurrencyStamp\" = {1} WHERE \"Id\" = {2}",
+            "UPDATE `AspNetUsers` SET `MustChangePassword` = 0, `SecurityStamp` = {0}, `ConcurrencyStamp` = {1} WHERE `Id` = {2}",
             Guid.NewGuid().ToString().Replace("-", "").ToUpperInvariant(),
             Guid.NewGuid().ToString(),
             user.Id);
@@ -780,13 +802,9 @@ app.MapPost("/api/__maintenance/set-password-raw", async (
     FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
     ILogger<Program> logger) =>
 {
-    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
-    if (string.IsNullOrWhiteSpace(beklenenSecret))
-    {
-        beklenenSecret = "BekleyinSprint12";
-    }
-    var urlSecret = http.Request.Query["token"].ToString();
-    if (urlSecret != beklenenSecret)
+    // Sprint 11.52: Kod içine gömülü varsayılan anahtar kaldırıldı.
+    // `AdminMaintenance__Secret` tanımlı değilse endpoint fail-closed (403) kalır.
+    if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
     {
         return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
     }
@@ -815,8 +833,9 @@ app.MapPost("/api/__maintenance/set-password-raw", async (
     // SecurityStamp de guncelleyelim ki ValidateUser login sanity check'inde
     // rol atamaları cookie tazeleyince uyumsuzluk olmasın.
     var yeniSecurityStamp = Guid.NewGuid().ToString().Replace("-", "").ToUpperInvariant();
+    // Sprint 11.52: Aynı PostgreSQL→MySQL tanım hatası. Backtick'e çevrildi.
     var affected = await veritabani.Database.ExecuteSqlRawAsync(
-        "UPDATE \"AspNetUsers\" SET \"PasswordHash\" = {0}, \"SecurityStamp\" = {1}, \"ConcurrencyStamp\" = {2} WHERE \"Id\" = {3}",
+        "UPDATE `AspNetUsers` SET `PasswordHash` = {0}, `SecurityStamp` = {1}, `ConcurrencyStamp` = {2} WHERE `Id` = {3}",
         yeniHash, yeniSecurityStamp, Guid.NewGuid().ToString(), user.Id);
 
     // DB'den tekrar oku ve verify et.
@@ -839,11 +858,10 @@ app.MapPost("/api/__maintenance/set-password-raw", async (
     });
 }).AllowAnonymous();
 
-// Sprint 11.43: Idempotent PasswordHash set — mevcut hesabin sifresini degistirmek icin.
-// Onur: 'Bilisim35sse' ile giris 'yanlis-sifre' hatasi veriyor. Sebep CreateAsync sirasinda
-// Identity 9 default validators PasswordHash'i bos birakabiliyor. Bu endpoint mevcut
-// hesabin PasswordHash'ini Identity bypass ile direk set eder.
-// Kullanım: POST /api/__maintenance/set-password?token=SECRET&email=X&password=Y
+// Idempotent PasswordHash set — mevcut hesabın şifresini değiştirmek için.
+// Identity 9 CreateAsync sırasında PasswordHash'i boş bırakabiliyor; bu endpoint
+// mevcut hesabın PasswordHash'ini doğrudan set eder.
+// Kullanım: POST /api/__maintenance/set-password?token=<SEKRET>&email=X&password=Y
 app.MapPost("/api/__maintenance/set-password", async (
     HttpContext http,
     IConfiguration yapilandirma,
@@ -852,13 +870,9 @@ app.MapPost("/api/__maintenance/set-password", async (
     FikirPlatformu.Infrastructure.Persistence.FikirPlatformuDbContext veritabani,
     ILogger<Program> logger) =>
 {
-    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
-    if (string.IsNullOrWhiteSpace(beklenenSecret))
-    {
-        beklenenSecret = "BekleyinSprint12";
-    }
-    var urlSecret = http.Request.Query["token"].ToString();
-    if (urlSecret != beklenenSecret)
+    // Sprint 11.52: Kod içine gömülü varsayılan anahtar kaldırıldı.
+    // `AdminMaintenance__Secret` tanımlı değilse endpoint fail-closed (403) kalır.
+    if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
     {
         return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
     }
@@ -912,13 +926,9 @@ app.MapPost("/api/__maintenance/unlock-account", async (
     IConfiguration yapilandirma,
     UserManager<ApplicationUser> userManager) =>
 {
-    var beklenenSecret = yapilandirma["AdminMaintenance:Secret"];
-    if (string.IsNullOrWhiteSpace(beklenenSecret))
-    {
-        beklenenSecret = "BekleyinSprint12";
-    }
-    var urlSecret = http.Request.Query["token"].ToString();
-    if (urlSecret != beklenenSecret)
+    // Sprint 11.52: Kod içine gömülü varsayılan anahtar kaldırıldı.
+    // `AdminMaintenance__Secret` tanımlı değilse endpoint fail-closed (403) kalır.
+    if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
     {
         return Results.Json(new { message = "Yetkisiz. Token yanlış veya eksik." }, statusCode: 403);
     }
@@ -974,89 +984,66 @@ using (var kapsam = app.Services.CreateScope())
     }
 }
 
-// Sprint 10.7+++ Sistem Sabit Admin seed: Onur tarafından YEGİTEK kendisi için
-// kullanılacak. Production dahil her ortamda idempotent — kullanıcı yoksa oluşturur.
-// Sprint 11 — bugfix: Identity validator Bilisim35sse'yi reddediyordu (digit yok).
-// Bu seed sırasında CreateAsync başarısız oluyor ama hata loglanmıyor, kullanıcı
-// boş PasswordHash ile DB'de kalıyor. Şimdi:
-// 1. Kullanıcı yoksa Identity CreateAsync (validator policy gevşetildi).
-// 2. Kullanıcı varsa: PasswordHash boş/IdentityFail ise AddPasswordAsync ile
-//    şifreyi sonradan atayarak geri kazanım.
+// Sprint 10.7+++ Sistem Admin seed.
+//
+// ⚠️ Sprint 11.52 GÜVENLİK DÜZELTMESİ — eski davranış KALDIRILDI:
+//   Eski kod, Production dahil HER ortamda ve HER açılışta, kodda gömülü olan
+//   sabit bir e-posta + sabit bir şifreyle sistem yöneticisi hesabını arayıp,
+//   varsa SİLİP yeniden oluşturuyordu. Bu:
+//     (a) bilinen şifreyle en yüksek yetkiye erişim açığı,
+//     (b) her restart'ta yöneticinin şifresi/MFA kurulumu/servis kayıtları yok olması,
+//     (c) teslim edilen kodda kimlik bilgisi gömülü olması demekti.
+//
+// Yeni davranış (fail-closed):
+//   - Yalnızca `SeedSystemAdmin__Email` VE `SeedSystemAdmin__Password` ortam
+//     değişkenlerinin İKİSİ de tanımlıysa seed çalışır.
+//   - Hesap zaten varsa hiçbir şey yapılmaz (şifre/MFA korunur).
+//   - Hiçbir e-posta veya şifre kodda gömülü değildir.
+//   - Kurulum sonrası bu iki değişken sunucudan KALDIRILMASI önerilir.
 {
-    using var sistemAdminKapsam = app.Services.CreateScope();
-    var kullaniciYoneticisi = sistemAdminKapsam.ServiceProvider
-        .GetRequiredService<UserManager<ApplicationUser>>();
-    const string sistemAdminEposta = "fikir.platformu.iletisim@gmail.com";
-    const string sistemAdminSifre = "Bilisim35sse";
-    var mevcutSistemAdmin = await kullaniciYoneticisi
-        .FindByEmailAsync(sistemAdminEposta);
-    if (mevcutSistemAdmin is null)
+    var seedEmail = builder.Configuration["SeedSystemAdmin:Email"];
+    var seedPassword = builder.Configuration["SeedSystemAdmin:Password"];
+
+    if (string.IsNullOrWhiteSpace(seedEmail) || string.IsNullOrWhiteSpace(seedPassword))
     {
-        var sistemAdmin = new ApplicationUser
-        {
-            UserName = sistemAdminEposta,
-            Email = sistemAdminEposta,
-            FirstName = "Sistem",
-            LastName = "Yöneticisi",
-            EmailConfirmed = true,
-        };
-        var olusturma = await kullaniciYoneticisi
-            .CreateAsync(sistemAdmin, sistemAdminSifre);
-        if (olusturma.Succeeded)
-        {
-            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "SystemAdmin");
-            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
-            Console.WriteLine($"[SEED] Sistem Admin oluşturuldu: {sistemAdminEposta}");
-        }
-        else
-        {
-            Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: {string.Join(", ", olusturma.Errors.Select(e => e.Description))}");
-        }
+        Console.WriteLine("[SEED] Sistem Admin seed ATLANDI — SeedSystemAdmin__Email ve " +
+            "SeedSystemAdmin__Password tanımlı değil. İlk yönetici hesabını " +
+            "Admin Panel > Kullanıcı Yönetimi veya /api/__maintenance/admin-reset ile oluşturun.");
     }
     else
     {
-        // Sprint 11.5 bugfix — önceki attempt'larda Identity framework Policy
-        // nedeniyle (default RequireDigit) AddPasswordAsync/ResetPasswordAsync
-        // başarısız oluyor; user PasswordHash boş kalıyordu.
-        // Kesin fix: mevcut user'ı sil + Identity CreateAsync ile yeniden oluştur.
-        // Identity framework yeni oluşturulan user için default RateLimit/Lockout
-        // kuralı uygular ama validator policy gevşetildi.
-        // Sprint 11.5+ sonrası Identity 9 default validators: min 8 + küçük/büyük harf
-        // artık geçerli.
-        try
-        {
-            var silmeSonuc = await kullaniciYoneticisi.DeleteAsync(mevcutSistemAdmin);
-            Console.WriteLine($"[SEED] mevcut Sistem Admin silindi: success={silmeSonuc.Succeeded}, errors={string.Join(",", silmeSonuc.Errors.Select(e => e.Description))}");
-            // Silinen user referansı stale, fresh fetch gerekir.
-            mevcutSistemAdmin = null;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[SEED] silme exception: {ex.GetType().Name}: {ex.Message}");
-        }
-    }
+        using var sistemAdminKapsam = app.Services.CreateScope();
+        var kullaniciYoneticisi = sistemAdminKapsam.ServiceProvider
+            .GetRequiredService<UserManager<ApplicationUser>>();
 
-    // Yeniden oluşturma (silindiyse ya da zaten null ise).
-    if (mevcutSistemAdmin is null)
-    {
-        var sistemAdmin = new ApplicationUser
+        var mevcutSistemAdmin = await kullaniciYoneticisi.FindByEmailAsync(seedEmail);
+        if (mevcutSistemAdmin is not null)
         {
-            UserName = sistemAdminEposta,
-            Email = sistemAdminEposta,
-            FirstName = "Sistem",
-            LastName = "Yöneticisi",
-            EmailConfirmed = true,
-        };
-        var olusturma = await kullaniciYoneticisi.CreateAsync(sistemAdmin, sistemAdminSifre);
-        if (olusturma.Succeeded)
-        {
-            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "SystemAdmin");
-            await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
-            Console.WriteLine($"[SEED] Sistem Admin oluşturuldu: {sistemAdminEposta}");
+            // Kesinlikle dokunma: şifre/MFA/güvenlik damgası korunur.
+            Console.WriteLine($"[SEED] Sistem Admin zaten var, dokunulmadı: {seedEmail}");
         }
         else
         {
-            Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: {string.Join(", ", olusturma.Errors.Select(e => e.Description))}");
+            var sistemAdmin = new ApplicationUser
+            {
+                UserName = seedEmail,
+                Email = seedEmail,
+                FirstName = "Sistem",
+                LastName = "Yöneticisi",
+                EmailConfirmed = true,
+            };
+            var olusturma = await kullaniciYoneticisi.CreateAsync(sistemAdmin, seedPassword);
+            if (olusturma.Succeeded)
+            {
+                await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "SystemAdmin");
+                await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
+                Console.WriteLine($"[SEED] Sistem Admin oluşturuldu: {seedEmail}");
+            }
+            else
+            {
+                Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: " +
+                    string.Join(", ", olusturma.Errors.Select(e => e.Description)));
+            }
         }
     }
 }

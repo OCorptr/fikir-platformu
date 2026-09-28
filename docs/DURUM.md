@@ -45,7 +45,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun Aşama 0-10 dönemi için tek kaynağ�
 | 7 — Ana sayfa / arşiv / sertifika | ⬜ Plan §1660 — büyük iş (dinamik vitrin + arşiv filtreleri + sertifika PDF + e-posta); şu an HomePage vitrini sahte veriyle |
 | 8 — Hayata geçirme (backend) | ✅ Tamam — ImplementationReport entity, implementation_reports migration, SubmitImplementationReportService (Planned → ImplementationInProgress → ImplementationCompleted/Failed), ImplementationSummaryQueryService (Bakanlık özeti); uçtan uca test |
 | 8 — Hayata geçirme (frontend) | ✅ Tamam — ApplicationDetailPage'de Manager için 'Uygulama Raporu' formu + geçmiş listesi; MinistryPage'de 'Uygulama Takibi' tablosu |
-| 9 — SystemAdmin kullanıcı yönetimi | ✅ Tamam — `POST /api/admin/users` + `GET /api/admin/users` uçları (Sprint 11'de `AdminEndpoints.cs` altında birleşti); SystemAdmin-only authorization policy (Sprint 9); CAPTCHA eklemesi; seed/ilk_hesaplar.py (9 ilk hesap) |
+| 9 — SystemAdmin kullanıcı yönetimi | ✅ Tamam — `POST /api/admin/users` + `GET /api/admin/users` uçları (Sprint 11'de `AdminEndpoints.cs` altında birleşti); SystemAdmin-only authorization policy (Sprint 9); CAPTCHA eklemesi. ⚠️ Sprint 9'daki `seed/ilk_hesaplar.py` **Sprint 11.52'de kaldırıldı** (canlı DB şifresi içeriyordu + geliştiricinin DB'sine bağımlıydı). Yerine: `dotnet run -- seed` veya `SeedSystemAdmin__*` env'i |
 | 9 — MFA setup akışı (login sonrası) | ✅ Tamam — PreMfaScheme 10dk cookie, `/api/auth/mfa/setup` (Totp+Email), `/verify-setup`, `/disable` (privileged roller için kapalı); login → `mfaSetupRequired:true` → `/mfa-setup` |
 | 9 — docker-compose + Render | ✅ Tamam — backend (Dockerfile, TiDB Cloud uyumlu) + frontend (nginx) + opsiyonel `with-mysql` profile + .env.example |
 | 10 — MFA Email OTP yöntemi | ✅ Tamam — kullanıcı kurulum sırasında TOTP veya Email OTP seçer; `/api/auth/mfa/setup?method=Email` OTP kodu gönderir, `/verify-setup` ile etkinleştirilir; `/send-email-otp` login akışında (TOTP user da fallback olarak email kodu isteyebilir) |
@@ -74,8 +74,9 @@ Bu dosya, "hangi aşamadayız?" sorusunun Aşama 0-10 dönemi için tek kaynağ�
 
 - **Veritabanı (ESKİ — PostgreSQL 18, artık kullanılmıyor):** `Host=localhost;Port=5432;Database=fikir_platformu;Username=postgres`
 - **Veritabanı (GÜNCEL):** TiDB Cloud MySQL — `gateway01.eu-central-1.prod.aws.tidbcloud.com:4000`
-  bağlantı dizesi `ConnectionStrings__MySql` env ile verilir. `compose.yaml` de Sprint 1-2'den
-  kalma **PostgreSQL 18** image'ı kullandığı için güncel değildir — MySQL için `docker-compose.yml` kullan.
+  bağlantı dizesi `ConnectionStrings__MySql` env ile verilir. Sprint 1-2'den kalma
+  **PostgreSQL 18** tanımı içeren `compose.yaml` **Sprint 11.52'de silindi** — MySQL için
+  `docker-compose.yml` kullanın.
 - **Backend çalıştırma:** `dotnet run --project backend/src/FikirPlatformu.Api` → http://localhost:5000
 - **Frontend çalıştırma:** `cd frontend && pnpm dev` → http://localhost:5173 (`/api` proxy'si 5000'e gider)
 - **Tüm kontroller:** `powershell -File scripts/verify.ps1` (restore + Release build + xUnit testleri + frontend typecheck + build)
@@ -100,7 +101,7 @@ Bu dosya, "hangi aşamadayız?" sorusunun Aşama 0-10 dönemi için tek kaynağ�
   - `IClock`, `IEmailSender`, `IFileStorage`, `IDocumentGenerator` arayüzleri (taşınabilirlik)
   - `FikirPlatformuDbContext` + `/api/health` + `/api/health/db` uçları
 - `frontend/`: React + TypeScript + Vite iskeleti, health API istemcisi, netlify.toml (frontend klasörüne özel), vite proxy
-- `compose.yaml` (⚠️ Sprint 1-2 dönemi — PostgreSQL 18; artık MySQL/TiDB kullanılıyor), `scripts/verify.ps1` (tek komutla tüm kontroller)
+- `scripts/verify.ps1` (Windows) ve `scripts/verify.sh` (Linux/macOS) — tek komutla tüm kontroller
 
 ### Aşama 2 — Kimlik ve öğrenci profili (backend)
 - ASP.NET Core Identity, **HttpOnly çerez** kimliği (localStorage token yasak — plan §8.4)

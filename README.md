@@ -104,7 +104,7 @@ Her ortam **aynı repo**'yu kullanır. `.env.example` ortam bağımsız şablon 
 ├── CLAUDE.md                      # Derin mimari + bug-fix tarihçesi
 ├── HANDOVER.md                    # Aktif sprint state + açık işler
 ├── docker-compose.yml             # YEĞİTEK self-hosted (MySQL)
-├── compose.yaml                   # ⚠️ Sprint 1-2'den kalma PostgreSQL — kullanma
+├── deploy/nginx/fikir.conf        # Reverse proxy config (TLS 1.2+, /api proxy, SPA)
 ├── docs/
 │   ├── architecture.md            # Mimari diyagramlar, veri akışları
 │   ├── runbook.md                 # Operasyon + maintenance endpoint'ler
@@ -129,11 +129,28 @@ Her ortam **aynı repo**'yu kullanır. `.env.example` ortam bağımsız şablon 
 - **Email:** 4 mod (geliştirme test, Gmail API OAuth2 HTTPS, SMTP fallback, Resend HTTPS API). Refresh token **DB'de şifreli saklanır** (`gmail_refresh_tokens`, PBKDF2 — Sprint 11.36+), env'de tutulmaz.
 - **Frontend SPA fallback:** Render rewrite `/*` → `/index.html`. Vite build hash'li asset isimleri üretir (`index-<hash>.js`).
 
-## Test verileri
+## İlk kurulum
 
-- **Sistem sabit Gmail:** `fikir.platformu.iletisim@gmail.com`
-- **Test kullanıcı (Render production):** `onur35bilisim@gmail.com` — SystemAdmin + MinistryOfficial, TOTP MFA
-- **Seed script (lokal/demo):** `seed/ilk_hesaplar.py` — SystemAdmin + MinistryOfficial + 3 il yöneticisi + 3 evaluator + demo öğrenci (9 hesap, şifre `NewAudit456!`)
+```bash
+cp .env.example .env
+# .env içindeki CHANGE_ME değerlerini kendi kurumunuza göre doldurun.
+#   Zorunlu: DB_CONNECTION_STRING, ADMINMAINTENANCE__SECRET,
+#            SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, FRONTEND__BASEURL, Mail__*
+
+docker compose up -d                 # kendi MySQL'iniz varsa
+docker compose --profile with-mysql up -d   # MySQL container ile
+
+# Doğrulama (gizli sızıntı taraması dahil)
+./scripts/verify.sh          # Linux/macOS
+powershell -File scripts/verify.ps1   # Windows
+```
+
+Sistem yöneticisi hesabı veritabanı boşsa otomatik oluşur
+(`SeedSystemAdmin__Email` + `SeedSystemAdmin__Password`).
+Ayrıca elle: `dotnet run --project backend/src/FikirPlatformu.Api -- seed`
+
+> 🔒 Bu depoda hiçbir gerçek parola, API anahtarı veya test hesabı şifresi bulunmaz.
+> `scripts/make_handover.sh` paketlemeden önce canlı sırların commit edilmediğini denetler.
 
 ## Lisans / telif
 

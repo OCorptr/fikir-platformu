@@ -147,13 +147,15 @@ public static class AuthEndpoints
                     captchaGecti, userBulundu, sifreDogrulandi, lockVeyaNotAllowed, rolUyumsuz, sonuc));
             }
             // Sprint 11.27: Login debug log — Onur 'Giriş başarısız' alıyor, detay gerekli.
+            // Sprint 11.52: E-posta düz metin loglanıyordu (YG-09 ihlali) → maskelendi.
+            var emailMaskeli = KisiselVeriYardimci.EmailMaskele(istek.Email);
             logger.LogInformation("[LOGIN] DENEME: Email={Email}, CaptchaIdLen={CaptchaIdLen}, CaptchaAnsLen={CaptchaAnsLen}",
-                istek.Email, captchaIdLen, captchaAnsLen);
+                emailMaskeli, captchaIdLen, captchaAnsLen);
             // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
             if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
             {
                 logger.LogWarning("[LOGIN] CAPTCHA basarisiz: Email={Email}, CaptchaId={CaptchaId}",
-                    istek.Email, istek.CaptchaId);
+                    emailMaskeli, istek.CaptchaId);
                 LoginState(false, false, false, false, false, "captcha-basarisiz");
                 return Results.Json(new { message = "CAPTCHA doğrulaması başarısız. Lütfen yeni bir soru çözün." }, statusCode: 400);
             }
@@ -468,8 +470,10 @@ grup.MapPost("/logout", async (
             HttpContext http) =>
         {
             // Sprint 11.19: Her çağrı info-level log + try-catch ile exception'ları da yakala.
+            // Sprint 11.52: E-posta maskelendi (YG-09 — loglarda düz metin PII olmaz).
+            var istekEmailMaskeli = KisiselVeriYardimci.EmailMaskele(istek.Email);
             logger.LogInformation("[SIFRE-RESET] BASLADI: UserId={UserId}, Email={Email}, TokenLen={TokenLen}, NewPwdLen={PwdLen}",
-                istek.UserId, istek.Email, istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
+                istek.UserId, istekEmailMaskeli, istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
             try
             {
                 // Sprint 11.16: UserId öncelikli (admin reset), yoksa email (forgot-password).
@@ -486,7 +490,7 @@ grup.MapPost("/logout", async (
                 if (kullanici is null)
                 {
                     logger.LogWarning("[SIFRE-RESET] Kullanici bulunamadi (userId={UserId}, email={Email})",
-                        istek.UserId, istek.Email);
+                        istek.UserId, istekEmailMaskeli);
                     SifreResetDebug.Kaydet(false, "Kullanıcı bulunamadı", istek.UserId, istek.Email,
                         istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                     return KimlikHatasi("Sıfırlama bağlantısı geçersiz.");
@@ -497,7 +501,7 @@ grup.MapPost("/logout", async (
                 {
                     var detay = string.Join("; ", sonuc.Errors.Select(e => $"{e.Code}={e.Description}"));
                     logger.LogError("[SIFRE-RESET] BASARISIZ: UserId={UserId}, Email={Email}, Detay={Detay}",
-                        kullanici.Id, kullanici.Email, detay);
+                        kullanici.Id, KisiselVeriYardimci.EmailMaskele(kullanici.Email), detay);
                     var mesaj = sonuc.Errors.Any(e => e.Code == "InvalidToken")
                         ? "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş."
                         : $"Şifre reddedildi: {detay}";
@@ -506,7 +510,7 @@ grup.MapPost("/logout", async (
                     return Results.Json(new { message = mesaj }, statusCode: 400);
                 }
                 logger.LogInformation("[SIFRE-RESET] BASARILI: UserId={UserId}, Email={Email}",
-                    kullanici.Id, kullanici.Email);
+                    kullanici.Id, KisiselVeriYardimci.EmailMaskele(kullanici.Email));
                 SifreResetDebug.Kaydet(true, "Şifreniz güncellendi", kullanici.Id, kullanici.Email,
                     istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                 return Results.Ok(new { message = "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz." });
@@ -514,11 +518,15 @@ grup.MapPost("/logout", async (
             catch (Exception ex)
             {
                 logger.LogError(ex, "[SIFRE-RESET] EXCEPTION: UserId={UserId}, Email={Email}",
-                    istek.UserId, istek.Email);
+                    istek.UserId, istekEmailMaskeli);
                 SifreResetDebug.Kaydet(false, "EXCEPTION", istek.UserId, istek.Email,
                     istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0,
                     ex.GetType().Name + ": " + ex.Message);
-                return Results.Json(new { message = "Sunucu hatası: " + ex.GetType().Name + " — " + ex.Message }, statusCode: 500);
+                // Sprint 11.52: YEĞİTEK madde 41 — hata durumunda istisna detayı
+                // (tip + mesaj) istemciye sızdırılıyordu. Detay sadece sunucu logunda kalır.
+                return Results.Json(
+                    new { message = "Şifre sıfırlama sırasında bir hata oluştu. Lütfen tekrar deneyin." },
+                    statusCode: 500);
             }
         });
 
@@ -528,13 +536,12 @@ grup.MapPost("/logout", async (
         // AdminMaintenance__Secret env'i biliyor). SystemAdminOnly policy yerine
         // secret query cunku cookie cross-site'de paylasilamiyor olabilir.
         grup.MapGet("/__debug/last-sifre-reset", (
+            HttpContext http,
             [FromQuery] string? token,
             IConfiguration yapilandirma) =>
         {
-            var beklenen = yapilandirma["AdminMaintenance:Secret"]
-                ?? yapilandirma["__maintenance:admin-reset:token"]
-                ?? "BekleyinSprint12";
-            if (string.IsNullOrEmpty(token) || token != beklenen)
+            // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı.
+            if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
             {
                 return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
             }
@@ -561,14 +568,13 @@ grup.MapPost("/logout", async (
         // Sprint 11.25: Test endpoint — frontend'in doğru backend origin'ini
         // kullandigini dogrular. CORS preflight testi. Maintenance token ile.
         grup.MapGet("/__debug/cors-test", (
+            HttpContext http,
             [FromQuery] string? token,
             [FromQuery] string? fromOrigin,
             IConfiguration yapilandirma) =>
         {
-            var beklenen = yapilandirma["AdminMaintenance:Secret"]
-                ?? yapilandirma["__maintenance:admin-reset:token"]
-                ?? "BekleyinSprint12";
-            if (string.IsNullOrEmpty(token) || token != beklenen)
+            // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı.
+            if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
             {
                 return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
             }
@@ -585,14 +591,13 @@ grup.MapPost("/logout", async (
         // DB'deki gmail_refresh_tokens.Id=1 encrypted refresh token var mi, env'de
         // Mail__Gmail__* konfigurasyonu ne — bak. Maintenance token ile korunur.
         grup.MapGet("/__debug/mail-sender", async (
+            HttpContext http,
             [FromQuery] string? token,
             IConfiguration yapilandirma,
             FikirPlatformuDbContext veritabani) =>
         {
-            var beklenen = yapilandirma["AdminMaintenance:Secret"]
-                ?? yapilandirma["__maintenance:admin-reset:token"]
-                ?? "BekleyinSprint12";
-            if (string.IsNullOrEmpty(token) || token != beklenen)
+            // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı.
+            if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
             {
                 return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
             }
@@ -632,14 +637,13 @@ grup.MapPost("/logout", async (
 
         // Sprint 11.38: Aktif mail sender Mod bilgisi (Gmail/SMTP/Resend/Dev).
         grup.MapGet("/__debug/mail-mod", (
+            HttpContext http,
             [FromQuery] string? token,
             IConfiguration yapilandirma,
             IServiceProvider sp) =>
         {
-            var beklenen = yapilandirma["AdminMaintenance:Secret"]
-                ?? yapilandirma["__maintenance:admin-reset:token"]
-                ?? "BekleyinSprint12";
-            if (string.IsNullOrEmpty(token) || token != beklenen)
+            // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı.
+            if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
             {
                 return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
             }
@@ -674,13 +678,12 @@ grup.MapPost("/logout", async (
 
         // Sprint 11.42: Son login denemesinin sonucunu döner (debug).
         grup.MapGet("/__debug/last-login", (
+            HttpContext http,
             [FromQuery] string? token,
             IConfiguration yapilandirma) =>
         {
-            var beklenen = yapilandirma["AdminMaintenance:Secret"]
-                ?? yapilandirma["__maintenance:admin-reset:token"]
-                ?? "BekleyinSprint12";
-            if (string.IsNullOrEmpty(token) || token != beklenen)
+            // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı.
+            if (!BakimGizliAnahtar.Gecerli(http, yapilandirma))
             {
                 return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
             }

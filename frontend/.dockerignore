@@ -1,0 +1,26 @@
+# Frontend build context'inden çıkarılacak dosyalar.
+# Bunlar build'i yavaşlatır ve gereksiz yere kopyalanır.
+# (node_modules özellikle: container içinde yeniden kurulur.)
+node_modules
+dist
+.git
+.gitignore
+.vs
+.vscode
+.idea
+
+# Ortam dosyaları — build argümanı ile gelir
+.env
+.env.*
+!.env.example
+
+# Build çıktısı / log
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Test / dokümantasyon
+coverage
+*.md
+!README.md
