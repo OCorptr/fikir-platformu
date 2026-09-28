@@ -546,6 +546,38 @@ grup.MapPost("/logout", async (
 
                 logger.LogInformation("[SIFRE-RESET] BASARILI+DOGRULANDI: UserId={UserId}, Email={Email}",
                     kullanici.Id, KisiselVeriYardimci.EmailMaskele(kullanici.Email));
+
+                // Sprint 11.63 — İKİ BAYRAK EKSİKTİ.
+                //
+                // `ResetPasswordAsync` yalnızca parola hash'ini yazar; Identity
+                // MustChangePassword'ı ve bizim tuttuğumuz PasswordChangedAt'i
+                // DOKUNMAZ. Sonuç (Onur bildirimi: "şifre değişmeli yazısı
+                // değiştirdikten sonra da kalıyor"):
+                //   1. Yönetici listesindeki "Şifre değişmeli" rozeti sonsuza
+                //      kadar kalıyordu — kullanıcı şifresini kaç kez
+                //      değiştirirse değiştirsin bayrak düşmüyordu.
+                //   2. YG-17 90 günlük sayaç HİÇ SIFIRLANMIYORDU. Yönetici
+                //      "şifre değişmeli" işaretlediği bir kullanıcı, şifresini
+                //      sıfırlama linkiyle düzelttikten sonra bile sistem onu
+                //      "90 günü aşmış" sayıyor ve zorunlu değişim ekranına
+                //      kilitliyordu. Kullanıcı kendi çıkış yolu olmayan bir
+                //      döngüye hapsoluyordu.
+                tazelenmis!.MustChangePassword = false;
+                tazelenmis.PasswordChangedAt = DateTimeOffset.UtcNow;
+                var bayrakSonuc = await kullaniciYoneticisi.UpdateAsync(tazelenmis);
+                if (!bayrakSonuc.Succeeded)
+                {
+                    logger.LogError(
+                        "[SIFRE-RESET] BAYRAK YAZILAMADI: UserId={UserId}, Hatalar={Hatalar}",
+                        tazelenmis.Id, string.Join(", ", bayrakSonuc.Errors.Select(e => e.Description)));
+                }
+                else
+                {
+                    logger.LogInformation(
+                        "[SIFRE-RESET] MustChangePassword=false, PasswordChangedAt={Zaman} yazildi.",
+                        tazelenmis.PasswordChangedAt);
+                }
+
                 SifreResetDebug.Kaydet(true, "Şifreniz güncellendi", kullanici.Id, kullanici.Email,
                     istek.Token?.Length ?? 0, istek.NewPassword?.Length ?? 0);
                 return Results.Ok(new { message = "Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz." });

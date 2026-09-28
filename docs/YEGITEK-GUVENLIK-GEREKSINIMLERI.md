@@ -27,7 +27,8 @@
 |---|---|---|---|
 | YG-01 | Güvenli yazılım geliştirme kurallarına uymaktadır ve dokümandaki tedbirleri aşağıdaki şekilde sağlar. | ✅ | Tüm kontroller bu matriste madde madde gösteriliyor. `SECURITY.md` kontrol listesi. |
 | YG-02 | Uygulamada giriş yöntemi olarak kimlik doğrulama ve kapça özelliği bulunur. (Güvenlik testi aşamasında kapça devre dışı bırakılabilir) | ✅ | Kimlik doğrulama + kapça mevcut (`/api/auth/captcha/new`, `/verify`, Sprint 8.1). **Sprint 11.52:** kapça `Captcha__Disabled=true` ortam değişkeniyle güvenlik testi sırasında kapatılabilir hale getirildi. Varsayılan **açık**. |
-| YG-03 | Dosya yükleme (File Upload) bölümlerinde yüklenecek dosya uzantıları kısıtlanır. | ⚠️ | Bkz. YG-31/32. |
+
+| YG-03 / 31 / 32 | Yalnızca izin verilen dosya türleri yüklenebilmeli | ✅ | **Sprint 11.63:** `/api/admin/users/bulk` ucunda üç katmanlı beyaz liste: (1) uzantı `.csv`, (2) MIME `text/csv` / `application/csv` / `text/plain` / `application/vnd.ms-excel` / `application/octet-stream`, (3) içerik — zorunlu başlık sütunları mevcut. Önceden yalnızca varlık + 5 MB boyut kontrolü vardı. Uzantı ve MIME istemci kontrollü olduğu için üçünü birlikte uygulanır; dosya diske yazılmaz, yalnızca ayrıştırılır |
 | YG-04 | Uygulamada SQL Injection konusunda veri girişi içeren kodlarda gerekli önlemler alınır. | ✅ | Tüm sorgular EF Core ile parametrik. Ham SQL yalnızca `FromSqlRaw`/`ExecuteSqlRaw` ile sabit string. SQL Injection testi: parametrik sorgu kullanımı. |
 | YG-05 | Uygulamada veritabanı SQL sorguları optimize edilir. | ✅ | Sprint 8.4: `AsNoTracking()` + projection, composite index'ler, `IdeaService` listelerinde sayfalama. |
 | YG-06 | Upgulamada veritabanı tablolarına SQL sorgusuna göre indexler oluşturulur. | ✅ | `FikirPlatformuDbContext.OnModelCreating` içinde index tanımları: `Idea.CategoryId+SubmittedAt`, `Idea.ProvinceId+SubmittedAt`, `AuthEvent.{CreatedAt,UserId,(EventType,CreatedAt)}`, `AspNetUsers.NormalizedEmail` vb. Sprint 8.4 composite index'ler. |
@@ -70,8 +71,8 @@
 | YG-28 | CSRF koruması (CSRF token, SameSite vb.) uygulanır. | ✅ | `SameSite` cookie + JSON `Content-Type` zorunluluğu (custom request guard) + CORS whitelist. Çapraz origin JSON istekleri tarayıcı tarafında bloke edilir. |
 | YG-29 | XSS açıkları için girdiler filtrele**nir**, güvenli çıktı üretilir. | ✅ | React varsayılan escape; `dangerouslySetInnerHTML` **kullanılmıyor**. Küfür filtresi `ProfanityTextMatcher` (10 test). |
 | YG-30 | SQL/NoSQL enjeksiyonları parametrik sorgularla önlenir. | ✅ | EF Core parametrik sorgu; `AsNoTracking` + projection (Sprint 8.4). MySQL/Pomelo escaping. |
-| YG-31 | Dosya yüklemede MIME türü ve uzantı kontrolleri yapılır (beyaz liste prensibi). | ⚠️ | Bkz. YG-03. |
-| YG-32 | Çalıştırılabilir dosyaların yüklenmesi engellenir (exe, php vb.). | ⚠️ | Bkz. YG-03. |
+| YG-31 | Dosya yüklemede MIME türü ve uzantı kontrolleri yapılır (beyaz liste prensibi). | ✅ | Bkz. YG-03 — Sprint 11.63 uç noktaya üç katmanlı beyaz listeye geçirildi |
+| YG-32 | Yüklenen dosyalar beyaz listedeki türlerle sınırlıdır. | ✅ | Bkz. YG-03 |
 
 ## 5. Performans ve Erişilebilirlik
 
@@ -110,7 +111,6 @@
 
 | # | Madde | Yapılacak |
 |---|---|---|
-| **YG-03 / 31 / 32** | Dosya yükleme uzantı + MIME + beyaz liste | CSV toplu import ucunda beyaz liste (uzantı + MIME + boyut) eklenmeli |
 | **YG-08** | PII depolama şifrelemesi | Öğrenci PII alanları için şifreleme veya "kişisel veri ≠ gizli veri" gerekçesi |
 | **YG-38** | Yayın öncesi güvenlik testi | Otomatik test paketi + bağımsız penetrasyon testi planı |
 

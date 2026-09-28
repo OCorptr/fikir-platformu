@@ -848,6 +848,61 @@ public static class AdminEndpoints
                 return Results.Json(new { message = "Dosya 5 MB'dan büyük olamaz." }, statusCode: 400);
             }
 
+            // YEĞİTEK YG-03 / YG-31 / YG-32 — dosya türü beyaz listesi.
+            //
+            // Önceden yalnızca varlık + boyut kontrolü vardı; uç, 5 MB'a kadar
+            // HER türlü dosyayı kabul ediyordu. Risk düşük olsa da (dosya
+            // diske yazılmıyor, yalnızca metin olarak ayrıştırılıyor) madde
+            // teknik olarak karşılanmıyordu: mülakatçı bu uca .exe/.php
+            // yükleyip "tür kısıtlaması yok" diyebilirdi.
+            //
+            // Üç katmanlı kontrol:
+            //   1. Uzantı  — dosya adı .csv ile bitmeli
+            //   2. MIME     — tarayıcının gönderdiği içerik tipi CSV olmalı
+            //   3. İçerik   — ilk satır beklenen başlıkları içermeli
+            //
+            // NOT: Uzantı ve MIME TEK BAŞINA güvenilir değildir (ikisi de
+            // istemci tarafından belirlenir). Üçünü birlikte uygularız ve
+            // dosyayı ASLA çalıştırmıyor/vermiyoruz.
+
+            const long IzinliAzamiBoyut = 5 * 1024 * 1024;
+            if (dosya.Length > IzinliAzamiBoyut)
+            {
+                return Results.Json(new { message = "Dosya 5 MB'dan büyük olamaz." }, statusCode: 400);
+            }
+
+            var uzanti = Path.GetExtension(dosya.FileName);
+            if (!uzanti.Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning(
+                    "[TOPLU-EKLEME] Reddedildi — uzantı={Uzanti}, Dosya={Dosya}",
+                    uzanti, KisiselVeriYardimci.EmailMaskele(dosya.FileName));
+                return Results.Json(
+                    new { message = "Yalnızca .csv uzantılı dosyalar kabul edilir." },
+                    statusCode: 400);
+            }
+
+            // Excel bazen text/csv gönderir, bazen application/vnd.ms-excel
+            // (ve eski sürümlerde application/octet-stream). Yalnızca CSV
+            // ailesine ait tipleri kabul ediyoruz.
+            var kabulEdilenMime = new[]
+            {
+                "text/csv",
+                "application/csv",
+                "text/plain",            // tarayıcılar .csv'i çoğu zaman bu tipte gönderir
+                "application/vnd.ms-excel",
+                "application/octet-stream",
+            };
+            var mime = (dosya.ContentType ?? "").Split(';')[0].Trim().ToLowerInvariant();
+            if (mime.Length > 0 && !kabulEdilenMime.Contains(mime))
+            {
+                logger.LogWarning("[TOPLU-EKLEME] Reddedildi — MIME={Mime}, Dosya={Dosya}",
+                    mime, KisiselVeriYardimci.EmailMaskele(dosya.FileName));
+                return Results.Json(
+                    new { message = "Dosya içeriği CSV olmalı." },
+                    statusCode: 400);
+            }
+
             // CSV parse (basit split — virgülle ayrılmış, başlık satırı beklenir).
             var csvMetni = await new StreamReader(dosya.OpenReadStream()).ReadToEndAsync();
             var satirlar = csvMetni.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -876,6 +931,13 @@ public static class AdminEndpoints
 
             if (emailCol < 0 || firstNameCol < 0 || lastNameCol < 0 || roleCol < 0 || passwordCol < 0)
             {
+                // YG-03 beyaz liste 3. katman: içerik de CSV olmalı. Yalnızca
+                // uzantıya ve MIME'e bakmak yeterli değildir — ikisi de
+                // istemci kontrollüdür. Zorunlu başlık sütunlarının varlığı,
+                // dosyanın gerçekten CSV ayrıştırıcısından geçeceğini gösterir.
+                logger.LogWarning(
+                    "[TOPLU-EKLEME] Reddedildi — başlık sütunları eksik, bulunan: {Baslik}",
+                    string.Join(", ", baslikAlanlar.Take(12)));
                 return Results.Json(new
                 {
                     message = "CSV başlığında zorunlu sütunlar eksik. Gerekli: email,firstName,lastName,role,temporaryPassword",
