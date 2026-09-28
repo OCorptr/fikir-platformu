@@ -169,8 +169,10 @@ builder.Services.AddScoped<IEmailSender>(sp =>
 });
 // Background job: auth_events 2 yıl retention (plan §1.7).
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetentionService>();
-// Background job: kullanılmayan hesapları 90 gün sonra kilitle (plan §6.3).
-builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
+// Sprint 11.29: Pasif hesap kilitleme kaldırıldı — Onur kararı: hiçbir hesap
+// hareketsizlik nedeniyle otomatik kilitlenmeyecek. Öğrenci kayıtları Sprint
+// 11.30'da mezuniyet sonrası manuel silinebilir (KVKK).
+// builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
 
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
