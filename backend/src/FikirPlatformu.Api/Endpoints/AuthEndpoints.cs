@@ -136,14 +136,25 @@ public static class AuthEndpoints
             ILogger<Program> logger) =>
         // Rate limit: 5 deneme / dakika / IP (plan §5.1 — login brute-force koruması).
         {
+            // Sprint 11.42: Login debug state — her hatada SonLoginDenemesi güncellenir.
+            var emailDbg = istek.Email ?? "";
+            var captchaIdLen = istek.CaptchaId?.Length ?? 0;
+            var captchaAnsLen = istek.CaptchaAnswer?.Length ?? 0;
+            void LoginState(bool captchaGecti, bool userBulundu, bool sifreDogrulandi, bool lockVeyaNotAllowed, bool rolUyumsuz, string sonuc)
+            {
+                SifreResetDebug.KaydetLogin(new LoginDenemesi(
+                    DateTimeOffset.UtcNow, emailDbg, captchaIdLen, captchaAnsLen,
+                    captchaGecti, userBulundu, sifreDogrulandi, lockVeyaNotAllowed, rolUyumsuz, sonuc));
+            }
             // Sprint 11.27: Login debug log — Onur 'Giriş başarısız' alıyor, detay gerekli.
             logger.LogInformation("[LOGIN] DENEME: Email={Email}, CaptchaIdLen={CaptchaIdLen}, CaptchaAnsLen={CaptchaAnsLen}",
-                istek.Email, istek.CaptchaId?.Length ?? 0, istek.CaptchaAnswer?.Length ?? 0);
+                istek.Email, captchaIdLen, captchaAnsLen);
             // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
             if (!CaptchaEndpoints.CaptchaGecerliMi(istek.CaptchaId, istek.CaptchaAnswer))
             {
                 logger.LogWarning("[LOGIN] CAPTCHA basarisiz: Email={Email}, CaptchaId={CaptchaId}",
                     istek.Email, istek.CaptchaId);
+                LoginState(false, false, false, false, false, "captcha-basarisiz");
                 return Results.Json(new { message = "CAPTCHA doğrulaması başarısız. Lütfen yeni bir soru çözün." }, statusCode: 400);
             }
 
@@ -152,6 +163,7 @@ public static class AuthEndpoints
             {
                 await AuthEventKaydet(veritabani, http, email: istek.Email, userId: null,
                     AuthEventType.LoginFailure, success: false, reason: "email_bulunamadi");
+                LoginState(true, false, false, false, false, "email-bulunamadi");
                 return KimlikHatasi("E-posta veya şifre geçersiz.");
             }
 
@@ -165,16 +177,19 @@ public static class AuthEndpoints
                 {
                     await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                         AuthEventType.LoginLockedOut, success: false, reason: "kilitli");
+                    LoginState(true, true, false, true, false, "kilitli");
                     return Results.Json(new { message = "Çok fazla hatalı deneme yapıldı. Hesabınız geçici olarak kilitlendi." }, statusCode: 423);
                 }
                 if (dogrulama.IsNotAllowed)
                 {
                     await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                         AuthEventType.LoginEmailNotConfirmed, success: false, reason: "email_dogrulanmamis");
+                    LoginState(true, true, false, true, false, "email-dogrulanmamis");
                     return Results.Json(new { message = "E-posta adresiniz doğrulanmamış. Doğrulama e-postasındaki bağlantıyı kullanın." }, statusCode: 403);
                 }
                 await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                     AuthEventType.LoginFailure, success: false, reason: "yanlis_sifre");
+                LoginState(true, true, false, false, false, "yanlis-sifre");
                 return KimlikHatasi("E-posta veya şifre geçersiz.");
             }
 
@@ -193,11 +208,14 @@ public static class AuthEndpoints
                 };
                 await AuthEventKaydet(veritabani, http, email: istek.Email, userId: kullanici.Id,
                     AuthEventType.LoginFailure, success: false, reason: "rol_uyumsuz");
+                LoginState(true, true, true, false, true, "rol-uyumsuz");
                 return Results.Json(new
                 {
                     message = $"Bu hesap '{beklenen}' rolü için yetkili değil."
                 }, statusCode: 403);
             }
+            // Başarılı login (henüz MFA/2FA var).
+            LoginState(true, true, true, false, false, "basarili");
 
             // Doğru scheme ile cookie yaz.
             // SignInManager default scheme (Identity.Application) ile çalışır; farklı scheme'ler için
@@ -654,6 +672,25 @@ grup.MapPost("/logout", async (
             });
         });
 
+        // Sprint 11.42: Son login denemesinin sonucunu döner (debug).
+        grup.MapGet("/__debug/last-login", (
+            [FromQuery] string? token,
+            IConfiguration yapilandirma) =>
+        {
+            var beklenen = yapilandirma["AdminMaintenance:Secret"]
+                ?? yapilandirma["__maintenance:admin-reset:token"]
+                ?? "BekleyinSprint12";
+            if (string.IsNullOrEmpty(token) || token != beklenen)
+            {
+                return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+            }
+            return Results.Ok(new
+            {
+                denemeVar = SifreResetDebug.SonLoginDenemesi != null,
+                deneme = SifreResetDebug.SonLoginDenemesi,
+            });
+        });
+
         // Sprint 11.17: Sifre sifirlama sayfasi icin kullanici bilgisi. Public
         // — token olmadan da cagirilabilir (UI'da "Bu baglanti X kullanicisi
         // icin" gostermek icin). Identity token dogrulamasi YAPILMAZ — sadece
@@ -1053,6 +1090,7 @@ public static class SifreResetDebug
 {
     private static readonly object _lock = new();
     public static SifreResetDenemesi? SonDeneme { get; private set; }
+    public static LoginDenemesi? SonLoginDenemesi { get; private set; }
 
     public static void Kaydet(bool basarili, string mesaj, string? userId, string? email, int tokenLen, int pwdLen, string? exception = null)
     {
@@ -1069,7 +1107,27 @@ public static class SifreResetDebug
                 exception);
         }
     }
+
+    public static void KaydetLogin(LoginDenemesi deneme)
+    {
+        lock (_lock)
+        {
+            SonLoginDenemesi = deneme;
+        }
+    }
 }
+
+public sealed record LoginDenemesi(
+    DateTimeOffset Zaman,
+    string Email,
+    int CaptchaIdLen,
+    int CaptchaAnsLen,
+    bool CaptchaGecti,
+    bool UserBulundu,
+    bool SifreDogrulandi,
+    bool LockoutVeyaIsNotAllowed,
+    bool RolUyumsuz,
+    string Sonuc);
 
 public sealed record SifreResetDenemesi(
     DateTimeOffset Zaman,
