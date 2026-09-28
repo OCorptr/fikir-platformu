@@ -24,8 +24,12 @@ namespace FikirPlatformu.Api;
 /// </summary>
 internal static class KurulumSeedAraci
 {
-    public const string VarsayilanAdminEmail = "sistem.admin@kurum.local";
-    public const string VarsayilanSifre = "KurulumSifresi2026!";
+    /// <summary>
+    /// SEED_ADMIN_EMAIL verilmemişse kullanılır. Kurum e-posta adresi
+    /// bilinmediği için genel bir yer tutucu — teslim paketinde .env içindeki
+    /// SEED_ADMIN_EMAIL her zaman bu değeri ezer.
+    /// </summary>
+    public const string VarsayilanAdminEmail = "sistem.yoneticisi@kurum.local";
 
     /// <summary>
     /// seed komutu çalıştırılmalı mı? Yalnızca `seed` argümanı verilmişse true.
@@ -69,7 +73,8 @@ internal static class KurulumSeedAraci
         var adminEmail = Environment.GetEnvironmentVariable("SEED_ADMIN_EMAIL")
             ?? yapilandirma["Seed:AdminEmail"]
             ?? VarsayilanAdminEmail;
-        var digerSifre = Environment.GetEnvironmentVariable("SEED_SIFRE") ?? adminSifre;
+        // Sprint 11.54: seed artık YALNIZCA sistem yöneticisi oluşturur.
+        // Diğer roller kurulumdan sonra Admin Panel'den açılır.
 
         // Sprint 11.53: Şifre kuralları sıkılaştı (rakam + özel karakter zorunlu).
         // Kullanıcı kurala uymayan bir şifre verirse Identity'nin İngilizce hatası
@@ -84,11 +89,10 @@ internal static class KurulumSeedAraci
         if (ihlaller.Count > 0)
         {
             logger.LogError("[SEED] SEED_ADMIN_PASSWORD kurallara uymuyor: {Ihlaller}", string.Join(", ", ihlaller));
-            logger.LogError("[SEED] Örnek uyumlu şifre: F1kir-YEG1TEK-2026-aX9kLm2");
             return;
         }
 
-        // 3) Roller.
+        // 3) Roller. Hesaplar uygulama içinden açılabilsin diye tüm roller hazırlanır.
         string[] roller = ["Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin"];
         foreach (var rol in roller)
         {
@@ -98,48 +102,37 @@ internal static class KurulumSeedAraci
             }
         }
 
-        // 4) Hesaplar (Sprint 11 öncesi dokümanlarda listelenen 9 hesap).
-        var hesaplar = new (string Rol, string Email, string Ad, string Soyad, string Sifre)[]
+        // 4) Yalnızca sistem yöneticisi oluşturulur.
+        //
+        //    Neden diğer roller için örnek hesaplar yok: teslim edilen kurulumda
+        //    uydurma e-posta adresleri (ornegin bakanlik@kurum.local) yanlış
+        //    varsayımlara yol açabilir ve aynı parolayı taşıyan fazla hesaplar
+        //    güvenlik riski oluşturur. Diğer hesaplar kurulumdan sonra
+        //    **Admin Panel > Kullanıcı Yönetimi** ekranından açılır.
+        var sistemAdmin = new Infrastructure.Identity.ApplicationUser
         {
-            ("SystemAdmin",        adminEmail,                              "Sistem", "Yöneticisi",   adminSifre),
-            ("MinistryOfficial",   "bakanlik@kurum.local",                  "Bakanlık", "Yetkilisi",   digerSifre),
-            ("ProvinceManager",    "il.istanbul@kurum.local",               "İstanbul", "İl Yöneticisi", digerSifre),
-            ("ProvinceManager",    "il.ankara@kurum.local",                 "Ankara",   "İl Yöneticisi", digerSifre),
-            ("ProvinceManager",    "il.izmir@kurum.local",                  "İzmir",    "İl Yöneticisi", digerSifre),
-            ("ProvinceEvaluator",  "deg.istanbul@kurum.local",              "İstanbul", "Değerlendirici", digerSifre),
-            ("ProvinceEvaluator",  "deg.ankara@kurum.local",                "Ankara",   "Değerlendirici", digerSifre),
-            ("ProvinceEvaluator",  "deg.izmir@kurum.local",                 "İzmir",    "Değerlendirici", digerSifre),
-            ("Student",            "demo.ogrenci@kurum.local",              "Demo",     "Öğrenci",      digerSifre),
+            UserName = adminEmail,
+            Email = adminEmail,
+            FirstName = "Sistem",
+            LastName = "Yöneticisi",
+            EmailConfirmed = true,
         };
 
-        var olusturulan = 0;
-        foreach (var h in hesaplar)
+        var olusturma = await kullaniciYoneticisi.CreateAsync(sistemAdmin, adminSifre);
+        if (!olusturma.Succeeded)
         {
-            var kullanici = new Infrastructure.Identity.ApplicationUser
-            {
-                UserName = h.Email,
-                Email = h.Email,
-                FirstName = h.Ad,
-                LastName = h.Soyad,
-                EmailConfirmed = true,
-            };
-
-            var sonuc = await kullaniciYoneticisi.CreateAsync(kullanici, h.Sifre);
-            if (!sonuc.Succeeded)
-            {
-                var hatalar = FikirPlatformu.Api.Endpoints.SifreKuraliMesaji.Turkce(sonuc);
-                logger.LogError("[SEED] {Email} oluşturulamadı: {Hatalar}", h.Email, hatalar);
-                continue;
-            }
-
-            await kullaniciYoneticisi.AddToRoleAsync(kullanici, h.Rol);
-            olusturulan++;
-            logger.LogInformation("[SEED] Oluşturuldu: {Rol} → {Email}", h.Rol, h.Email);
+            logger.LogError("[SEED] Sistem yöneticisi oluşturulamadı: {Hatalar}",
+                FikirPlatformu.Api.Endpoints.SifreKuraliMesaji.Turkce(olusturma));
+            return;
         }
 
+        await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "SystemAdmin");
+        await kullaniciYoneticisi.AddToRoleAsync(sistemAdmin, "MinistryOfficial");
+
         logger.LogInformation(
-            "[SEED] TAMAMLANDI — {Sayi} hesap oluşturuldu. " +
-            "Rapor edilen şifreleri DEĞİŞTİRİN ve MFA kurun.",
-            olusturulan);
+            "[SEED] TAMAMLANDI — Sistem yöneticisi oluşturuldu: {Email}", adminEmail);
+        logger.LogInformation(
+            "[SEED] Diğer hesapları **Admin Panel > Kullanıcı Yönetimi** ekranından açın. " +
+            "MFA kurulumu ilk girişten sonra zorunludur.");
     }
 }

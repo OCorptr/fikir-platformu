@@ -339,22 +339,29 @@ dotnet ef database update --project src/FikirPlatformu.Infrastructure --startup-
 
 ### 8) İlk admin kullanıcı
 
-DB'ye direkt seed veya ilk giriş sonrası ASP.NET Identity `UserManager` ile:
+**Elle SQL yazmayın.** `PasswordHash` ASP.NET Identity v3 PBKDF2 biçimindedir;
+elle üretilen hash çalışmaz ve hesap kilitlenir.
 
-```sql
-INSERT INTO AspNetUsers (Id, UserName, NormalizedUserName, Email, NormalizedEmail,
-    EmailConfirmed, PasswordHash, SecurityStamp, ConcurrencyStamp,
-    PhoneNumberConfirmed, TwoFactorEnabled, LockoutEnabled, AccessFailedCount,
-    FirstName, LastName, MustChangePassword)
-VALUES (UUID(), 'admin@fikir.meb.gov.tr', 'ADMIN@FIKIR.MEB.GOV.TR',
-    'admin@fikir.meb.gov.tr', 'ADMIN@FIKIR.MEB.GOV.TR', 1,
-    -- PBKDF2 hash of "Demo1234!" (ASP.NET Identity v3)
-    'AQAAAAIAAYagAAAAEKx...', -- Generate via dotnet user-secrets
-    UUID(), UUID(), 0, 0, 1, 0, 'Sistem', 'Admin', 0);
+İlk sistem yöneticisi iki yoldan biriyle oluşur:
 
-INSERT INTO AspNetUserRoles (UserId, RoleId)
-SELECT u.Id, r.Id FROM AspNetUsers u, AspNetRoles r
-WHERE u.Email='admin@fikir.meb.gov.tr' AND r.Name='SystemAdmin';
+**Yol A — `.env` ile (önerilen).** `SEED_ADMIN_EMAIL` ve `SEED_ADMIN_PASSWORD`
+tanımlıysa uygulama ilk açılışta (veritabanı boşsa) hesabı kendisi oluşturur.
+Ayrıca `SystemAdmin` ve `MinistryOfficial` rollerini atar.
+
+**Yol B — komutla.**
+
+```bash
+cd backend
+SEED_ADMIN_PASSWORD='<güçlü şifre>' \
+  dotnet run --project src/FikirPlatformu.Api -- seed
+```
+
+Bu komut yalnızca sistem yöneticisini oluşturur. Diğer hesapları
+(il yöneticisi, değerlendirici, bakanlık yetkilisi, öğrenci) uygulama
+içinden açın: **Admin Panel → Kullanıcı Yönetimi**.
+
+> ⚠️ Her iki yol da veritabanı boş değilse hiçbir şey yapmaz — mevcut
+> hesaplara dokunmaz.
 ```
 
 **Önerilen:** Uygulamayı çalıştırıp `/giris` → "Kayıt Ol" formu ile ilk öğrenci hesabını aç, ardından SQL ile rol ata.
