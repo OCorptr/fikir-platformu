@@ -164,7 +164,12 @@ export function AdminLayout({
 
   // Rol bazlı menü
   const ilPaneli = ben?.roles.some((r) => r === "ProvinceEvaluator" || r === "ProvinceManager") ?? false;
-  const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
+  // Onur (S11.79): sistem yöneticisi istisnadır (kurum kuralı: "Sistem
+  // Yöneticisi dışında kimsede birden fazla panele erişemez"), il AR-GE yönetim
+  // işlerini de yapar. İl ataması kendisinde olmadığı için Ekip/Aday Havuzu
+  // menüden gizleniyordu, oysa sayfalar ona açık (Ekip sayfasında il seçici var).
+  const sistemAdminMi = ben?.roles.includes("SystemAdmin") ?? false;
+  const managerMi = sistemAdminMi || (ben?.roles.includes("ProvinceManager") ?? false);
   const ministryMi = ben?.roles.includes("MinistryOfficial") ?? false;
 
   const ilMenu: PanelMenuItem[] = [
@@ -179,12 +184,27 @@ export function AdminLayout({
     { hedef: "/bakanlik/donemler", baslik: "Dönemler", svg: ikon.donem },
   ];
 
-  const aktifMenu = menu ?? (ministryMi ? ministryMenu : ilMenu);
+  // Onur (S11.79): Menü ve çıkış bağlamı ROLE göre değil PANELE göre belirlenir.
+  //
+  // "il-panel kısmına girince soldaki panelde Aktif Adaylar, Dönemler var,
+  //  tıkladığımda bakanlığa yönlendiriyor, ne alaka il-panel'da neden onlar var?"
+  //
+  // Sebep: `ministryMi` kontrolü role bakıyordu. Sistem yöneticisinin
+  // rollerinde MinistryOfficial da olduğu için /il-panel içinde bile
+  // ministryMenu çiziliyordu. Menü, içinde bulunulan panelin menüsüdür —
+  // kim olursan ol o panelin menüsü görünür.
+  const aktifPanel: "admin" | "ministry" | "province" = yol.startsWith("/admin")
+    ? "admin"
+    : yol.startsWith("/bakanlik")
+      ? "ministry"
+      : "province";
+
+  const aktifMenu = menu ?? (aktifPanel === "ministry" ? ministryMenu : ilMenu);
   const aktifOge = aktifHedef(yol, aktifMenu);
   // Kenar-marka alt basligi: panel turu yerine kisinin adi yazsin.
   const baslikMetni = ben
     ? `${ben.firstName} ${ben.lastName}`
-    : ilPaneli ? "İl AR-GE Paneli" : ministryMi ? "Bakanlık Paneli" : "Yönetim Paneli";
+    : aktifPanel === "ministry" ? "Bakanlık Paneli" : aktifPanel === "admin" ? "Yönetim Paneli" : "İl AR-GE Paneli";
 
   const kullaniciAdi = ben ? `${ben.firstName} ${ben.lastName}` : "Kullanıcı";
   const kullaniciBen = kullaniciAdi;
@@ -199,7 +219,12 @@ export function AdminLayout({
     .join("") || "?";
 
   async function cikis() {
-    const ctx: LoginContext = cikisBaglami ?? (ministryMi ? "ministry" : "province");
+    // Onur (S11.79): Aynı hata çıkışta da vardı — /il-panel'da "Çıkış yap"
+    // ministry oturumunu kapatıyordu, panelde kalıyordun. Bağlam pane ile
+    // belirlenir. /admin'de context yok → backend üç şemanın da çıkışını yapar
+    // (yönetici panosundan çıkış tüm oturumları kapatmalı).
+    const ctx: LoginContext | undefined =
+      cikisBaglami ?? (aktifPanel === "admin" ? undefined : aktifPanel === "ministry" ? "ministry" : "province");
     try {
       await logout(ctx);
     } catch { /* yoksay */ }
