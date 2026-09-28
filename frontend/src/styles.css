@@ -747,33 +747,19 @@ input[type="range"] {
   color: #444;
 }
 
-/* Sprint 11.45: Dark mode koyu yazı fixi — koyu arka planda
-   tüm MFA setup elemanlarında yazılar okunabilsin. */
-.mfa-kurulum {
-  color: #16355c;
-}
-.mfa-kurulum h1,
-.mfa-kurulum h2,
-.mfa-kurulum h3,
-.mfa-kurulum p,
-.mfa-kurulum li,
-.mfa-kurulum ol,
-.mfa-kurulum small,
-.mfa-kurulum dt,
-.mfa-kurulum dd,
-.mfa-kurulum .mfa-aciklama,
-.mfa-kurulum .mfa-alan span {
-  color: #16355c;
-}
-.mfa-kurulum .mfa-bilgi dd,
-.mfa-kurulum .mfa-bilgi dt {
-  color: #16355c;
-}
-.mfa-kurulum .mfa-otp,
-.mfa-kurulum .mfa-kod {
-  color: #16355c;
-  background: #fff;
-  border: 1px solid #ccd;
+/* Sprint 11.46: MFA setup kartlarinin (lacivert arka planli) ICI yazilari
+   beyaz olmali; kart disindaki yazilar ise orijinal renklerinde kalmali.
+   Onceki Sprint 11.45 tum mavi parent selector ile herseyi mavi yapmis,
+   kart icindeki yazilari lacivert uzerine lacivert boyamisti. */
+.mfa-kurulum .mfa-yontem-kart,
+.mfa-kurulum .mfa-yontem-kart h3,
+.mfa-kurulum .mfa-yontem-kart p,
+.mfa-kurulum .mfa-yontem-kart small,
+.mfa-kurulum .mfa-yontem-kart .mfa-yontem-ikon,
+.mfa-kurulum .mfa-yontem-kart .mfa-yontem-baslik,
+.mfa-kurulum .mfa-yontem-kart .mfa-yontem-aciklama,
+.mfa-kurulum .mfa-yontem-kart .mfa-yontem-rozet {
+  color: #fff;
 }
 .mfa-form {
   display: flex;
