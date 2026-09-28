@@ -36,4 +36,5 @@ public enum AuthEventType
     RoleChanged = 43,        // Sprint 11.1 — rol atama/değişimi (tek aktif rol)
     PasswordResetRequested = 50, // Sprint 11.5 — kullanıcı 'şifremi unuttum' akışını başlattı
     PasswordResetCompleted = 51, // Sprint 11.5 — şifre sıfırlama başarılı oldu
+    KvkkRetentionApplied = 60,   // Sprint 11.30 — KVKK gereği eski öğrenci kaydı otomatik silindi
 }
