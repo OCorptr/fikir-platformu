@@ -11,7 +11,8 @@ import {
 } from "../services/province";
 import { me } from "../services/auth";
 import { ApiHttpError } from "../services/api";
-import { sessionForContext, type MeSession } from "../types";
+import { sessionForContext, type MeSession, type ProvinceRef } from "../types";
+import { getProvinces } from "../services/references";
 
 interface AtamaSatir {
   id: string;
@@ -31,6 +32,11 @@ export function EkipPage() {
   const [ad, setAd] = useState("");
   const [soyad, setSoyad] = useState("");
   const [calisiyor, setCalisiyor] = useState(false);
+  // Onur (S11.74): sistem yoneticisi "tum iller" kapsaminda oldugu icin
+  // degerlendirici atanacagi ili kendisi secer. Il yoneticisinde secim yok,
+  // kendi ili kullanilir (null gonderilir).
+  const [hedefIl, setHedefIl] = useState<number | undefined>(undefined);
+  const [iller, setIller] = useState<ProvinceRef[]>([]);
 
   // /me → manager rolü kontrolü
   useEffect(() => {
@@ -59,12 +65,29 @@ export function EkipPage() {
     return () => controller.abort();
   }, [ben]);
 
-  const managerMi = ben?.roles.includes("ProvinceManager") ?? false;
+  // Sistem yoneticisi de il ekibini gorebilir/olusturabilir (S11.74 istisnasi).
+  const sistemAdminMi = ben?.roles.includes("SystemAdmin") ?? false;
+  const managerMi = sistemAdminMi || (ben?.roles.includes("ProvinceManager") ?? false);
+  const ilSecmeli = sistemAdminMi;
+
+  // Sistem yoneticisi il listesini doldurur (il aracisi sunucudan gelir).
+  useEffect(() => {
+    if (!ilSecmeli) return;
+    const controller = new AbortController();
+    getProvinces(controller.signal)
+      .then((l) => setIller(l as ProvinceRef[]))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [ilSecmeli]);
 
   async function ataOlayi(e: FormEvent) {
     e.preventDefault();
     if (!email.trim() || !password || !ad.trim() || !soyad.trim()) {
       setHata("E-posta, şifre, ad ve soyad zorunludur.");
+      return;
+    }
+    if (ilSecmeli && !hedefIl) {
+      setHata("Değerlendirici atanacak ili seçin.");
       return;
     }
     if (password.length < 5) {
@@ -79,6 +102,7 @@ export function EkipPage() {
         password,
         firstName: ad.trim(),
         lastName: soyad.trim(),
+        provinceId: hedefIl,
       });
       setEmail(""); setPassword(""); setAd(""); setSoyad("");
       await ekipYukle();
@@ -117,6 +141,26 @@ export function EkipPage() {
         {managerMi ? (
           <>
             <form onSubmit={ataOlayi} className="ekip-ekle-form">
+              {/* Onur (S11.74): sistem yöneticisi tüm illeri gördüğü için
+                  atamanın yapılacağı ili seçmesi gerekiyor. */}
+              {ilSecmeli && (
+                <label>
+                  <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>İl</span>
+                  <select
+                    className="arama-kutu"
+                    value={hedefIl ?? ""}
+                    onChange={(e) => setHedefIl(e.target.value ? Number(e.target.value) : undefined)}
+                    required
+                  >
+                    <option value="">İl seçin…</option>
+                    {iller.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label>
                 <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Ad</span>
                 <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Ayşe" />

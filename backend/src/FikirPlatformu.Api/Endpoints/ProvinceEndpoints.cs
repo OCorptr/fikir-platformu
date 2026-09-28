@@ -20,19 +20,47 @@ public static class ProvinceEndpoints
     /// <summary>
     /// Plan §42 #3 düzeltmesi (Sprint 6): manager/evaluator kendi ili province_user_assignments
     /// tablosundan çekilir. Kullanıcının birden fazla rol ataması varsa Manager kaydı öncelikli.
-    /// Atanmamış kullanıcı için 0 döner (endpoint 404 verir).
+    ///
+    /// Onur (S11.74): "Sistem Yöneticisi ... tüm illeri görebilir il-panel'de."
+    /// Dönüş sözleşmesi:
+    ///   null → SystemAdmin: il filtresi UYGULANMAZ, tüm iller görünür (istisna)
+    ///    0  → hiçbir il ataması yok: endpoint Forbid/404 döner
+    ///   >0  → personelin kendi ili (mevcut davranış)
     /// </summary>
-    private static async Task<int> GetProvinceForStaffAsync(
+    private static async Task<int?> GetProvinceForStaffAsync(
         FikirPlatformuDbContext db,
+        HttpContext http,
         string userId,
         CancellationToken cancellationToken)
     {
+        if (http.User.IsInRole("SystemAdmin")) return null;
+
         var atama = await db.ProvinceUserAssignments
             .Where(a => a.UserId == userId
                 && (a.Role == "ProvinceManager" || a.Role == "ProvinceEvaluator"))
             .OrderBy(a => a.Role == "ProvinceManager" ? 0 : 1) // Manager öncelikli
             .FirstOrDefaultAsync(cancellationToken);
         return atama?.ProvinceId ?? 0;
+    }
+
+    /// <summary>
+    /// Onur (S11.74): Sistem yöneticisinin kapsamı null (= tüm iller), ama tek bir
+    /// fikri değiştiren işlemler (atama, değerlendirme, onay, uygulama raporu)
+    /// SOMUT il ister. Kapsamı olmayan sistem yöneticisi için doğru il, fikrin
+    /// kendi ilidir.
+    /// </summary>
+    private static async Task<int> SomutIlAsync(
+        FikirPlatformuDbContext db,
+        Guid ideaId,
+        int? kapsam,
+        CancellationToken cancellationToken)
+    {
+        if (kapsam.HasValue) return kapsam.Value;
+        var fikirIl = await db.Ideas
+            .Where(f => f.Id == ideaId)
+            .Select(f => (int?)f.ProvinceId)
+            .FirstOrDefaultAsync(cancellationToken);
+        return fikirIl ?? 0;
     }
 
     public static IEndpointRouteBuilder MapProvinceEndpoints(this IEndpointRouteBuilder app)
@@ -48,7 +76,7 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
             var liste = await inboxService.ListAsync(ilId, userId, cancellationToken);
             return Results.Ok(liste);
         }).RequireAuthorization("ProvinceOnly");
@@ -89,7 +117,8 @@ public static class ProvinceEndpoints
                     ["evaluatorUserId"] = ["Değerlendirici rolünde olmayan kullanıcıya atama yapılamaz."],
                 });
 
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var kapsam = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
+            var ilId = await SomutIlAsync(db, id, kapsam, cancellationToken);
             var sonuc = await assignService.AssignAsync(
                 new AssignEvaluatorCommand(id, ilId, istek.EvaluatorUserId, userId),
                 cancellationToken);
@@ -111,18 +140,18 @@ public static class ProvinceEndpoints
         {
             var currentUserId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(currentUserId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, currentUserId, cancellationToken);
-            if (ilId == 0) return Results.Forbid();
+            var ilId = await GetProvinceForStaffAsync(db, http, currentUserId, cancellationToken);
+            if (ilId == 0) return Results.Forbid();  // null = sistem yonetici (tum iller)
 
             // Sadece manager kendi ilindeki atanmış evaluator'leri görebilir
             var managerMi = await db.ProvinceUserAssignments
-                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
+                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && (ilId == null || a.ProvinceId == ilId), cancellationToken);
             if (!managerMi) return Results.Forbid();
 
             var liste = await (
                 from a in db.ProvinceUserAssignments
                 join u in db.Users on a.UserId equals u.Id
-                where a.ProvinceId == ilId && a.Role == "ProvinceEvaluator"
+                where (ilId == null || a.ProvinceId == ilId) && a.Role == "ProvinceEvaluator"
                 orderby a.AssignedAt descending
                 select new
                 {
@@ -148,11 +177,11 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
 
             var fikir = await (
                 from f in db.Ideas.AsNoTracking()
-                where f.Id == id && f.ProvinceId == ilId
+                where f.Id == id && (ilId == null || f.ProvinceId == ilId)
                 join p in db.StudentProfiles.AsNoTracking() on f.StudentId equals p.Id
                 join u in db.Users.AsNoTracking() on p.ApplicationUserId equals u.Id
                 join cat in db.IdeaCategories.AsNoTracking() on f.CategoryId equals cat.Id
@@ -210,14 +239,15 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
 
             var scores = (istek.Scores ?? new List<PuanlamaIstegi.ScoreItem>())
                 .Select(s => new EvaluationScoreInput(s.Criterion, s.Score, s.Comment))
                 .ToList();
 
+            var somutIl = await SomutIlAsync(db, id, ilId, cancellationToken);
             var sonuc = await service.SubmitAsync(
-                new SubmitEvaluationCommand(id, ilId, userId, scores),
+                new SubmitEvaluationCommand(id, somutIl, userId, scores),
                 cancellationToken);
 
             return sonuc switch
@@ -241,9 +271,9 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
 
-            var fikirMi = await db.Ideas.AnyAsync(i => i.Id == id && i.ProvinceId == ilId, cancellationToken);
+            var fikirMi = await db.Ideas.AnyAsync(i => (ilId == null || i.ProvinceId == ilId), cancellationToken);
             if (!fikirMi) return Results.NotFound();
 
             var tumu = await repo.GetForIdeaAsync(id, cancellationToken);
@@ -286,7 +316,7 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
             var liste = await service.ListAsync(ilId, cancellationToken);
             return Results.Ok(liste);
         }).RequireAuthorization("ProvinceOnly");
@@ -301,8 +331,9 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
-            var sonuc = await service.ApproveAsync(new ApproveIdeaCommand(id, ilId, userId), cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
+            var somutIl = await SomutIlAsync(db, id, ilId, cancellationToken);
+            var sonuc = await service.ApproveAsync(new ApproveIdeaCommand(id, somutIl, userId), cancellationToken);
             return sonuc switch
             {
                 ApproveIdeaResult.Ok ok => Results.Ok(new { ideaId = id, approvedAt = ok.ApprovedAt }),
@@ -322,10 +353,11 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
 
+            var somutIl = await SomutIlAsync(db, id, ilId, cancellationToken);
             var sonuc = await service.SubmitAsync(
-                new SubmitImplementationReportCommand(id, ilId, istek.Status, istek.Note ?? "", userId),
+                new SubmitImplementationReportCommand(id, somutIl, istek.Status, istek.Note ?? "", userId),
                 cancellationToken);
 
             return sonuc switch
@@ -346,9 +378,9 @@ public static class ProvinceEndpoints
         {
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, userId, cancellationToken);
+            var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
 
-            var fikirMi = await db.Ideas.AnyAsync(i => i.Id == id && i.ProvinceId == ilId, cancellationToken);
+            var fikirMi = await db.Ideas.AnyAsync(i => (ilId == null || i.ProvinceId == ilId), cancellationToken);
             if (!fikirMi) return Results.NotFound();
 
             var liste = await repo.GetForIdeaAsync(id, cancellationToken);
@@ -369,11 +401,23 @@ public static class ProvinceEndpoints
         {
             var currentUserId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(currentUserId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, currentUserId, cancellationToken);
-            if (ilId == 0) return Results.Forbid();
+            var ilId = await GetProvinceForStaffAsync(db, http, currentUserId, cancellationToken);
+            if (ilId == 0) return Results.Forbid();  // null = sistem yonetici (tum iller)
+
+            // Onur (S11.74): sistem yöneticisinin kapsamı null; atama yapacağı ili
+            // istekte açıkça belirtmesi gerekir. Personel kendi iliyle çalışır.
+            if (!ilId.HasValue)
+            {
+                if (istek.ProvinceId is not int hedefIl)
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        ["provinceId"] = ["Sistem yöneticisi olarak değerlendirici oluştururken il seçmelisiniz."],
+                    });
+                ilId = hedefIl;
+            }
 
             var managerMi = await db.ProvinceUserAssignments
-                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
+                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && (ilId == null || a.ProvinceId == ilId), cancellationToken);
             if (!managerMi) return Results.Forbid();
 
             // Email zaten kayıtlı mı?
@@ -408,7 +452,7 @@ public static class ProvinceEndpoints
 
             // İl ataması
             var atama = FikirPlatformu.Domain.Identity.ProvinceUserAssignment.Create(
-                yeniKullanici.Id, ilId, "ProvinceEvaluator", currentUserId, clock.UtcNow);
+                yeniKullanici.Id, ilId!.Value, "ProvinceEvaluator", currentUserId, clock.UtcNow);
             db.ProvinceUserAssignments.Add(atama);
             await db.SaveChangesAsync(cancellationToken);
 
@@ -429,15 +473,15 @@ public static class ProvinceEndpoints
         {
             var currentUserId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(currentUserId)) return Results.Unauthorized();
-            var ilId = await GetProvinceForStaffAsync(db, currentUserId, cancellationToken);
-            if (ilId == 0) return Results.Forbid();
+            var ilId = await GetProvinceForStaffAsync(db, http, currentUserId, cancellationToken);
+            if (ilId == 0) return Results.Forbid();  // null = sistem yonetici (tum iller)
 
             var managerMi = await db.ProvinceUserAssignments
-                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && a.ProvinceId == ilId, cancellationToken);
+                .AnyAsync(a => a.UserId == currentUserId && a.Role == "ProvinceManager" && (ilId == null || a.ProvinceId == ilId), cancellationToken);
             if (!managerMi) return Results.Forbid();
 
             var atama = await db.ProvinceUserAssignments
-                .FirstOrDefaultAsync(a => a.UserId == userId && a.Role == "ProvinceEvaluator" && a.ProvinceId == ilId, cancellationToken);
+                .FirstOrDefaultAsync(a => a.UserId == userId && a.Role == "ProvinceEvaluator" && (ilId == null || a.ProvinceId == ilId), cancellationToken);
             if (atama is null) return Results.NotFound();
             db.ProvinceUserAssignments.Remove(atama);
             await db.SaveChangesAsync(cancellationToken);
@@ -453,7 +497,11 @@ public static class ProvinceEndpoints
         [Required, EmailAddress, StringLength(256)] string Email,
         [Required, StringLength(128, MinimumLength = 8)] string Password,
         [Required, StringLength(50, MinimumLength = 2)] string FirstName,
-        [Required, StringLength(50, MinimumLength = 2)] string LastName);
+        [Required, StringLength(50, MinimumLength = 2)] string LastName,
+        // Onur (S11.74): sistem yöneticisinin kapsamı "tüm iller" olduğu için
+        // hangi ile atama yapılacağını istekte belirtmesi gerekir. Personel
+        // (il yöneticisi) için bu alan yok sayılır — kendi ili kullanılır.
+        [Range(1, 81)] int? ProvinceId);
 
     public sealed record UygulamaRaporuIstegi(
         [Required] ImplementationStatus Status,

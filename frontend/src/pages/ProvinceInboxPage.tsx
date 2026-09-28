@@ -23,6 +23,10 @@ const temaEmoji = (k: string) => TEMA_EMOJI[k] ?? "💡";
 
 export function ProvinceInboxPage() {
   const [ben, setBen] = useState<MeSession | null>(null);
+  // Onur (S11.74): sistem yöneticisi "tüm iller" kapsamıyla listeler; hangi
+  // il olduğu satırda görünmeli. İl personeli kendi ilini gördüğü için sütun
+  // ona gösterilmez (arayüzü değişmez).
+  const ilSutunuMu = ben?.roles.includes("SystemAdmin") ?? false;
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
 
   const [inbox, setInbox] = useState<InboxEntry[]>([]);
@@ -172,6 +176,7 @@ export function ProvinceInboxPage() {
                           ))}
                         </select>
                       </th>
+                      {ilSutunuMu && <th>İl</th>}
                       <th>Öğrenci</th>
                       <th>İçerik</th>
                       <th>
@@ -203,6 +208,7 @@ export function ProvinceInboxPage() {
                             : <span className="durum turuncu">● Yeni</span>}
                         </td>
                         <td><strong>{temaEmoji(i.categoryName)} {i.categoryName}</strong></td>
+                        {ilSutunuMu && <td>{i.provinceName}</td>}
                         <td>
                           <strong>{i.studentFirstName} {i.studentLastName}</strong>
                           <div className="meta">

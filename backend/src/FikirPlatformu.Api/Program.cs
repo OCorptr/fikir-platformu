@@ -370,9 +370,18 @@ builder.Services.AddAuthorization(options =>
         .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
         .RequireAssertion(ctx => ctx.User.IsInRole("Student")));
 
+    // Onur (S11.74): "Sistem Yöneticisi hala admin ile bakanlık sayfasına
+    // girebiliyor ama İl AR-GE sayfasına giremiyor."
+    // Sebep: ProvinceScheme cookie'si yazılıyordu (S11.71) ama bu politika
+    // yalnızca ProvinceManager/ProvinceEvaluator kabul ediyordu; SystemAdmin
+    // ikisine de sahip olmadığı için tüm il-panel API çağrıları 403 dönüyordu.
+    // Politika erişimi AÇAR; il kapsamı (aşağıdaki KapsamCoz) ayrı konudur —
+    // sistem yöneticisi TÜM illeri görmelidir, kendi iliyle sınırlı değil.
     options.AddPolicy("ProvinceOnly", p => p
         .AddAuthenticationSchemes("ProvinceScheme")
-        .RequireAssertion(ctx => ctx.User.IsInRole("ProvinceManager") || ctx.User.IsInRole("ProvinceEvaluator")));
+        .RequireAssertion(ctx => ctx.User.IsInRole("SystemAdmin")
+            || ctx.User.IsInRole("ProvinceManager")
+            || ctx.User.IsInRole("ProvinceEvaluator")));
 
     options.AddPolicy("MinistryOnly", p => p
         .AddAuthenticationSchemes("MinistryScheme")

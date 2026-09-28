@@ -41,6 +41,10 @@ export async function createEvaluatorOnProvince(input: {
   password: string;
   firstName: string;
   lastName: string;
+  // Onur (S11.74): sistem yöneticisinin kapsamı "tüm iller" olduğu için
+  // hangi ile atama yapılacağını istekte belirtmesi gerekir. İl yöneticisi
+  // için gönderilmez (undefined) — backend kendi ilini kullanır.
+  provinceId?: number;
 }): Promise<{ userId: string; email: string; provinceId: number }> {
   return apiRequest("/api/province/evaluators", {
     method: "POST",

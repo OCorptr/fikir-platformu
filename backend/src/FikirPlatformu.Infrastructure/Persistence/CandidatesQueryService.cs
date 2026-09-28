@@ -16,17 +16,18 @@ public sealed record CandidateSummary(
 
 public interface ICandidatesQueryService
 {
-    Task<IReadOnlyList<CandidateSummary>> ListAsync(int provinceId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CandidateSummary>> ListAsync(int? provinceId, CancellationToken cancellationToken = default);
 }
 
 public sealed class CandidatesQueryService(FikirPlatformuDbContext db) : ICandidatesQueryService
 {
-    public async Task<IReadOnlyList<CandidateSummary>> ListAsync(int provinceId, CancellationToken cancellationToken = default)
+    public async Task<IReadOnlyList<CandidateSummary>> ListAsync(int? provinceId, CancellationToken cancellationToken = default)
     {
         // Aday havuzu: EvaluationCompleted durumundaki fikirler, ortalama puan eşik üstü.
         var fikirler = await (
             from f in db.Ideas.AsNoTracking()
-            where f.ProvinceId == provinceId && f.Status == IdeaSubmissionStatus.EvaluationCompleted
+            // Onur (S11.74): null = tum iller (sistem yoneticisi istisnasi).
+            where (provinceId == null || f.ProvinceId == provinceId) && f.Status == IdeaSubmissionStatus.EvaluationCompleted
             join k in db.IdeaCategories.AsNoTracking() on f.CategoryId equals k.Id
             orderby f.UpdatedAt descending
             select new

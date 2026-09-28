@@ -23,8 +23,12 @@ public sealed record InboxEntry(
 
 public interface IProvinceInboxQueryService
 {
+    /// <param name="provinceId">
+    /// Onur (S11.74): <c>null</c> → il filtresi yok, TÜM iller listelenir
+    /// (sistem yöneticisi istisnadır). Personel için kendi ili atanır.
+    /// </param>
     Task<IReadOnlyList<InboxEntry>> ListAsync(
-        int provinceId,
+        int? provinceId,
         string currentUserId,
         CancellationToken cancellationToken = default);
 }

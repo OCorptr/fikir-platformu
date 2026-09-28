@@ -11,15 +11,20 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
     private const double AdayEsik = 3.5;
 
     public async Task<IReadOnlyList<InboxEntry>> ListAsync(
-        int provinceId,
+        int? provinceId,
         string currentUserId,
         CancellationToken cancellationToken = default)
     {
-        // Sadece gönderilmiş fikirler (taslak/silinmiş hariç) ve bu ile ait olanlar.
+        // Sadece gönderilmiş fikirler (taslak/silinmiş hariç).
         // StudentProfile + ApplicationUser join ile öğrenci bilgisi çekilir (Idea'da navigation yok).
+        //
+        // Onur (S11.74): "Sistem Yöneticisi tüm illeri görebilir il-panel'de."
+        // `provinceId == null` → il filtresi uygulanmaz, TÜM iller döner.
+        // Personel için null asla üretilmez (kendi ili atanır), 0 dönerse
+        // endpoint Forbid verir.
         var raw = await (
             from fikir in db.Ideas.AsNoTracking()
-            where fikir.ProvinceId == provinceId
+            where (provinceId == null || fikir.ProvinceId == provinceId)
                 && (fikir.Status == IdeaSubmissionStatus.Submitted
                     || fikir.Status == IdeaSubmissionStatus.InEvaluation
                     || fikir.Status == IdeaSubmissionStatus.EvaluationCompleted)
