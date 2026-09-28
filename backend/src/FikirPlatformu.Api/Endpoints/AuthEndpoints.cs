@@ -4,6 +4,7 @@ using System.Text.Json;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Domain.Students;
+using FikirPlatformu.Infrastructure.Auth;
 using FikirPlatformu.Infrastructure.Email;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
@@ -563,13 +564,12 @@ grup.MapPost("/logout", async (
         });
 
         // Sprint 11.37: OAuth handshake sonrası hangi hesaba bağlı olduğunu gösterir.
-        // DB'deki gmail_refresh_tokens.Id=1 encrypted refresh token'ı çözüp
-        // Google userinfo ile kontrol eder. Maintenance token ile korunur.
+        // DB'deki gmail_refresh_tokens.Id=1 encrypted refresh token var mi, env'de
+        // Mail__Gmail__* konfigurasyonu ne — bak. Maintenance token ile korunur.
         grup.MapGet("/__debug/mail-sender", async (
             [FromQuery] string? token,
             IConfiguration yapilandirma,
-            FikirPlatformuDbContext veritabani,
-            HassasVeriSifreleme sifreleme) =>
+            FikirPlatformuDbContext veritabani) =>
         {
             var beklenen = yapilandirma["AdminMaintenance:Secret"]
                 ?? yapilandirma["__maintenance:admin-reset:token"]
@@ -582,8 +582,23 @@ grup.MapPost("/logout", async (
             var senderAddress = yapilandirma["Mail:Gmail:SenderAddress"];
             var envRefresh = yapilandirma["Mail:Gmail:RefreshToken"];
 
-            var rec = await veritabani.GmailRefreshTokens.AsNoTracking()
-                .FirstOrDefaultAsync(t => t.Id == 1);
+            GmailRefreshToken? rec = null;
+            try
+            {
+                rec = await veritabani.GmailRefreshTokens.AsNoTracking()
+                    .FirstOrDefaultAsync(t => t.Id == 1);
+            }
+            catch (Exception ex)
+            {
+                return Results.Ok(new
+                {
+                    senderAddress = senderAddress ?? "(env yok)",
+                    envRefreshTokenVar = !string.IsNullOrWhiteSpace(envRefresh),
+                    dbError = ex.GetType().Name + ": " + ex.Message,
+                    beklenenAdres = "fikir.platformu.iletisim@gmail.com",
+                });
+            }
+
             bool dbHasToken = rec is not null && !string.IsNullOrEmpty(rec.EncryptedRefreshToken);
             DateTime? dbUpdatedAt = rec?.UpdatedAt;
 
