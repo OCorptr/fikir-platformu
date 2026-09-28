@@ -746,6 +746,35 @@ input[type="range"] {
   font-size: 0.95rem;
   color: #444;
 }
+
+/* Sprint 11.45: Dark mode koyu yazı fixi — koyu arka planda
+   tüm MFA setup elemanlarında yazılar okunabilsin. */
+.mfa-kurulum {
+  color: #16355c;
+}
+.mfa-kurulum h1,
+.mfa-kurulum h2,
+.mfa-kurulum h3,
+.mfa-kurulum p,
+.mfa-kurulum li,
+.mfa-kurulum ol,
+.mfa-kurulum small,
+.mfa-kurulum dt,
+.mfa-kurulum dd,
+.mfa-kurulum .mfa-aciklama,
+.mfa-kurulum .mfa-alan span {
+  color: #16355c;
+}
+.mfa-kurulum .mfa-bilgi dd,
+.mfa-kurulum .mfa-bilgi dt {
+  color: #16355c;
+}
+.mfa-kurulum .mfa-otp,
+.mfa-kurulum .mfa-kod {
+  color: #16355c;
+  background: #fff;
+  border: 1px solid #ccd;
+}
 .mfa-form {
   display: flex;
   flex-direction: column;
