@@ -483,9 +483,10 @@ app.UseStatusCodePages(async context =>
 });
 app.UseRateLimiter();
 
-// CORS middleware UseAuthentication'dan ÖNCE olmalı (Microsoft Learn:
-// UseCors must be called after UseRouting but before UseAuthorization).
-// Preflight OPTIONS request'leri unauthenticated handle edilmeli.
+// Sprint 11.28: UseCors EN BASTA olmali — Microsoft Learn:
+/// UseCors must be called after UseRouting but before UseAuthorization,
+/// but the implicit UseRouting in minimal API may not be active yet.
+/// Tüm middleware'lerden once cagirmak en guvenli yol.
 app.UseCors(FrontendCorsPolicy);
 
 // Sprint 11.28: CORS preflight OPTIONS request'leri 204 ile kısa devre yapsın
@@ -504,6 +505,27 @@ app.Use(async (ctx, next) =>
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/api/__debug/cors-config", (
+    HttpContext http,
+    IConfiguration cfg) =>
+{
+    var token = http.Request.Query["token"].ToString();
+    var beklenen = cfg["AdminMaintenance:Secret"]
+        ?? cfg["__maintenance:admin-reset:token"]
+        ?? "BekleyinSprint12";
+    if (string.IsNullOrEmpty(token) || token != beklenen)
+    {
+        return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+    }
+    var corsSection = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>();
+    return Results.Ok(new
+    {
+        corsSectionLength = corsSection?.Length ?? 0,
+        corsSectionValues = corsSection ?? Array.Empty<string>(),
+        envHasKey = cfg.GetSection("Cors:AllowedOrigins").Exists(),
+    });
+});
 
 app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 {
