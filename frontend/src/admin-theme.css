@@ -182,6 +182,11 @@ body.sayfa-admin {
   border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi-acik);
   vertical-align: middle;
   color: var(--yt-govde);
+  /* Onur (S11.69): "tek satırda görünebilecek kısımlar alt alta inmiş".
+     th'te nowrap vardı, td'de yoktu - bu yüzden rol rozetleri ve e-posta
+     2. satıra taşıyordu. Tablo yatay kaydırmalı (adm-tablo-sarmal) olduğu
+     için daraltmak değil, tek satırda tutmak doğru davranış. */
+  white-space: nowrap;
 }
 
 .adm-tablo tbody tr:last-child td {
@@ -815,10 +820,56 @@ input[aria-invalid="true"].adm-input {
 /* Tablet: kullanıcı tablosu 7 sütun. 860px altında kenar paneli daraldığı
    için tablo yatay kaydırmaya alınır — sütunları gizlemek yerine kaydırma,
    çünkü sistem yöneticisi tüm sütunları karşılaştırmak için kullanıyor. */
+/* Onur (S11.69): "/mfa-login görünümlerinde kartları sayfada dikeyde
+   ortalanmamışlar."
+
+   Sebep: .sayfa-ortak yalnızca `margin: 0 auto` ile YATAY ortalıyor,
+   dikey boşluk bırakmıyordu — kart ekranın tepesinde yapışık duruyordu.
+
+   Çözüm: sayfa kabuğu tam ekran dikey flex yapılıp içerik ortalanıyor.
+   min-height kullandığımız için içerik ekrandan uzunsa kutu büyür, üstte
+   kırpılma olmaz. */
+main.sayfa-ortak {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Onur (S11.69): "Ayın Fikri arşivi ile yetkili girişi kartlarının enlerini
+   aynı yap" — metin uzunluğu farkı kutuları farklı genişlikte yapıyordu.
+   İkisi de aynı sabit taban eninde. */
+.ozellikler .ozellik {
+  min-width: 11rem;
+  text-align: center;
+}
+
+/* Onur (S11.69): "Nasıl hazırlanır? ve CSV Sütunları tablolarını yan yana
+   tasarla boşa satır kaplıyorlar." İki bölüm yan yana; dar ekranda alt alta. */
+.adm-ikili {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.1rem;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .adm-ikili {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Onur (S11.69): hücreler artık nowrap. Daraltma yerine yatay kaydırma —
+   sütunları gizlemek bilgi kaybı, sistem yöneticisi 7 sütunu da
+   karşılaştırıyor. Kaydırma masaüstünde de açık kalmalı ki pencere
+   daraltıldığında tablo taşmasın. */
+.adm-tablo-kaydir {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
 @media (max-width: 900px) {
   .adm-tablo-kaydir {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
     /* Kenar paneli sabit olduğu için kaydırma çubuğu kenar boşluğuna
        girmesin diye yatay dolgu. */
     margin-inline: calc(1.9rem * -1);

@@ -214,8 +214,10 @@ export function MfaLoginPage() {
   // kullanıcıya hiç gösterilmemeli (race condition + form flash yok).
   if (yukleniyor) {
     return (
-      <main className="sayfa-ortak mfa-login">
+      <main className="sayfa-ortak">
+        <div className="mfa-login">
         <p className="mfa-aciklama">Oturum kontrol ediliyor…</p>
+      </div>
       </main>
     );
   }
@@ -223,7 +225,8 @@ export function MfaLoginPage() {
   // === SEÇİM EKRANI ===
   if (ekran === "secim") {
     return (
-      <main className="sayfa-ortak mfa-login mfa-secim">
+      <main className="sayfa-ortak">
+        <div className="mfa-login mfa-secim">
         <h1>🔐 İki adımlı doğrulama</h1>
         <p className="mfa-aciklama">
           Girişinizi tamamlamak için bir doğrulama yöntemi seçin.
@@ -265,6 +268,7 @@ export function MfaLoginPage() {
         <button type="button" className="btn-link" onClick={handleCikis} disabled={calisiyor}>
           {calisiyor ? "Çıkış yapılıyor…" : "Çıkış - Ana Sayfa"}
         </button>
+      </div>
       </main>
     );
   }
@@ -279,7 +283,8 @@ export function MfaLoginPage() {
     : "Authenticator uygulamanızda görünen 6 haneli kodu girin.";
 
   return (
-    <main className="sayfa-ortak mfa-login mfa-giris">
+    <main className="sayfa-ortak">
+        <div className="mfa-login mfa-giris">
       <h1>{baslik}</h1>
       <p className="mfa-aciklama">{aciklama}</p>
 
@@ -340,6 +345,7 @@ export function MfaLoginPage() {
           ← Yöntem seçimine dön
         </button>
       </div>
-    </main>
+    </div>
+      </main>
   );
 }

@@ -142,6 +142,10 @@ export function UserBulkPage() {
         yükleyin. En fazla 5&nbsp;MB, önerilen 1.000 satır.
       </p>
 
+      {/* Onur (S11.69): "Nasıl hazırlanır? ve CSV Sütunları tablolarını yan
+          yana tasarla boşa satır kaplıyorlar." Alt alta iki tam genişlik
+          bölüm sayfayı gereksiz uzatıyordu; iki sütuna alındı. */}
+      <div className="adm-ikili">
       <section className="adm-kart" aria-labelledby="adm-nasil-baslik">
         <h2 id="adm-nasil-baslik" className="adm-h2" style={{ marginTop: 0 }}>
           Nasıl hazırlanır?
@@ -164,8 +168,8 @@ export function UserBulkPage() {
         </div>
       </section>
 
-      <section aria-labelledby="adm-sutun-baslik">
-        <h2 id="adm-sutun-baslik" className="adm-h2">
+      <section className="adm-kart" aria-labelledby="adm-sutun-baslik">
+        <h2 id="adm-sutun-baslik" className="adm-h2" style={{ marginTop: 0 }}>
           CSV Sütunları
         </h2>
         <table className="adm-tablo">
@@ -200,6 +204,7 @@ export function UserBulkPage() {
           </tbody>
         </table>
       </section>
+      </div>
 
       <details className="adm-kart">
         <summary className="adm-etiket" style={{ cursor: "pointer" }}>

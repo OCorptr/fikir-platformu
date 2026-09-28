@@ -648,25 +648,51 @@ function KullaniciSatiri({
   const roller = u.roller ?? [];
   const il = ilBul(roller, u.ilAtamalari ?? []);
 
+  // Onur (S11.69): "Rol kısmında hâlâ birden fazla atanmış roller var."
+  //
+  // Sebep: seed her iki rolü birden veriyor (SystemAdmin + MinistryOfficial)
+  // ve sütun `roller.map(...)` ile HEPSİNİ rozet olarak basıyordu. Sonuç:
+  // "Bakanlık AR-GE Yetkilisi" ve "Sistem Yöneticisi" rozetleri yan yana,
+  // hücre iki satıra taşıyordu.
+  //
+  // Kural (Onur, Sprint 11.64): "Sistem Yöneticisi dışında kimsede birden
+  // fazla panele erişemez." Yani her kullanıcıya TEK bir panel erişimi
+  // vardır. Sistem yöneticisi istisnadır ve iki panele de erişebilmelidir —
+  // bu yüzden veride iki rolü korunur, ama ARAYÜZDE tek rol gösterilir.
+  // Böylece hem kural görünür hem de satır tek satırda kalır.
+  const ROL_ONCELIK = [
+    "SystemAdmin",
+    "MinistryOfficial",
+    "ProvinceManager",
+    "ProvinceEvaluator",
+  ] as const;
+  const anaRol = ROL_ONCELIK.find((r) => roller.includes(r)) ?? roller[0];
+  const ekRolSayisi = roller.length - 1;
+
   return (
     <tr>
       <th scope="row" style={{ fontWeight: 700, color: "var(--yt-lacivert)" }}>
         {u.firstName} {u.lastName}
       </th>
       <td>
-        <span style={{ overflowWrap: "anywhere" }}>{u.email}</span>
+        <span>{u.email}</span>
       </td>
       <td>{il ? il.ilAdi : <span className="adm-meta">—</span>}</td>
       <td>
         <span className="adm-rozet-grup">
-          {roller.length === 0 ? (
+          {!anaRol ? (
             <span className="adm-meta">rol yok</span>
           ) : (
-            roller.map((r) => (
-              <span key={r} className="adm-rozet adm-rozet-mavi">
-                {rolAdi(r)}
-              </span>
-            ))
+            <span
+              className="adm-rozet adm-rozet-mavi"
+              title={
+                ekRolSayisi > 0
+                  ? `Sistem yöneticisi — ${ekRolSayisi} panel için de yetkili`
+                  : undefined
+              }
+            >
+              {rolAdi(anaRol)}
+            </span>
           )}
         </span>
       </td>
