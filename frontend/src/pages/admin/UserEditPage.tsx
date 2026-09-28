@@ -58,63 +58,122 @@ export function UserEditPage() {
   }
 
   if (!id) {
-    return <p>Geçersiz kullanıcı.</p>;
+    return (
+      <div className="adm-sayfa">
+        <div className="adm-bildirim adm-bildirim-hata" role="alert">
+          <span aria-hidden="true">⚠</span>
+          <span>Geçersiz kullanıcı bağlantısı.</span>
+        </div>
+      </div>
+    );
   }
   if (hata && !user) {
-    return <div className="admin-hata">{hata}</div>;
+    return (
+      <div className="adm-sayfa">
+        <div className="adm-bildirim adm-bildirim-hata" role="alert">
+          <span aria-hidden="true">⚠</span>
+          <span>{hata}</span>
+        </div>
+      </div>
+    );
   }
   if (!user) {
-    return <p>Yükleniyor…</p>;
+    return <div className="adm-yukleniyor">Yükleniyor…</div>;
   }
 
   return (
-    <form onSubmit={gonder} className="admin-form">
-      <h2>{user.email}</h2>
-      <p className="admin-form-meta">
-        Roller: {user.roles.length > 0 ? user.roles.map(rolAdi).join(", ") : "(yok)"} · MFA:{" "}
-        {user.twoFactorEnabled ? "etkin" : "kapalı"} · Son giriş:{" "}
-        {user.sonGirisAt ? new Date(user.sonGirisAt).toLocaleString("tr-TR") : "—"}
+    <form onSubmit={gonder} className="adm-sayfa">
+      <h2 className="adm-h2" style={{ marginTop: 0 }}>
+        {user.email}
+      </h2>
+      <p className="adm-aciklama">
+        <span className="adm-rozet adm-rozet-mavi">
+          Roller:{" "}
+          {user.roles.length > 0 ? user.roles.map(rolAdi).join(", ") : "(yok)"}
+        </span>{" "}
+        <span className="adm-rozet">
+          MFA: {user.twoFactorEnabled ? "etkin" : "kapalı"}
+        </span>{" "}
+        <span className="adm-rozet">
+          Son giriş:{" "}
+          {user.sonGirisAt
+            ? new Date(user.sonGirisAt).toLocaleString("tr-TR")
+            : "—"}
+        </span>
       </p>
-      {hata && <div className="admin-hata">{hata}</div>}
 
-      <label>
-        E-posta
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-      </label>
-      <label>
-        Ad
-        <input
-          type="text"
-          required
-          minLength={2}
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-        />
-      </label>
-      <label>
-        Soyad
-        <input
-          type="text"
-          required
-          minLength={2}
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-        />
-      </label>
+      {hata && (
+        <div className="adm-bildirim adm-bildirim-hata" role="alert">
+          <span aria-hidden="true">⚠</span>
+          <span>{hata}</span>
+        </div>
+      )}
 
-      <div className="admin-form-actions">
-        <button type="submit" disabled={calisiyor}>
-          {calisiyor ? "Kaydediliyor…" : "Kaydet"}
-        </button>
-        <button type="button" onClick={() => navigate("/admin/users")}>
-          İptal
-        </button>
-      </div>
+      <section className="adm-kart" aria-labelledby="adm-kimlik-baslik">
+        <h3 id="adm-kimlik-baslik" className="adm-h2" style={{ marginTop: 0 }}>
+          Kimlik bilgileri
+        </h3>
+
+        <div className="adm-izgara">
+          <label className="adm-alan">
+            <span className="adm-etiket">E-posta</span>
+            <input
+              className="adm-input"
+              type="email"
+              name="email"
+              autoComplete="email"
+              spellCheck={false}
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </label>
+          <label className="adm-alan">
+            <span className="adm-etiket">Ad</span>
+            <input
+              className="adm-input"
+              type="text"
+              name="firstName"
+              autoComplete="given-name"
+              required
+              minLength={2}
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+          </label>
+          <label className="adm-alan">
+            <span className="adm-etiket">Soyad</span>
+            <input
+              className="adm-input"
+              type="text"
+              name="lastName"
+              autoComplete="family-name"
+              required
+              minLength={2}
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </label>
+        </div>
+
+        <div className="adm-btn-kuyruk">
+          <button
+            type="submit"
+            className="adm-btn adm-btn-ana"
+            disabled={calisiyor}
+          >
+            {calisiyor ? "Kaydediliyor…" : "Değişiklikleri Kaydet"}
+          </button>
+          <button
+            type="button"
+            className="adm-btn adm-btn-sessiz"
+            onClick={() => navigate("/admin/users")}
+            disabled={calisiyor}
+          >
+            İptal
+          </button>
+        </div>
+      </section>
     </form>
   );
 }

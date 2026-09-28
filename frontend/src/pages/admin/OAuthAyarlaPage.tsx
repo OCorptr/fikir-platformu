@@ -1,108 +1,138 @@
-// OAuth handshake tetikleme sayfası — Sistem Yöneticisi için.
+// Gmail OAuth yapılandırma sayfası — Sistem Yöneticisi için.
 //
-// Onur Sprint 11.x: OAuth handshake için incognito pencere + Gmail login +
-// URL yapıştırma adımları karmaşık. Admin Panel'den tek tıkla
-// /api/auth/gmail-oauth/start URL'i açılır, Google consent screen gelir,
-// Onur `fikir.platformu.iletisim@gmail.com` hesabını seçer, callback DB'ye
-// persist olur. Sonraki tüm mailler bu hesaptan gider.
-
+// Sprint 11.64: Görsel dil İl AR-GE / Bakanlık panellerine yaklaştırıldı
+// (admin-theme.css). İşlev değişmedi.
+//
+// Sprint 11.52: Adres kodda gömülüydü. Kendi sunucusunu kuran kurulumda
+// yönetici, geliştiricinin Render sunucusuna yönlendirilirdi. Artık
+// aynı-origin varsayılan; env ile farklı origin verilebilir.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { backendOrigin } from "../../services/api";
 
-// Sprint 11.52: Adres kodda gömülüydü. Kendi sunucusunu kuran kurulumda
-// yönetici, geliştiricinin Render sunucusuna yönlendirilirdi. Artık
-// aynı-origin varsayılan; env ile farklı origin verilebilir.
 const OAUTH_START_URL = `${backendOrigin()}/api/auth/gmail-oauth/start`;
 
-export function OAuthAyarlaPage() {
-  const [mevcut, setMevcut] = useState<{ hasToken: boolean } | null>(null);
-  const [kontrolHatasi, setKontrolHatasi] = useState<string | null>(null);
+const ADIMLAR = [
+  {
+    baslik: "Google ekranı açılır",
+    metin: "Tıklamanızın ardından Google izin ekranı gelir.",
+  },
+  {
+    baslik: "Hesabı seçin",
+    metin:
+      "Sistem için kullanılacak Gmail hesabını seçin " +
+      "(örn. fikir.platformu.iletisim@gmail.com).",
+  },
+  {
+    baslik: "İzin verin",
+    metin: "\"Gmail üzerinden e-posta gönder\" iznini onaylayın.",
+  },
+  {
+    baslik: "Geri dönün",
+    metin:
+      "Sistem bu hesabın refresh token'ını şifreli olarak veritabanına kaydeder; " +
+      "bu sayfaya otomatik dönersiniz.",
+  },
+];
 
-  // Sayfa mount'ında OAuth handshake durumunu kontrol et (callback sonrası
-  // ?gmail_oauth=ok query'si buraya gelebilir; query'yi kaldır ki reload
-  // tekrar tetiklemesin).
+export function OAuthAyarlaPage() {
+  const [tokenVar, setTokenVar] = useState<boolean | null>(null);
+
+  // Sayfa yüklenirken OAuth handshake durumunu kontrol et. Callback sonrası
+  // `?gmail_oauth=ok` query'si buraya gelir; query'yi temizle ki sayfa
+  // yenilenince tekrar tetiklenmesin.
   useEffect(() => {
     const url = new URL(window.location.href);
     if (url.searchParams.get("gmail_oauth") === "ok") {
       url.searchParams.delete("gmail_oauth");
       url.searchParams.delete("has_token");
       window.history.replaceState({}, "", url.toString());
-      // Başarı durumunda mevcut token DB'de var demektir.
-      setMevcut({ hasToken: true });
+      setTokenVar(true);
     } else {
-      setMevcut({ hasToken: false });
+      setTokenVar(false);
     }
   }, []);
 
   function baslat() {
-    // Sprint 11.36: Aynı sekmede OAuth handshake — Chrome/Firefox/Safari 3rd-party
-    // cookie engeli yüzünden yeni sekme (window.open) ile backend `.FikirOAuthState`
-    // cookie'si callback'te gelmiyordu → "state uyumsuz — CSRF koruması" hatası.
-    // window.location.href ile aynı sekmede navigation → cookie 1st-party kabul
-    // edilir, callback'te state doğrulanır. Backend callback zaten
-    // /admin/oauth?gmail_oauth=ok ile frontend'e redirect eder.
+    // Sprint 11.36: Aynı sekmede OAuth handshake. Chrome/Firefox/Safari'ın
+    // üçüncü taraf çerez engeli yüzünden yeni sekme (window.open) ile backend
+    // `.FikirOAuthState` çerezi callback'te gelmiyor ve "state uyuşmaz —
+    // CSRF koruması" hatası veriyordu. window.location.href ile aynı sekmede
+    // gezinme çerez birinci taraf kabul edilir, state doğrulanır. Backend
+    // callback zaten /admin/oauth?gmail_oauth=ok ile buraya döner.
     window.location.href = OAUTH_START_URL;
   }
 
   return (
-    <section className="oauth-ayarla">
-      <h2 className="oauth-baslik">Gmail OAuth Yapılandırması</h2>
-      <p className="oauth-aciklama">
-        Sistem Sabit Gmail modunda tüm mailler (şifre sıfırlama, MFA OTP,
-        toplu davet) DB'deki tek bir Gmail hesabından gönderilir. Bu hesabı
-        OAuth handshake ile bağlamak için aşağıdaki butona tıklayın:
+    <div className="adm-sayfa">
+      <h2 className="adm-h2" style={{ marginTop: 0 }}>
+        Gmail OAuth Yapılandırması
+      </h2>
+      <p className="adm-aciklama">
+        Sistem sabit Gmail modunda tüm mailleri (şifre sıfırlama, MFA kodu, toplu
+        davet) veritabanındaki tek bir Gmail hesabından gönderir. Bu hesabı
+        OAuth handshake ile bağlamak için aşağıdaki düğmeyi kullanın.
       </p>
 
-      {mevcut?.hasToken && (
-        <div className="oauth-basarili" role="status">
-          ✓ OAuth handshake başarıyla tamamlandı. Tüm mailler artık bağlı
-          Gmail hesabından gönderilecek.
+      {tokenVar === true && (
+        <div className="adm-bildirim adm-bildirim-basari" role="status">
+          <span aria-hidden="true">✓</span>
+          <span>
+            OAuth handshake tamamlandı. Tüm mailler artık bağlı Gmail
+            hesabından gönderilecek.
+          </span>
         </div>
       )}
-      {kontrolHatasi && <div className="oauth-hata">{kontrolHatasi}</div>}
 
-      <ol className="oauth-adimlar">
-        <li>
-          <strong>Yeni pencere açılacak.</strong> Google OAuth ekranı gelir.
-        </li>
-        <li>
-          <strong>Hesap seç:</strong> Sistem için kullanmak istediğin Gmail
-          hesabını seçin (örn. <code>fikir.platformu.iletisim@gmail.com</code>).
-        </li>
-        <li>
-          <strong>İzin ver:</strong> "Gmail üzerinden e-posta gönder"
-          iznini onaylayın.
-        </li>
-        <li>
-          <strong>Callback otomatik:</strong> Sistem bu hesabın refresh
-          token'ını şifreli olarak DB'ye kaydeder. Bu pencereye geri dönün.
-        </li>
-      </ol>
+      {tokenVar === false && (
+        <div className="adm-bildirim adm-bildirim-bilgi" role="status">
+          <span aria-hidden="true">ℹ</span>
+          <span>
+            Henüz bağlı bir Gmail hesabı yok. Aşağıdaki adımları tamamlayın.
+          </span>
+        </div>
+      )}
 
-      <div className="oauth-aksiyonlar">
-        <button type="button" className="btn btn-primary" onClick={baslat}>
-          Gmail OAuth Handshake'i Başlat
-        </button>
-        <Link to="/admin/users" className="btn btn-ghost">
-          ← Kullanıcı Yönetimine Dön
-        </Link>
-      </div>
+      <section className="adm-kart" aria-labelledby="adm-adim-baslik">
+        <h3 id="adm-adim-baslik" className="adm-h2" style={{ marginTop: 0 }}>
+          Adımlar
+        </h3>
+        <ol className="adm-kucuk-metin" style={{ lineHeight: 1.9, paddingLeft: "1.2rem" }}>
+          {ADIMLAR.map((a) => (
+            <li key={a.baslik}>
+              <strong style={{ color: "var(--yt-lacivert)" }}>{a.baslik}.</strong>{" "}
+              {a.metin}
+            </li>
+          ))}
+        </ol>
 
-      <details className="oauth-detay">
-        <summary>Teknik detay</summary>
-        <p>
-          OAuth handshake: <code>/api/auth/gmail-oauth/start</code> →
-          Google consent screen → <code>/api/auth/gmail-oauth/callback</code>
-          {" "}→ DB <code>gmail_refresh_tokens</code> tablosu Id=1 satırı
-          encrypted olarak güncellenir.
-        </p>
-        <p>
-          OAuth token geçerlilik süresi Google tarafından yönetilir; refresh
-          token ile sistem otomatik olarak yeni access token alır. Mevcut
-          token iptal edilirse bu handshake tekrar yapılmalıdır.
-        </p>
+        <div className="adm-btn-kuyruk">
+          <button type="button" className="adm-btn adm-btn-ana" onClick={baslat}>
+            Gmail Bağlantısını Başlat
+          </button>
+          <Link to="/admin/users" className="adm-btn adm-btn-sessiz">
+            ← Kullanıcı Yönetimi
+          </Link>
+        </div>
+      </section>
+
+      <details className="adm-kart">
+        <summary className="adm-etiket" style={{ cursor: "pointer" }}>
+          Teknik detay
+        </summary>
+        <div className="adm-kucuk-metin" style={{ marginTop: "0.6rem" }}>
+          <p style={{ margin: "0 0 0.5rem" }}>
+            OAuth handshake: <code>/api/auth/gmail-oauth/start</code> → Google
+            izin ekranı → <code>/api/auth/gmail-oauth/callback</code> → veritabanı{" "}
+            <code>gmail_refresh_tokens</code> tablosu şifrelenerek güncellenir.
+          </p>
+          <p style={{ margin: 0 }}>
+            OAuth token geçerlilik süresini Google yönetir; sistem refresh token
+            ile otomatik olarak yeni access token alır. Token iptal edilirse bu
+            handshake yeniden yapılmalıdır.
+          </p>
+        </div>
       </details>
-    </section>
+    </div>
   );
 }

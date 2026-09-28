@@ -1,0 +1,528 @@
+/* ============================================================
+   Admin Paneli Teması — Sprint 11.64
+   ============================================================
+   Amaç: /admin/* sayfalarını İl AR-GE / Bakanlık panelleriyle AYNI görsel
+   dile taşımak. Referans (dokunulmadı): styles.css "İl AR-GE Paneli (Aşama 4)"
+   bloğu — `il-panel-tablo`, `detay-icerik`, `durum-nokta`, `meta`.
+
+   Tasarım kararı (Onur, Sprint 11.64): "admin biraz daha sakin olsun".
+   Yani referansla aynı palet + yazı tipi + yarıçap, AMA:
+     - Kenarlık kalınlığı 0.16rem → 0.1rem  (daha az gürültü)
+     - Satır hover'ı ve imleç değişimi kaldırıldı (liste taraması kolaylaşsın)
+     - Gölgeler sıfıra yakın; ayrım renk ve boşlukla
+     - Durum renkleri sadece anlam taşıdığında kullanılıyor
+
+   Bu dosya styles.css'ten SONRA yüklenir. Referans bloklara dokunulmaz.
+   ============================================================ */
+
+:root {
+  /* Referanstan birebir alınan palet (İl AR-GE / Bakanlık). */
+  --yt-lacivert: #16355c;
+  --yt-govde: #33475f;
+  --yt-soluk: #647a92;
+  --yt-meta: #8aa0b5;
+  --yt-yuzey: #fff;
+  --yt-yuzey-2: #f7fafd;
+  --yt-baslik-zemin: #eef4fb;
+  --yt-cizgi: #d8e3ee;
+  --yt-cizgi-acik: #ecf2f7;
+  --yt-vurgu: #1f9fa4;
+  --yt-uyari: #ef7814;
+  --yt-uyari-zemin: #fffaf0;
+  --yt-basari: #2c6e3f;
+  --yt-tehlike: #c0392b;
+  --yt-tehlike-zemin: #fdeeec;
+  --yt-bilgi-zemin: #eef4fb;
+
+  /* Sakin varyant ölçüleri. */
+  --yt-r-kart: 1rem;
+  --yt-r-kucuk: 0.6rem;
+  --yt-r-pil: 999px;
+  --yt-cizgi-kalinlik: 0.1rem;
+  --yt-gecis: 0.12s;
+}
+
+body.sayfa-admin {
+  font-family: "Nunito", "Baloo 2", sans-serif;
+  color: var(--yt-govde);
+  background: var(--yt-yuzey-2);
+  margin: 0;
+}
+
+/* ---------- Düzen ---------- */
+
+.adm-sayfa {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2rem) 4rem;
+}
+
+.adm-baslik-sira {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.adm-h1 {
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--yt-lacivert);
+  margin: 0;
+  text-wrap: balance;
+}
+
+.adm-h2 {
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--yt-lacivert);
+  margin: 1.6rem 0 0.6rem;
+  text-wrap: balance;
+}
+
+.adm-aciklama {
+  color: var(--yt-soluk);
+  margin: 0 0 1.25rem;
+  max-width: 60ch;
+  line-height: 1.5;
+}
+
+/* ---------- Panel başlığı (AdminLayout) ---------- */
+
+.adm-panel-ust {
+  background: var(--yt-yuzey);
+  border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.adm-panel-ust > div {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 0.9rem clamp(1rem, 3vw, 2rem);
+}
+
+.adm-geri {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--yt-soluk);
+  text-decoration: none;
+  border-radius: var(--yt-r-kucuk);
+  padding: 0.15rem 0.35rem;
+}
+
+.adm-geri:hover {
+  color: var(--yt-vurgu);
+  background: var(--yt-baslik-zemin);
+}
+
+.adm-ust-baslik {
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: var(--yt-lacivert);
+  margin: 0.15rem 0 0.6rem;
+}
+
+/* Gezinme — referanstaki .ust-nav-link diline yakın ama daha sakin. */
+.adm-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.adm-menu a {
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--yt-r-pil);
+  font-weight: 700;
+  font-size: 0.87rem;
+  text-decoration: none;
+  color: var(--yt-lacivert);
+  background: var(--yt-baslik-zemin);
+  border: var(--yt-cizgi-kalinlik) solid transparent;
+  transition: background var(--yt-gecis), color var(--yt-gecis);
+}
+
+.adm-menu a:hover {
+  background: var(--yt-vurgu);
+  color: #fff;
+}
+
+.adm-menu a[aria-current="page"] {
+  border-color: var(--yt-lacivert);
+  background: var(--yt-yuzey);
+}
+
+/* ---------- Kart ---------- */
+
+.adm-kart {
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+}
+
+.adm-kart > h2,
+.adm-kart > h3 {
+  margin-top: 0;
+}
+
+.adm-bos-durum {
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) dashed var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  padding: 2.25rem 1.25rem;
+  text-align: center;
+  color: var(--yt-soluk);
+  line-height: 1.6;
+}
+
+/* ---------- Tablo (referans: .il-panel-tablo) ---------- */
+
+.adm-tablo {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  overflow: hidden;
+  font-size: 0.95rem;
+}
+
+.adm-tablo th {
+  background: var(--yt-baslik-zemin);
+  color: var(--yt-lacivert);
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 800;
+  font-size: 0.9rem;
+  text-align: left;
+  padding: 0.65rem 0.8rem;
+  border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  white-space: nowrap;
+}
+
+.adm-tablo td {
+  padding: 0.65rem 0.8rem;
+  border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi-acik);
+  vertical-align: middle;
+  color: var(--yt-govde);
+}
+
+.adm-tablo tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Sakin varyant: satırda imleç değişimi ve vurgu hover YOK. Liste taranabilir
+   kalsın diye. Yalnızca gerçekten tıklanabilir satırlar `adm-tablo-satir`
+   sınıfını alır ve o zaman hover geri bildirimi gösterir. */
+.adm-tablo-satir {
+  cursor: pointer;
+  transition: background var(--yt-gecis);
+}
+
+.adm-tablo-satir:hover {
+  background: var(--yt-yuzey-2);
+}
+
+.adm-tablo td:last-child,
+.adm-tablo th:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.adm-tablo-sayisal {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Form ---------- */
+
+.adm-alan {
+  display: block;
+  margin-bottom: 0.9rem;
+}
+
+.adm-etiket {
+  display: block;
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--yt-lacivert);
+  margin-bottom: 0.3rem;
+}
+
+.adm-etiket-hint {
+  font-weight: 400;
+  color: var(--yt-soluk);
+}
+
+.adm-input,
+.adm-input:focus {
+  width: 100%;
+  font: inherit;
+  font-size: 0.95rem;
+  color: var(--yt-govde);
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kucuk);
+  padding: 0.5rem 0.65rem;
+}
+
+.adm-input:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 1px;
+  border-color: var(--yt-vurgu);
+}
+
+.adm-input:disabled {
+  background: var(--yt-yuzey-2);
+  color: var(--yt-soluk);
+}
+
+.adm-izgara {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: 0 1rem;
+}
+
+.adm-filtre-cubugu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-end;
+  background: var(--yt-yuzey);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kart);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.adm-filtre-cubugu .adm-alan {
+  margin-bottom: 0;
+  flex: 1 1 12rem;
+  max-width: 22rem;
+}
+
+/* ---------- Düğmeler ---------- */
+
+.adm-btn {
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-radius: var(--yt-r-pil);
+  padding: 0.45rem 1rem;
+  cursor: pointer;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  background: var(--yt-yuzey);
+  color: var(--yt-lacivert);
+  transition: background var(--yt-gecis), color var(--yt-gecis),
+    border-color var(--yt-gecis);
+}
+
+.adm-btn:hover:not(:disabled) {
+  background: var(--yt-baslik-zemin);
+  border-color: var(--yt-lacivert);
+}
+
+.adm-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.adm-btn-ana {
+  background: var(--yt-vurgu);
+  border-color: var(--yt-vurgu);
+  color: #fff;
+}
+
+.adm-btn-ana:hover:not(:disabled) {
+  background: #178a8e;
+  border-color: #178a8e;
+  color: #fff;
+}
+
+.adm-btn-tehlike {
+  background: var(--yt-yuzey);
+  border-color: var(--yt-tehlike);
+  color: var(--yt-tehlike);
+}
+
+.adm-btn-tehlike:hover:not(:disabled) {
+  background: var(--yt-tehlike);
+  color: #fff;
+}
+
+.adm-btn-sessiz {
+  border-color: transparent;
+  background: transparent;
+  color: var(--yt-soluk);
+}
+
+.adm-btn-sessiz:hover:not(:disabled) {
+  background: var(--yt-baslik-zemin);
+  color: var(--yt-lacivert);
+  border-color: transparent;
+}
+
+.adm-btn:focus-visible,
+.adm-menu a:focus-visible,
+.adm-geri:focus-visible,
+.adm-tablo-satir:focus-visible {
+  outline: 2px solid var(--yt-vurgu);
+  outline-offset: 2px;
+}
+
+.adm-btn-kuyruk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.6rem;
+}
+
+/* ---------- Rozet / durum ---------- */
+
+.adm-rozet {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 0.15rem 0.6rem;
+  border-radius: var(--yt-r-pil);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  background: var(--yt-yuzey-2);
+  color: var(--yt-soluk);
+  white-space: nowrap;
+}
+
+.adm-rozet-yesil {
+  background: #eef7f0;
+  border-color: #bcdcc6;
+  color: var(--yt-basari);
+}
+
+.adm-rozet-sari {
+  background: var(--yt-uyari-zemin);
+  border-color: #f3d2a8;
+  color: #8a4b06;
+}
+
+.adm-rozet-kirmizi {
+  background: var(--yt-tehlike-zemin);
+  border-color: #f0c4bf;
+  color: var(--yt-tehlike);
+}
+
+.adm-rozet-mavi {
+  background: var(--yt-bilgi-zemin);
+  border-color: var(--yt-cizgi);
+  color: var(--yt-lacivert);
+}
+
+.adm-meta {
+  color: var(--yt-meta);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+/* ---------- Bildirim ---------- */
+
+.adm-bildirim {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  border-radius: var(--yt-r-kart);
+  padding: 0.75rem 0.95rem;
+  margin-bottom: 1rem;
+  font-size: 0.93rem;
+  line-height: 1.5;
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  background: var(--yt-yuzey);
+  color: var(--yt-govde);
+}
+
+.adm-bildirim-hata {
+  background: var(--yt-tehlike-zemin);
+  border-color: #f0c4bf;
+  color: #8f2a20;
+}
+
+.adm-bildirim-basari {
+  background: #eef7f0;
+  border-color: #bcdcc6;
+  color: #1f5230;
+}
+
+.adm-bildirim-uyari {
+  background: var(--yt-uyari-zemin);
+  border-color: #f3d2a8;
+  color: #8a4b06;
+}
+
+.adm-bildirim-bilgi {
+  background: var(--yt-bilgi-zemin);
+  border-color: var(--yt-cizgi);
+  color: var(--yt-lacivert);
+}
+
+/* ---------- Yardımcılar ---------- */
+
+.adm-metin-kutusu {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: var(--yt-yuzey-2);
+  border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+  border-radius: var(--yt-r-kucuk);
+  padding: 0.7rem;
+  max-height: 26rem;
+  overflow: auto;
+  color: var(--yt-govde);
+}
+
+.adm-yigin {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.adm-satir-ara {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adm-kucuk-metin {
+  color: var(--yt-soluk);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+.adm-yukleniyor {
+  display: grid;
+  place-items: center;
+  min-height: 40vh;
+  color: var(--yt-soluk);
+  font-size: 1.05rem;
+}
+
+/* ---------- Hareket azaltma ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  body.sayfa-admin *,
+  body.sayfa-admin *::before,
+  body.sayfa-admin *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

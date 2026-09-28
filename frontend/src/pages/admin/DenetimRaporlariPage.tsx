@@ -95,86 +95,104 @@ export function DenetimRaporlariPage() {
   }
 
   return (
-    <div className="admin-form">
-      <h2>Denetim Raporları</h2>
-      <p className="admin-form-meta">
+    <div className="adm-sayfa">
+      <p className="adm-aciklama">
         Kimlik doğrulama ve hesap değişiklikleri günlük olarak dosyaya
-        yazılır. Yönetmelik gereği merkezî sisteme iletilmesi gereken kayıtlar
-        buradan indirilebilir.
+        yazılır. Yönetmelik gereği merkezî sisteme iletilmesi gereken
+        kayıtları buradan görüntüleyip indirebilirsiniz.
       </p>
 
-      {hata && <div className="admin-hata">{hata}</div>}
+      {hata && (
+        <div className="adm-bildirim adm-bildirim-hata" role="alert">
+          <span aria-hidden="true">⚠</span>
+          <span>{hata}</span>
+        </div>
+      )}
 
       {liste && (
-        <p className="admin-form-meta">
+        <p className="adm-meta" style={{ marginBottom: "0.8rem" }}>
           Klasör: <code>{liste.klasor}</code>
-          {liste.saklamaGun ? ` · Saklama: ${liste.saklamaGun} gün` : ""}
-          {liste.adet === 0 && " · Henüz rapor üretilmemiş."}
+          {liste.saklamaGun ? ` · Saklama süresi: ${liste.saklamaGun} gün` : ""}
         </p>
       )}
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Tarih</th>
-            <th>Dosya</th>
-            <th>Boyut</th>
-            <th>İşlem</th>
-          </tr>
-        </thead>
-        <tbody>
-          {liste?.raporlar.map((r) => (
-            <tr key={r.dosya}>
-              <td>{r.tarih}</td>
-              <td>
-                <code>{r.dosya}</code>
-              </td>
-              <td>{baytGor(r.boyutBayt)}</td>
-              <td>
-                <button
-                  type="button"
-                  onClick={() => void raporAc(r.dosya)}
-                  disabled={calisiyor}
-                >
-                  Görüntüle
-                </button>{" "}
-                <button
-                  type="button"
-                  onClick={() => indir(r.dosya, false)}
-                  disabled={calisiyor}
-                >
-                  İndir (JSONL)
-                </button>{" "}
-                <button
-                  type="button"
-                  onClick={() => indir(r.dosya, true)}
-                  disabled={calisiyor}
-                >
-                  İndir (CSV)
-                </button>
-              </td>
-            </tr>
-          ))}
-          {liste && liste.adet === 0 && (
+      {liste && liste.adet === 0 ? (
+        <div className="adm-bos-durum">
+          Henüz rapor üretilmemiş.
+          <br />
+          Raporlar her gece 02:00 UTC&apos;de bir önceki günün kayıtlarıyla
+          oluşturulur.
+        </div>
+      ) : (
+        <table className="adm-tablo">
+          <caption className="sr-only">Günlük denetim raporları</caption>
+          <thead>
             <tr>
-              <td colSpan={4}>Rapor yok. Raporlar her gece 02:00 UTC'de üretilir.</td>
+              <th scope="col">Tarih</th>
+              <th scope="col">Dosya</th>
+              <th scope="col">Boyut</th>
+              <th scope="col">İşlem</th>
             </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {liste?.raporlar.map((r) => (
+              <tr key={r.dosya}>
+                <td style={{ fontVariantNumeric: "tabular-nums" }}>{r.tarih}</td>
+                <td>
+                  <code>{r.dosya}</code>
+                </td>
+                <td className="adm-tablo-sayisal">{baytGor(r.boyutBayt)}</td>
+                <td>
+                  <button
+                    type="button"
+                    className="adm-btn"
+                    onClick={() => void raporAc(r.dosya)}
+                    disabled={calisiyor}
+                  >
+                    Görüntüle
+                  </button>{" "}
+                  <button
+                    type="button"
+                    className="adm-btn"
+                    onClick={() => indir(r.dosya, false)}
+                    disabled={calisiyor}
+                  >
+                    JSONL
+                  </button>{" "}
+                  <button
+                    type="button"
+                    className="adm-btn"
+                    onClick={() => indir(r.dosya, true)}
+                    disabled={calisiyor}
+                  >
+                    CSV
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
 
       {secili && (
-        <>
-          <h3>
-            {secili.dosya} ({secili.satirSayisi} kayıt)
+        <section aria-labelledby="adm-onizleme-baslik">
+          <h3 id="adm-onizleme-baslik" className="adm-h2">
+            {secili.dosya}{" "}
+            <span className="adm-meta">
+              ({secili.satirSayisi} kayıt)
+            </span>
           </h3>
           {secili.kisitli && (
-            <p className="admin-form-meta">
-              İlk 500 satır gösteriliyor. Tamamı için indirin.
-            </p>
+            <div className="adm-bildirim adm-bildirim-uyari" role="status">
+              <span aria-hidden="true">ℹ</span>
+              <span>
+                İlk 500 satır gösteriliyor. Tamamı için JSONL ya da CSV
+                indirmesini kullanın.
+              </span>
+            </div>
           )}
-          <pre className="admin-onizleme">{secili.satirlar.join("\n")}</pre>
-        </>
+          <pre className="adm-metin-kutusu">{secili.satirlar.join("\n")}</pre>
+        </section>
       )}
     </div>
   );
