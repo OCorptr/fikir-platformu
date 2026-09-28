@@ -129,11 +129,20 @@ body.sayfa-admin {
 
 /* ---------- Kart ---------- */
 
+/* Onur (S11.81): yatay dolgu değişkenle bağlandı. `.adm-tablo-kaydir` kartın
+   tam genişliğine yayılıp yatay kaydırma yaparken negatif kenar boşluğu
+   KARTIN DOLGUSU kadar olmalı. İkisi ayrı ayrı yazılıydı: kart 1.1rem,
+   kaydırıcı 1.9rem hesaplıyordu → 390px ekranda 9px, 768px ekranda 5px
+   sayfa taşması (kaydırma çubuğu sayfayı yatay kaydırıyordu). */
+:root {
+  --adm-kart-pad: 1.1rem;
+}
+
 .adm-kart {
   background: var(--yt-yuzey);
   border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
   border-radius: var(--yt-r-kart);
-  padding: 1rem 1.1rem;
+  padding: 1rem var(--adm-kart-pad);
   margin-bottom: 1rem;
 }
 
@@ -929,10 +938,11 @@ main.sayfa-ortak {
 
 @media (max-width: 900px) {
   .adm-tablo-kaydir {
-    /* Kenar paneli sabit olduğu için kaydırma çubuğu kenar boşluğuna
-       girmesin diye yatay dolgu. */
-    margin-inline: calc(1.9rem * -1);
-    padding-inline: 1.9rem;
+    /* Kartın yatay dolgusu kadar geriye taş: tam genişlikte kaydırma alanı,
+       ama kartın dışına taşmadan. Negatif kenar boşluğu KARTIN KENDİ
+       dolgusu ile eşleşmeli (bkz. --adm-kart-pad). */
+    margin-inline: calc(var(--adm-kart-pad) * -1);
+    padding-inline: var(--adm-kart-pad);
   }
   .adm-tablo-kaydir .adm-tablo {
     min-width: 46rem;

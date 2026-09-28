@@ -118,7 +118,21 @@
 .icerik { padding: 0.3rem 1.9rem 1.6rem; flex: 1; }
 .sek-icerik { display: none; }
 .sek-icerik.aktif { display: block; animation: fadeIn 0.25s both; }
-.tablo-kart { background: #fff; border-radius: 1.4rem; box-shadow: 0 0.8rem 2.2rem rgba(30, 60, 120, 0.10); padding: 1.2rem 1.4rem; }
+/* Onur (S11.81): "tüm tasarımlar tüm ekran çözünürlüklerinde aynı olmalı,
+   mobil uyumluluk olmalı." İl paneli ve bakanlık tabloları .tablo-kart
+   içinde; kartta yatay kaydırma yoktu, geniş tablolar dar ekranda sayfayı
+   yatay kaydırıyordu. Aynı yaklaşım admin tarafındaki .adm-tablo-kaydir ile.
+   Sütunlar gizlenmiyor — sistem yöneticisi 7 sütunu da karşılaştırıyor,
+   kaydırma hem tam bilgi hem dar ekran veriyor. */
+.tablo-kart {
+  background: #fff;
+  border-radius: 1.4rem;
+  box-shadow: 0 0.8rem 2.2rem rgba(30, 60, 120, 0.10);
+  padding: 1.2rem 1.4rem;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
 .veri-tablo {
   width: 100%;
   border-collapse: separate;
@@ -308,6 +322,9 @@ html.koyu-mod .status-banner--info { background: rgba(30, 92, 158, 0.22); color:
   .km-oge, .kenar-alt a { justify-content: center; padding-left: 0.5rem; padding-right: 0.5rem; }
   .govde { margin-left: 4.2rem; }
   .istatistikler { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  /* Onur (S11.81): dar ekranda tablo okunabilir kalsın. Sütun gizlenmiyor;
+     kart içinde yatay kaydırma var, tablo gereğinden dar ezilmesin. */
+  .tablo-kart .tablo { min-width: 32rem; }
 }
 @media (max-width: 560px) {
   .ustbar { flex-direction: column; align-items: flex-start; gap: 0.5rem; padding-left: 1.6rem; padding-right: 1.6rem; }

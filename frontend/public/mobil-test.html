@@ -1,0 +1,90 @@
+<!doctype html>
+<!-- Geçici mobil test sayfası: gerçek CSS dosyalarını yükler, panel ve admin
+     yerleşimlerini temsil eden işaretleme koyar. Silinmez, sadece ölçüm için. -->
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mobil test</title>
+<link rel="stylesheet" href="/assets/css/fonts.css">
+<link rel="stylesheet" href="/assets/css/stil.css">
+<link rel="stylesheet" href="/assets/css/admin-panel.css">
+<script>
+// Uygulamanın gerçek CSS paketini (styles.css + admin-theme.css) yükle.
+// index.html'deki <link> etiketini bulup buraya taşıyoruz; yoksa bu sayfa
+// eksik CSS ile ölçüm yapar ve yanlış sonuç verir.
+fetch("/index.html")
+  .then((r) => r.text())
+  .then((html) => {
+    const doc = new DOMParser().parseFromString(html, "text/html");
+    doc.querySelectorAll('link[rel="stylesheet"]').forEach((l) => {
+      const kopya = document.createElement("link");
+      kopya.rel = "stylesheet";
+      kopya.href = l.getAttribute("href");
+      document.head.appendChild(kopya);
+    });
+    document.documentElement.dataset.cssYuklendi = "1";
+  })
+  .catch(() => (document.documentElement.dataset.cssYuklendi = "hata"));
+</script>
+</head>
+<body>
+<div id="panel">
+  <div class="panel-duzen">
+    <aside class="panel-kenar">
+      <div class="panel-marka"><b>Geleceğin Fikri</b><small>İl AR-GE Paneli</small></div>
+      <nav class="panel-nav">
+        <a class="km-oge aktif" href="#">Gelen Fikirler</a>
+        <a class="km-oge" href="#">Raporlama</a>
+        <a class="km-oge" href="#">Aday Havuzu</a>
+        <a class="km-oge" href="#">Ekip</a>
+      </nav>
+      <div class="panel-kullanici"><b>Onur Sistem</b><small>Sistem Yöneticisi</small><button>Çıkış yap</button></div>
+    </aside>
+    <div class="panel-icerik">
+      <div class="icerik-baslik"><h1>Gelen Fikirler</h1></div>
+      <div class="tablo-kart">
+        <div class="adm-tablo-kaydir">
+        <table class="tablo">
+          <thead><tr><th>Konu</th><th>Öğrenci</th><th>İçerik</th><th>Değerlendirme</th><th>Tarih</th></tr></thead>
+          <tbody>
+            <tr><td>Bilim ve Teknoloji</td><td>Ahmet Yılmaz</td><td>Fikrin burada uzun bir açıklama var</td><td>Değerlendirildi</td><td>12.09.2026</td></tr>
+            <tr><td>Çevre</td><td>Ayşe Demir</td><td>Kısa fikir</td><td>—</td><td>11.09.2026</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+      <div class="adaylar">
+        <div class="aday-kart"><div class="aday-emoji">🔬</div><h3>Bilim</h3><div class="okul">Puan: <strong>4.20</strong> / 5</div><button class="btn-ana btn-aday">Detayı Aç</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="admin" style="display:none">
+  <div class="adm-sayfa">
+    <div class="adm-ust"><h1 class="adm-h1">Kullanıcı Yönetimi</h1></div>
+    <div class="adm-filtre-cubugu">
+      <div class="adm-alan"><input class="adm-input" placeholder="Ara"></div>
+      <div class="adm-alan"><select class="adm-input"><option>Tüm iller</option></select></div>
+      <div class="adm-alan adm-alan-genis"><span class="adm-cip">Tümü</span><span class="adm-cip">Sistem Yöneticisi</span><span class="adm-cip">Bakanlık</span></div>
+    </div>
+    <div class="adm-kart">
+      <div class="adm-tablo-kaydir">
+      <table class="adm-tablo">
+        <thead><tr><th>E-posta</th><th>Rol</th><th>İl</th><th>MFA</th><th></th></tr></thead>
+        <tbody>
+          <tr><td>fikir.platformu.iletisim@gmail.com</td><td>Sistem Yöneticisi</td><td>—</td><td>Var</td><td><button class="adm-btn">Düzenle</button></td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// ?p=panel | ?p=admin
+const p = new URLSearchParams(location.search).get("p") || "panel";
+document.getElementById("panel").style.display = p === "panel" ? "" : "none";
+document.getElementById("admin").style.display = p === "admin" ? "" : "none";
+</script>
+</body>
+</html>
