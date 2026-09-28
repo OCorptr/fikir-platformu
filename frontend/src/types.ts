@@ -55,6 +55,11 @@ export interface MeSession {
 
 export interface MeAuthenticated {
   authenticated: true;
+  /** Sprint 11.72: backend artık top-level `roles` da dönüyor. Rol bazlı
+      yönlendirme (Yetkili Girişi penceresi) bu listeye bakar; oturum
+      context'i kullanıcının ROLÜ değildir (sistem yöneticisinin üç cookie'si
+      de vardır ve ilk eşleşen "Bakanlık" oluyordu). */
+  roles?: string[];
   sessions: MeSession[];
 }
 

@@ -48,7 +48,7 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   const [meCevap, setMeCevap] = useState<{ roles?: string[] } | null>(null);
   // setMeCevap'e tüm MeResponse atanabilir; tip içinde `roles` alanı
   // authenticated:true varyantında var. Anonim varyantta roles undefined.
-  // PaneleGit'te roles?.includes() ile null-safe okunur.
+  // Rol listesi panel düğmelerini ve oturum etiketini üretir (S11.72).
   // Sprint 10.7: initial state TRUE. İlk render'da form flash'lanmasın.
   // useEffect mount olunca setOturumYukleniyor(false) ancak me() cevabı ile.
   const [oturumYukleniyor, setOturumYukleniyor] = useState(true);
@@ -95,8 +95,14 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
 
   // Onur (S11.71): rol bazlı yönlendirme listesi. Sistem yöneticisi üç panelin
   // tamamına erişir (kurum kuralı: istisnadır); diğer roller yalnızca kendi
-  // panelini görür. Böylece "bu panel için saçma" metinler ve yanlış yönlendirme
-  // düğmeleri ortadan kalkıyor.
+  // panelini görür.
+  //
+  // Onur (S11.72): "Yönlendirme butonu da yanlış, Fikirlerim sayfasına
+  // yönlendiriyor. Sistem Yöneticisi bu ne alaka. Fikirlerim sayfasına kimseyi
+  // yönlendirme, ayrıca yöneticilerin hiçbirini."
+  // Sebep: /me `roles` döndürmüyordu; roller boş gelince bu `else` dalına
+  // düşülüyordu. Bu pencere YETKİLİ girişidir — öğrenci paneli burada
+  // gösterilmez. Rol tanınmıyorsa yanlış buton yerine dürüst mesaj verilir.
   const roller = meCevap?.roles ?? [];
   const panelSecenekleri: { ad: string; yol: string }[] = [];
   if (roller.includes("SystemAdmin")) {
@@ -106,13 +112,10 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
   } else if (roller.includes("MinistryOfficial")) {
     panelSecenekleri.push({ ad: "Bakanlık Paneli", yol: "/bakanlik" });
-  } else if (
-    roller.includes("ProvinceManager") ||
-    roller.includes("ProvinceEvaluator")
-  ) {
+  } else if (roller.includes("ProvinceManager")) {
     panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
-  } else {
-    panelSecenekleri.push({ ad: "Fikirlerim", yol: "/fikir" });
+  } else if (roller.includes("ProvinceEvaluator")) {
+    panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
   }
 
   // /me cevabı bekleniyor — form banner gösterme (yanıltıcı olur).
@@ -134,26 +137,19 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
     );
   }
 
+  // Onur (S11.72): "Bu tarayıcıda oturum açık (Bakanlık) yazıyor, Bakanlıkla ne
+  // alaka bu kullanıcı." Etiket cookie context'inden türetiliyordu; sistem
+  // yöneticisinin birden fazla cookie'si olduğu için ilk eşleşen "Bakanlık"
+  // çıkıyordu. Doğru olan context değil ROLÜDÜR.
+  const ROL_ETIKETI: [string, string][] = [
+    ["SystemAdmin", "Sistem Yöneticisi"],
+    ["MinistryOfficial", "Bakanlık Yetkilisi"],
+    ["ProvinceManager", "İl AR-GE Yöneticisi"],
+    ["ProvinceEvaluator", "İl AR-GE Değerlendiricisi"],
+  ];
   const oturumEtiketi =
-    aktifOturum === "ministry" ? "Bakanlık"
-    : aktifOturum === "province" ? "İl AR-GE"
-    : aktifOturum === "student" ? "Öğrenci"
-    : null;
-
-  function paneleGit() {
-    // Sprint 11.14: Sistem Yöneticisi doğrudan /admin'e yönlendirilir.
-    // MinistryOfficial + SystemAdmin aynı anda olabilir; SystemAdmin öncelikli.
-    const sistemAdminMi = meCevap?.roles?.includes("SystemAdmin") ?? false;
-    const hedef = sistemAdminMi
-      ? "/admin"
-      : aktifOturum === "ministry" ? "/bakanlik"
-      : aktifOturum === "province" ? "/il-panel"
-      : aktifOturum === "student" ? "/fikir"
-      : null;
-    if (hedef) {
-      fullPageNav(hedef);
-    }
-  }
+    ROL_ETIKETI.find(([r]) => roller.includes(r))?.[1] ??
+    (aktifOturum === "student" ? "Öğrenci" : "Yetkili");
 
   async function cikisYap() {
     setCalisiyor(true);
@@ -291,6 +287,12 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
                   {p.ad} →
                 </button>
               ))}
+              {panelSecenekleri.length === 0 && (
+                <p className="yg-aktif-oturum__metin">
+                  Bu hesabın bir yetkili paneline erişimi yok. Size tanımlı bir
+                  panel görünmüyorsa kurum yöneticinizle görüşün.
+                </p>
+              )}
               <button type="button" className="yg-cikis" onClick={cikisYap} disabled={calisiyor}>
                 {calisiyor ? "Çıkış yapılıyor…" : "Çıkış yap"}
               </button>

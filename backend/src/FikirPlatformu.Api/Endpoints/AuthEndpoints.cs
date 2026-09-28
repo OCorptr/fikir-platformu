@@ -428,11 +428,14 @@ grup.MapPost("/logout", async (
             FikirPlatformuDbContext veritabani) =>
         {
             var oturumlar = new List<object>();
+            System.Security.Claims.ClaimsPrincipal? ilkPrincipal = null;
 
             // Öğrenci
             var ogrenciSonuc = await http.AuthenticateAsync(IdentityConstants.ApplicationScheme);
             if (ogrenciSonuc.Succeeded && ogrenciSonuc.Principal is not null)
             {
+                ilkPrincipal ??= ogrenciSonuc.Principal;
+
                 var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ogrenciSonuc.Principal, http.RequestAborted);
                 if (k is not null) oturumlar.Add(k);
             }
@@ -441,6 +444,7 @@ grup.MapPost("/logout", async (
             var ilSonuc = await http.AuthenticateAsync("ProvinceScheme");
             if (ilSonuc.Succeeded && ilSonuc.Principal is not null)
             {
+                ilkPrincipal ??= ilSonuc.Principal;
                 var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ilSonuc.Principal, http.RequestAborted);
                 if (k is not null) oturumlar.Add(k);
             }
@@ -449,6 +453,7 @@ grup.MapPost("/logout", async (
             var bakanlikSonuc = await http.AuthenticateAsync("MinistryScheme");
             if (bakanlikSonuc.Succeeded && bakanlikSonuc.Principal is not null)
             {
+                ilkPrincipal ??= bakanlikSonuc.Principal;
                 var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, bakanlikSonuc.Principal, http.RequestAborted);
                 if (k is not null) oturumlar.Add(k);
             }
@@ -458,7 +463,34 @@ grup.MapPost("/logout", async (
                 return Results.Ok(new { authenticated = false });
             }
 
-            return Results.Ok(new { authenticated = true, sessions = oturumlar });
+            // Onur (S11.72): "Bu tarayıcıda oturum açık (Bakanlık) yazıyor,
+            // Bakanlıkla ne alaka bu kullanıcı" + yönlendirme butonu
+            // Fikirlerim'e gidiyordu.
+            // Sebep: /me yalnızca `sessions` döndürüyordu, `roles` hiç
+            // gönderilmiyordu. Frontend rol listesini boş görüp yedek
+            // "öğrenci" yoluna düşüyor, etiketi de ilk eşleşen cookie'den
+            // ("Bakanlık") üretiyordu. Doğrusu context değil ROLÜDÜR.
+            IList<string> roller = new List<string>();
+            if (ilkPrincipal is not null)
+            {
+                var userId = ilkPrincipal.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? ilkPrincipal.FindFirst("sub")?.Value;
+                if (!string.IsNullOrWhiteSpace(userId))
+                {
+                    var mevcutKullanici = await kullaniciYoneticisi.FindByIdAsync(userId);
+                    if (mevcutKullanici is not null)
+                    {
+                        roller = await kullaniciYoneticisi.GetRolesAsync(mevcutKullanici);
+                    }
+                }
+            }
+
+            return Results.Ok(new
+            {
+                authenticated = true,
+                roles = roller,
+                sessions = oturumlar,
+            });
         }).AllowAnonymous();
 
         grup.MapPost("/forgot-password", async (
