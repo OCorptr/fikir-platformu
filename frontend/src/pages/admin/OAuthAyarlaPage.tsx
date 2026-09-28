@@ -32,13 +32,13 @@ export function OAuthAyarlaPage() {
   }, []);
 
   function baslat() {
-    // Incognito / yeni pencere önerisi — mevcut Google session'ı bazen
-    // yanlış hesaba yönlendirir. window.open ile yeni tab açıyoruz.
-    const yeni = window.open(OAUTH_START_URL, "_blank", "noopener,noreferrer");
-    if (!yeni) {
-      // Popup bloklu ise direkt aynı pencere aç.
-      window.location.href = OAUTH_START_URL;
-    }
+    // Sprint 11.36: Aynı sekmede OAuth handshake — Chrome/Firefox/Safari 3rd-party
+    // cookie engeli yüzünden yeni sekme (window.open) ile backend `.FikirOAuthState`
+    // cookie'si callback'te gelmiyordu → "state uyumsuz — CSRF koruması" hatası.
+    // window.location.href ile aynı sekmede navigation → cookie 1st-party kabul
+    // edilir, callback'te state doğrulanır. Backend callback zaten
+    // /admin/oauth?gmail_oauth=ok ile frontend'e redirect eder.
+    window.location.href = OAUTH_START_URL;
   }
 
   return (
