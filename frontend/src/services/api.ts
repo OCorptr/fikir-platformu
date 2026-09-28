@@ -14,13 +14,13 @@ import type { ApiError } from "../types";
 const API_BASE: string = (() => {
   const env = (import.meta.env.VITE_API_BASE_URL ?? "").replace(/\/+$/, "");
   if (env) return env;
-  // Build-time'da origin'i tahmin etmek zor; runtime'da window.location'a bak.
-  // Production: frontend ayrı domain (fikir-platformu-web.onrender.com),
-  // backend ayrı domain (fikir-platformu.onrender.com).
-  if (typeof window !== "undefined" && window.location.hostname.endsWith("onrender.com")) {
-    return "https://fikir-platformu.onrender.com";
-  }
-  return ""; // dev'de Vite proxy
+  // Sprint 11.58: Burada geliştiricinin Render production origin'i gömülüydü.
+  // Kendi sunucusunu kuran bir kurulum (nginx aynı-domain, Docker, kendi
+  // domain'i) bu satıra düşüp TÜM API çağrılarını geliştiricinin sunucusuna
+  // yönlendirirdi. Artık yalnızca env değişkeni belirleyici; tanımlı değilse
+  // relative URL kullanılır (same-origin nginx / Docker reverse proxy için
+  // doğru davranış).
+  return ""; // dev'de Vite proxy, production'da same-origin
 })();
 
 export function apiUrl(path: string): string {
