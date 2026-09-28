@@ -1,4 +1,4 @@
-# Render Blueprint (Infrastructure-as-Code).
+﻿# Render Blueprint (Infrastructure-as-Code).
 # Render Dashboard'dan NEW + Blueprint + "Connect repo" ile bu dosyayi
 # gosterince iki service otomatik olusturulur:
 #   1) fikir-platformu (backend) — Docker, TiDB Cloud baglantisi
@@ -43,7 +43,7 @@ services:
     name: fikir-platformu-web
     runtime: static
     rootDir: frontend
-    buildCommand: npm ci && npm run build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
     staticPublishPath: dist
     autoDeploy: true
 

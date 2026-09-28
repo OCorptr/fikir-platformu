@@ -1,4 +1,4 @@
-# Render.com Blueprint — Infrastructure as Code
+﻿# Render.com Blueprint — Infrastructure as Code
 # https://render.com/docs/blueprint-spec
 #
 # İki servis:
@@ -45,6 +45,6 @@ services:
     rootDir: frontend
     plan: free
     branch: main
-    buildCommand: npm ci && npm run build
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
     staticPublishPath: ./dist
     autoDeploy: true
