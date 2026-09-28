@@ -439,7 +439,7 @@ grup.MapPost("/logout", async (
             {
                 ilkPrincipal ??= ogrenciSonuc.Principal;
 
-                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ogrenciSonuc.Principal, http.RequestAborted);
+                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ogrenciSonuc.Principal, "student", http.RequestAborted);
                 if (k is not null) oturumlar.Add(k);
             }
 
@@ -448,7 +448,7 @@ grup.MapPost("/logout", async (
             if (ilSonuc.Succeeded && ilSonuc.Principal is not null)
             {
                 ilkPrincipal ??= ilSonuc.Principal;
-                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ilSonuc.Principal, http.RequestAborted);
+                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, ilSonuc.Principal, "province", http.RequestAborted);
                 if (k is not null) oturumlar.Add(k);
             }
 
@@ -457,7 +457,7 @@ grup.MapPost("/logout", async (
             if (bakanlikSonuc.Succeeded && bakanlikSonuc.Principal is not null)
             {
                 ilkPrincipal ??= bakanlikSonuc.Principal;
-                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, bakanlikSonuc.Principal, http.RequestAborted);
+                var k = await KullaniciBilgisiGetir(kullaniciYoneticisi, veritabani, bakanlikSonuc.Principal, "ministry", http.RequestAborted);
                 if (k is not null) oturumlar.Add(k);
             }
 
@@ -1133,10 +1133,22 @@ grup.MapPost("/logout", async (
     };
 
     /// <summary>Authenticated principal'dan frontend'in ihtiyacı olan kullanıcı bilgisini üretir.</summary>
+    /// <param name="context">
+    /// Onur (S11.78): Context ROLDEN TAHMİN EDİLMEZ, çağırandan gelir.
+    /// Eski kod "şemadan çıkaramayız" deyip rolden tahmin ediyordu. Bu, her
+    /// rolün tek şemeye birebir karşılık geldiği dönemde doğruydu; sistem
+    /// yöneticisi üç panele de erişince bozuldu (S11.71): roller
+    /// [MinistryOfficial, SystemAdmin] olduğu için province cookie'si de
+    /// "ministry" olarak etiketleniyor, /me province oturumu hiç dönmüyordu ve
+    /// ProtectedRoute kullanıcıyı sessizce ana sayfaya atıyordu. Dört tur kök
+    /// neden arandı çünkü hata mesajı yoktu. Çağıran, hangi şemayı
+    /// doğruladığını zaten biliyor.
+    /// </param>
     private static async Task<object?> KullaniciBilgisiGetir(
         UserManager<ApplicationUser> kullaniciYoneticisi,
         FikirPlatformuDbContext veritabani,
         ClaimsPrincipal principal,
+        string context,
         CancellationToken cancellationToken)
     {
         var kullaniciId = kullaniciYoneticisi.GetUserId(principal);
@@ -1144,12 +1156,6 @@ grup.MapPost("/logout", async (
         var kullanici = await kullaniciYoneticisi.FindByIdAsync(kullaniciId);
         if (kullanici is null) return null;
         var roller = await kullaniciYoneticisi.GetRolesAsync(kullanici);
-
-        // Context'i şemadan çıkaramayız ama rollerden çıkarabiliriz
-        var context = roller.Contains("Student") ? "student"
-            : (roller.Contains("ProvinceManager") || roller.Contains("ProvinceEvaluator")) ? "province"
-            : roller.Contains("MinistryOfficial") ? "ministry"
-            : "unknown";
 
         // Profil sadece öğrenci için var
         object? profil = null;
