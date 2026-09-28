@@ -24,17 +24,13 @@ import { ApiHttpError } from "../services/api";
 import { login, logout, me, mfaGetMethod, type LoginContext } from "../services/auth";
 import { sessionForContext } from "../types";
 import { CaptchaField } from "./CaptchaField";
+// Onur (S11.73): rol listesi ve panel düğmeleri tek kaynaktan — ana sayfa ve
+// /fikir aynı ekranı gösterir.
+import { YetkiliPanelSecenekleri, rolEtiketi, fullPageNav } from "./YetkiliPanelSecim";
 
 interface Props {
   acik: boolean;
   onKapat: () => void;
-}
-
-// SPA navigasyon YetkiliGirisModal içinde çalışmadığı için window.location
-// kullanıyoruz. Hedef route'u yumuşak path belirler (replace=false → back
-// çalışır).
-function fullPageNav(hedef: string) {
-  window.location.href = hedef;
 }
 
 export function YetkiliGirisModal({ acik, onKapat }: Props) {
@@ -93,30 +89,10 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
 
   if (!acik) return null;
 
-  // Onur (S11.71): rol bazlı yönlendirme listesi. Sistem yöneticisi üç panelin
-  // tamamına erişir (kurum kuralı: istisnadır); diğer roller yalnızca kendi
-  // panelini görür.
-  //
-  // Onur (S11.72): "Yönlendirme butonu da yanlış, Fikirlerim sayfasına
-  // yönlendiriyor. Sistem Yöneticisi bu ne alaka. Fikirlerim sayfasına kimseyi
-  // yönlendirme, ayrıca yöneticilerin hiçbirini."
-  // Sebep: /me `roles` döndürmüyordu; roller boş gelince bu `else` dalına
-  // düşülüyordu. Bu pencere YETKİLİ girişidir — öğrenci paneli burada
-  // gösterilmez. Rol tanınmıyorsa yanlış buton yerine dürüst mesaj verilir.
+  // Onur (S11.71/72/73): rol listesi ve panel düğmeleri TEK kaynaktan gelir
+  // (YetkiliPanelSecim). Ana sayfa (/, bu modal) ve /fikir (AuthModal) aynı
+  // ekranı gösterir — ayrı kopyalar kalırsa yeniden ayrışırlar.
   const roller = meCevap?.roles ?? [];
-  const panelSecenekleri: { ad: string; yol: string }[] = [];
-  if (roller.includes("SystemAdmin")) {
-    panelSecenekleri.push({ ad: "Yönetici Paneli", yol: "/admin" });
-    if (roller.includes("MinistryOfficial"))
-      panelSecenekleri.push({ ad: "Bakanlık Paneli", yol: "/bakanlik" });
-    panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
-  } else if (roller.includes("MinistryOfficial")) {
-    panelSecenekleri.push({ ad: "Bakanlık Paneli", yol: "/bakanlik" });
-  } else if (roller.includes("ProvinceManager")) {
-    panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
-  } else if (roller.includes("ProvinceEvaluator")) {
-    panelSecenekleri.push({ ad: "İl AR-GE Paneli", yol: "/il-panel" });
-  }
 
   // /me cevabı bekleniyor — form banner gösterme (yanıltıcı olur).
   if (oturumYukleniyor && aktifOturum === null) {
@@ -141,14 +117,8 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
   // alaka bu kullanıcı." Etiket cookie context'inden türetiliyordu; sistem
   // yöneticisinin birden fazla cookie'si olduğu için ilk eşleşen "Bakanlık"
   // çıkıyordu. Doğru olan context değil ROLÜDÜR.
-  const ROL_ETIKETI: [string, string][] = [
-    ["SystemAdmin", "Sistem Yöneticisi"],
-    ["MinistryOfficial", "Bakanlık Yetkilisi"],
-    ["ProvinceManager", "İl AR-GE Yöneticisi"],
-    ["ProvinceEvaluator", "İl AR-GE Değerlendiricisi"],
-  ];
   const oturumEtiketi =
-    ROL_ETIKETI.find(([r]) => roller.includes(r))?.[1] ??
+    rolEtiketi(roller) ??
     (aktifOturum === "student" ? "Öğrenci" : "Yetkili");
 
   async function cikisYap() {
@@ -265,11 +235,11 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
 
         {/* Onur (S11.71): "her giriş yapan kişi rolüne göre yönlendirme
             butonu olsun. Örneğin Sistem Yöneticisi için Yönetici Paneli,
-            Bakanlık Paneli, İl-AR-GE Paneli şeklinde 3 yönlendirme de olsun.
-            Diğerlerinde sadece rolüne göre."
+            Bakanlık Paneli, İl-AR-GE Paneli şeklinde 3 yönlendirme de olsun."
             Sistem yöneticisi istisnadır (kuralı kendisi koydu: "Sistem
             Yöneticisi dışında kimsede 1'den fazla panele erişemez"), o yüzden
-            üçü de verilir. Diğer roller yalnızca kendi panelini görür. */}
+            üçü de verilir. Diğer roller yalnızca kendi panelini görür.
+            Mantık YetkiliPanelSecim'de — /fikir sayfası da aynısını kullanır. */}
         {aktifOturum ? (
           <div className="yg-aktif-oturum" role="status">
             <div className="yg-aktif-oturum__baslik">
@@ -277,22 +247,7 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
               <small>({oturumEtiketi})</small>
             </div>
             <div className="yg-aktif-oturum__butonlar">
-              {panelSecenekleri.map((p) => (
-                <button
-                  key={p.yol}
-                  type="button"
-                  className="yg-ikincil"
-                  onClick={() => fullPageNav(p.yol)}
-                >
-                  {p.ad} →
-                </button>
-              ))}
-              {panelSecenekleri.length === 0 && (
-                <p className="yg-aktif-oturum__metin">
-                  Bu hesabın bir yetkili paneline erişimi yok. Size tanımlı bir
-                  panel görünmüyorsa kurum yöneticinizle görüşün.
-                </p>
-              )}
+              <YetkiliPanelSecenekleri roller={roller} onGit={fullPageNav} />
               <button type="button" className="yg-cikis" onClick={cikisYap} disabled={calisiyor}>
                 {calisiyor ? "Çıkış yapılıyor…" : "Çıkış yap"}
               </button>

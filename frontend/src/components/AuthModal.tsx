@@ -13,6 +13,9 @@ import { getProvinces } from "../services/references";
 import { sessionForContext } from "../types";
 import type { ProvinceRef } from "../types";
 import { CaptchaField } from "./CaptchaField";
+// Onur (S11.73): rol bazlı panel seçimi tek kaynaktan — ana sayfa ve /fikir
+// aynı ekranı gösterir.
+import { YetkiliPanelSecenekleri, rolEtiketi, fullPageNav } from "./YetkiliPanelSecim";
 
 type Mod = "giris" | "kayit" | "dogrulamaBekleniyor";
 
@@ -60,6 +63,9 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
   const [yetkiliOturumAcik, setYetkiliOturumAcik] = useState<LoginContext | null>(null);
+  // Onur (S11.73): yetkili oturumun ROLLERI — panel düğmeleri ve etiket bundan.
+  const [meRoller, setMeRoller] = useState<string[]>([]);
+  const meRollerEtiketi = rolEtiketi(meRoller);
   const [yetkiliOturumYukleniyor, setYetkiliOturumYukleniyor] = useState(false);
 
   // Cross-context guard: Modal her açılışında /me çağırır. Province/ministry
@@ -74,11 +80,14 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
     setYetkiliOturumYukleniyor(true); // Onur feedback: /me cevabı gelene kadar form gösterilmez
     me(controller.signal)
       .then((cevap) => {
+        // Onur (S11.73): rol listesi de saklanır. Etiket ve panel düğmeleri
+        // context'e göre değil ROLE göre üretilir (S11.72'de bulunan hata).
+        setMeRoller(cevap.authenticated ? (cevap.roles ?? []) : []);
         if (sessionForContext(cevap, "ministry")) setYetkiliOturumAcik("ministry");
         else if (sessionForContext(cevap, "province")) setYetkiliOturumAcik("province");
         else setYetkiliOturumAcik(null);
       })
-      .catch(() => setYetkiliOturumAcik(null))
+      .catch(() => { setMeRoller([]); setYetkiliOturumAcik(null); })
       .finally(() => setYetkiliOturumYukleniyor(false));
     return () => controller.abort();
   }, [acik]);
@@ -147,20 +156,18 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
         aria-labelledby="auth-modal-baslik"
       >
         <div className="fikir-karti auth-modal-kart">
-          <h1 id="auth-modal-baslik" className="auth-modal-baslik">
-            <span style={{ color: "#1f9fa4" }}>Fikrine</span>{" "}
-            <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
-          </h1>
+          {/* Onur (S11.73): "fikir sayfasına girdiğimizde de Yetkili Giriş
+              Sayfasına tıkladığımızda çıkan yönlendirme ekranlarının aynısı
+              çıksın, şu anda orada olan hatalı."
+              Bu ekran YetkiliGirisModal'daki ekranın BİREBİR aynısı olmalı.
+              İkisi de YetkiliPanelSecim bileşeninden beslenir; ayrışamazlar. */}
           <div className="yg-aktif-oturum" role="status">
             <div className="yg-aktif-oturum__baslik">
-              ⚠️ Yetkili oturum açık
-              <small>({yetkiliOturumAcik === "ministry" ? "Bakanlık" : "İl AR-GE"})</small>
+              ✓ Bu tarayıcıda oturum açık
+              <small>({meRollerEtiketi ?? "Yetkili"})</small>
             </div>
-            <p className="yg-aktif-oturum__metin">
-              Bu tarayıcıda yetkili hesapla oturum açık. Öğrenci girişi için
-              önce çıkış yapın. İki farklı hesap aynı anda açık olamaz.
-            </p>
             <div className="yg-aktif-oturum__butonlar">
+              <YetkiliPanelSecenekleri roller={meRoller} onGit={fullPageNav} />
               <button
                 type="button"
                 className="yg-cikis"
