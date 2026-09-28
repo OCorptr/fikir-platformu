@@ -348,7 +348,11 @@ public static class AuthEndpoints
             var sonuc = await kullaniciYoneticisi.ChangePasswordAsync(kullanici, istek.CurrentPassword, istek.NewPassword);
             if (!sonuc.Succeeded)
             {
-                var mesajlar = sonuc.Errors.Select(e => e.Description).ToArray();
+                // Sprint 11.53: Identity hataları Türkçeye çevrilir.
+                var mesajlar = SifreKuraliMesaji.Turkce(sonuc)
+                    .Split(". ", StringSplitOptions.RemoveEmptyEntries)
+                    .Select(m => m.TrimEnd('.') + ".")
+                    .ToArray();
                 await AuthEventKaydet(veritabani, http, email: kullanici.Email, userId: kullanici.Id,
                     AuthEventType.LoginFailure, success: false, reason: "change_password_politika");
                 return Results.Json(new { errors = mesajlar }, statusCode: 400);

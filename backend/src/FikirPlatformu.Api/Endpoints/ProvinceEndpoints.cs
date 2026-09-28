@@ -394,7 +394,8 @@ public static class ProvinceEndpoints
             if (!createResult.Succeeded)
                 return Results.BadRequest(new
                 {
-                    message = string.Join("; ", createResult.Errors.Select(e => e.Description))
+                    // Sprint 11.53: Identity hataları Türkçeye çevrilir.
+                    message = SifreKuraliMesaji.Turkce(createResult)
                 });
 
             // ProvinceEvaluator rolü ekle

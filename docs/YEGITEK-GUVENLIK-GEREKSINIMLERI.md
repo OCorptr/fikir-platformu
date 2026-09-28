@@ -45,7 +45,7 @@
 | YG-13 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ⚠️ | Kayıt **veritabanında merkezî** (`auth_events`). **Eksik:** SIEM/merkezî log sunucusuna **iletim** (Serilog → HTTP/OTLP sink) yok → Sprint 12. |
 | YG-14 | Parolalar varsayılan olarak maskelenir, açık metin olarak gösterilmez veya iletilmez. | ✅ | Frontend `type="password"`, gösterge yok. Şifre hiçbir log'a yazılmaz. Backend şifreyi asla response'a koymaz. |
 | YG-15 | İlk parola belirleme güvenli mekanizmalarla yapılır ve ik kullanımda değişiklik zorunludur. | ✅ | `ApplicationUser.MustChangePassword` flag. Admin yeni kullanıcı oluştururken flag `true`. `/api/auth/change-password` zorunlu kılıyor. `MfaSetup` sonrası da set ediliyor. |
-| YG-16 | Parolalar en az 8 karakter (büyük/küçük harf, rakam, özel karakter) içerir. | ⚠️ | `RequiredLength = 8` ✅, `RequireUppercase = true` ✅, `RequireLowercase = true` ✅ — **ama `RequireDigit = false` ve `RequireNonAlphanumeric = false`** (kurum uyum şifreleri için bilinçli olarak gevşetildi). **Bu madde ile kısmen çelişiyor.** Sprint 12'de karar verilecek. |
+| YG-16 | Parolalar en az 8 karakter (büyük/küçük harf, rakam, özel karakter) içerir. | ✅ | **Sprint 11.53:** `RequiredLength = 8`, `RequireUppercase = true`, `RequireLowercase = true`, `RequireDigit = true`, `RequireNonAlphanumeric = true` — beş koşulun beşi de zorunlu. Frontend doğrulaması `frontend/src/services/sifreKurallari.ts` ile backend ile birebir aynı; Identity hataları `SifreKuraliMesaji` ile Türkçeye çevrilir. Ölü kod olan `BypassPasswordValidator` kaldırıldı. |
 | YG-17 | Parolalar belirli aralıklarla değiştirilmez zorundadır. | ⚠️ | **Not:** YEĞİTEK metninde "değiştirilmez" yazıyor; kastedilen büyük olasılıkla "**değiştirilmelidir**" (periyodik zorunlu değişim). **Mevcut:** 90 gün policy tanımlı, 75 gün frontend uyarısı var. **Eksik:** backend'de zorunlu değişim **uygulanmıyor** (login engellenmiyor) → Sprint 12. |
 
 ## 3. Yetkilendirme ve Oturum Yönetimi
@@ -103,13 +103,13 @@
 | **YG-09** | Loglarda düz metin PII yok | Login + şifre sıfırlama logları maskelendi |
 | **YG-41** | Hata durumunda PII sızıntısı yok | 500 yanıtlarından istisna detayı kaldırıldı |
 | **YG-26** | Şifre/API anahtarı kaynak kodda olmaz | Bakım anahtarı, admin hesabı ve canlı DB bilgileri kaynaktan silindi |
+| **YG-16** | Parolada rakam + özel karakter zorunluluğu | `RequireDigit` ve `RequireNonAlphanumeric` açıldı; ölü `BypassPasswordValidator` silindi; Türkçe hata mesajları eklendi |
+| **YG-39** | Kullanılmayan hesap raporlama + pasife alma | `PasifHesapTespitService` geri açıldı: 90 gün hareketsizlikte kilitler + `AccountDisabled` kaydı yazar. Yönetici `GET /api/admin/pasif-hesaplar` ile raporlar, `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir` ile geri açar. Ayrıcalıklı roller muaf |
 
 ## ❌ Sprint 12'de kapatılması gereken maddeler
 
 | # | Madde | Yapılacak |
 |---|---|---|
-| **YG-16** | Parolada rakam + özel karakter zorunluluğu | `RequireDigit` / `RequireNonAlphanumeric` açılmalı veya kurum uyum şifreleri gerekçesiyle YEĞİTEK'e belgelenmeli |
-| **YG-39** | Kullanılmayan hesap raporlama + pasife alma | `PasifHesapTespitService` geri açılmalı (rapor + pasif) |
 | **YG-17** | Periyodik parola değişimi zorunluluğu | Backend'de 90 gün kontrolü uygulanmalı (login sonrası zorunlu değişim) |
 | **YG-13 / YG-18** | Merkezî log sistemine iletim | Serilog → HTTP/OTLP sink yapılandırması |
 | **YG-03 / 31 / 32** | Dosya yükleme uzantı + MIME + beyaz liste | CSV toplu import ucunda beyaz liste (uzantı + MIME + boyut) eklenmeli |

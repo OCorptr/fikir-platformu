@@ -175,7 +175,11 @@ builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.AuthEventRetention
 // startup'ta denenmez, sadece periyodik döngüde çalışır.
 builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.EskiOgrenciKayitTemizlemeService>();
 // Sprint 11.29: Pasif hesap kilitleme kaldırıldı.
-// builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
+// Sprint 11.53: GERİ AÇILDI — YEĞİTEK güvenlik gereksinimi madde 39
+// ("kullanılmayan hesaplar raporlanır ve pasife alınır") zorunlu kılıyor.
+// Servis artık: hareketsiz hesabı kilitler + AuthEvent kaydı yazar (rapor).
+// Ayrıcalıklı roller muaf tutulur ve `PasifHesap_Enabled=false` ile kapatılabilir.
+builder.Services.AddHostedService<FikirPlatformu.Api.ArkaPlan.PasifHesapTespitService>();
 
 builder.Services
     .AddIdentityCore<ApplicationUser>(options =>
@@ -184,26 +188,29 @@ builder.Services
         options.SignIn.RequireConfirmedAccount = true;
         options.User.RequireUniqueEmail = true;
 
-        // Password policy (plan §2.1 + resim: min 8 karakter, büyük/küçük/raam/özel).
-        // Sprint 10.7+++ gevşetildi: RequiredNonAlphanumeric zorunlu kalktı (alt: kullanıcı
-        // dostu şifre kabul). RequiredLength=12 default'a artırıldı, ama burada 8 korunur
-        // (Identity 9 default davranışına yakın).
+        // Password policy — YEĞİTEK güvenlik gereksinimi (madde 16):
+        // "Parolalar en az 8 karakter (büyük/küçük harf, rakam, özel karakter) içerir."
+        //
+        // Sprint 11.53: rakam ve özel karakter ZORUNLU yapıldı. Önceden
+        // (Sprint 10.7) kurum uyum şifreleri gerekçesiyle kapalıydı; bu madde
+        // ile çelişiyordu. Artık dört koşulun dördü de zorunludur.
         options.Password.RequiredLength = 8;
         options.Password.RequireUppercase = true;
         options.Password.RequireLowercase = true;
-        options.Password.RequireDigit = false;
-        options.Password.RequireNonAlphanumeric = false;
+        options.Password.RequireDigit = true;
+        options.Password.RequireNonAlphanumeric = true;
 
-        // Sprint 11.7 bugfix — Identity 9 default PasswordValidator DI override.
-        // Identity default validator policy'yi atlayıp custom bir no-op validator
-        // kaydetmek için IdentityOptions.Password.UseDefaultPasswordValidator
-        // kullanılamıyor (Identity 9'da yok). Bunu aşmak için PasswordValidator
-        // servisini boş bir IPasswordValidator ile override et.
+        // Sprint 11.7'de eklenen `BypassPasswordValidator` Identity'nin default
+        // şifre doğrulayıcısını baypas etmeyi amaçlıyordu, ancak işe yaramıyordu:
+        // `AddPasswordValidator` kaydı `TryAdd` değil `Add` kullanır ve
+        // `AddIdentityCore` varsayılan doğrulayıcıyı zaten `TryAddEnumerable` ile
+        // kaydetmiştir. UserManager TÜM doğrulayıcıları çalıştırdığı için default
+        // doğrulayıcı her zaman aktifti — yani kod her zaman zaten kuralları
+        // uyguluyordu. Sprint 11.53'te kaldırıldı (ölü kod).
     })
     .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<FikirPlatformuDbContext>()
     .AddSignInManager<SignInManager<ApplicationUser>>()
-    .AddPasswordValidator<FikirPlatformu.Api.Endpoints.BypassPasswordValidator<ApplicationUser>>()
     .AddDefaultTokenProviders();
 
 // Cookie güvenlik ayarları (plan §3.1 + §3.2 — Sprint 3):
@@ -435,6 +442,21 @@ using (var scope = app.Services.CreateScope())
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "[STARTUP] gmail_refresh_tokens tablosu oluşturulamadı.");
+    }
+
+    // Sprint 11.53: `auth_events.Reason` kolonu — YEĞİTEK madde 39 için
+    // "kullanılmayan hesap pasife alındı / yeniden etkinleştirildi" kayıtlarında
+    // gerekçe tutulur. EF migration bu ortamda üretilemediği için (sandbox
+    // dosya yazma engeli) idempotent raw SQL ile eklenir; her açılışta no-op.
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(
+            "ALTER TABLE `auth_events` ADD COLUMN IF NOT EXISTS `Reason` VARCHAR(255) NULL");
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "[STARTUP] auth_events.Reason kolonu oluşturulamadı.");
     }
 }
 
@@ -1042,7 +1064,9 @@ using (var kapsam = app.Services.CreateScope())
             else
             {
                 Console.WriteLine($"[SEED] HATA: Sistem Admin oluşturulamadı: " +
-                    string.Join(", ", olusturma.Errors.Select(e => e.Description)));
+                    FikirPlatformu.Api.Endpoints.SifreKuraliMesaji.Turkce(olusturma));
+                Console.WriteLine("[SEED] Hatırlatma: şifre en az 8 karakter, büyük harf, küçük harf, " +
+                    "rakam ve özel karakter içermelidir (YEĞİTEK madde 16).");
             }
         }
     }

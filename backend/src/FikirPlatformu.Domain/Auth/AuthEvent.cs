@@ -14,6 +14,7 @@ public sealed class AuthEvent
     public AuthEventType EventType { get; set; }         // LoginSuccess, LoginFailure, LoginLockedOut, Logout, etc.
     public bool Success { get; set; }
     public string? FailureReason { get; set; }          // başarısız girişimde (örn: "yanlis_sifre", "kilitli", "email_bulunamadi")
+    public string? Reason { get; set; }                 // Sprint 11.53 — AccountDisabled/Reactivated için gerekçe (başarılı olaylarda da kullanılır)
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
 
@@ -36,5 +37,7 @@ public enum AuthEventType
     RoleChanged = 43,        // Sprint 11.1 — rol atama/değişimi (tek aktif rol)
     PasswordResetRequested = 50, // Sprint 11.5 — kullanıcı 'şifremi unuttum' akışını başlattı
     PasswordResetCompleted = 51, // Sprint 11.5 — şifre sıfırlama başarılı oldu
+    AccountDisabled = 52,        // Sprint 11.53 — YEĞİTEK madde 39: kullanılmayan hesap pasife alındı
+    AccountReactivated = 53,     // Sprint 11.53 — yönetici pasif hesabı yeniden etkinleştirdi
     KvkkRetentionApplied = 60,   // Sprint 11.30 — KVKK gereği eski öğrenci kaydı otomatik silindi
 }

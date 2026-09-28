@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using FikirPlatformu.Application.Abstractions;
+using FikirPlatformu.Domain.Auth;
 using FikirPlatformu.Infrastructure.Identity;
 using FikirPlatformu.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authorization;
@@ -20,6 +21,77 @@ public static class AdminEndpoints
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder app)
     {
         var grup = app.MapGroup("/api/admin").WithTags("Sistem Yönetimi");
+
+        // =============================================================
+        // YEĞİTEK madde 39 — "Kullanılmayan hesaplar raporlanır ve pasife alınır"
+        // Sprint 11.53
+        // =============================================================
+
+        // Pasif hesap raporu. Sistem yöneticisi hangi hesapların ne zaman ve
+        // neden pasife alındığını görür.
+        grup.MapGet("/pasif-hesaplar", async (
+            FikirPlatformuDbContext veritabani,
+            IConfiguration yapilandirma,
+            CancellationToken iptal) =>
+        {
+            var gunSiniri = ArkaPlan.PasifHesapTespitService.HareketsizlikGunu(yapilandirma);
+            var kesimTarihi = DateTime.UtcNow.AddDays(-gunSiniri);
+
+            var kayitlar = await veritabani.AuthEvents
+                .Where(e => e.EventType == AuthEventType.AccountDisabled)
+                .OrderByDescending(e => e.CreatedAt)
+                .Take(200)
+                .Select(e => new
+                {
+                    e.UserId,
+                    e.Email,
+                    e.Reason,
+                    e.CreatedAt,
+                })
+                .ToListAsync(iptal);
+
+            return Results.Ok(new
+            {
+                servisEtkin = ArkaPlan.PasifHesapTespitService.EtkinMi(yapilandirma),
+                hareketsizlikGunu = gunSiniri,
+                muafRoller = ArkaPlan.PasifHesapTespitService.MuafRoller,
+                pasifeAlinanToplam = await veritabani.AuthEvents
+                    .CountAsync(e => e.EventType == AuthEventType.AccountDisabled, iptal),
+                kayitlar,
+            });
+        }).RequireAuthorization("SystemAdminOnly");
+
+        // Pasife alınmış hesabı yeniden etkinleştirir.
+        grup.MapPost("/pasif-hesaplar/tekrar-aktiflestir", async (
+            SifreKilidiKaldirIstegi istek,
+            UserManager<ApplicationUser> kullaniciYoneticisi,
+            FikirPlatformuDbContext veritabani,
+            HttpContext http,
+            CancellationToken iptal) =>
+        {
+            var kullanici = await kullaniciYoneticisi.FindByIdAsync(istek.UserId);
+            if (kullanici is null)
+                return Results.Json(new { message = "Kullanıcı bulunamadı." }, statusCode: 404);
+
+            // kilitli: gelecekte bir LockoutEnd
+            var basari = await kullaniciYoneticisi.SetLockoutEndDateAsync(kullanici, null);
+            if (!basari.Succeeded)
+                return Results.Json(new { message = "Kilit kaldırılamadı." }, statusCode: 500);
+
+            veritabani.AuthEvents.Add(new AuthEvent
+            {
+                UserId = kullanici.Id,
+                Email = KisiselVeriYardimci.EmailMaskele(kullanici.Email),
+                EventType = AuthEventType.AccountReactivated,
+                Success = true,
+                Reason = "yonetici_tasfik",
+                CreatedAt = DateTime.UtcNow,
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+            });
+            await veritabani.SaveChangesAsync(iptal);
+
+            return Results.Ok(new { message = "Hesap yeniden etkinleştirildi." });
+        }).RequireAuthorization("SystemAdminOnly");
 
         // 1) Yeni kullanıcı oluştur (Sprint 9).
         grup.MapPost("/users", async (
@@ -795,7 +867,7 @@ public static class AdminEndpoints
                     var olusturma = await um.CreateAsync(user, passwordVal);
                     if (!olusturma.Succeeded)
                     {
-                        var desc = string.Join(", ", olusturma.Errors.Select(e => e.Description));
+                        var desc = SifreKuraliMesaji.Turkce(olusturma);
                         hatalar.Add(new { satir = satirNo, email = emailVal, hata = desc });
                         continue;
                     }
@@ -846,6 +918,10 @@ public static class AdminEndpoints
 
     public sealed record RolAtamaIstegi(
         [Required] string NewRole);
+
+    /// <summary>Sprint 11.53 — pasife alınmış hesabı yeniden etkinleştirme isteği (YG-39).</summary>
+    public sealed record SifreKilidiKaldirIstegi(
+        [Required] string UserId);
 
     public sealed record YeniKullaniciIstegi(
         [Required, EmailAddress, StringLength(256)] string Email,

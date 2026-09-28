@@ -200,7 +200,16 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 
 Bu projede Magic Context aktif. `ctx_search`, `ctx_expand`, `ctx_note`, `ctx_memory` tool'larıyla:
 - Eski oturumları ara (`ctx_search` ile).
-- Önemli kararları `ctx_memory`'ye yaz.
+- **Parola politikası (Sprint 11.53):** Identity options 5 koşulun beşini de zorunlu kılıyor
+  (`RequiredLength=8`, upper, lower, digit, non-alphanumeric) — YEĞİTEK madde 16.
+  Identity hataları `Endpoints/SifreKuraliMesaji.cs` ile Türkçeye çevrilir; frontend
+  doğrulaması `frontend/src/services/sifreKurallari.ts` (backend ile birebir aynı).
+  `BypassPasswordValidator` Sprint 11.53'te silindi (zaten ölü koddu — `AddPasswordValidator`
+  `TryAdd` değil `Add` kullandığı için default validator her zaman aktifti).
+- **Pasif hesap yönetimi (Sprint 11.53):** `PasifHesapTespitService` AKTİF. 90 gün hareketsizlikte
+  kilitler + `AccountDisabled` kaydı yazar. `SystemAdmin`/`MinistryOfficial` muaf.
+  Rapor: `GET /api/admin/pasif-hesaplar`. Geri aç: `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir`.
+  Ayarlar: `PasifHesap_Enabled` / `_GunSayisi` / `_KontrolGunu`.
 - Bekleyen işleri `ctx_note` ile not al.
 
 **Yeni oturumda:**

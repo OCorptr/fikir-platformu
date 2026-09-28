@@ -71,6 +71,23 @@ internal static class KurulumSeedAraci
             ?? VarsayilanAdminEmail;
         var digerSifre = Environment.GetEnvironmentVariable("SEED_SIFRE") ?? adminSifre;
 
+        // Sprint 11.53: Şifre kuralları sıkılaştı (rakam + özel karakter zorunlu).
+        // Kullanıcı kurala uymayan bir şifre verirse Identity'nin İngilizce hatası
+        // yerine net bir Türkçe mesaj gösteriyoruz.
+        var ihlaller = new List<string>();
+        if (adminSifre.Length < 8) ihlaller.Add("en az 8 karakter");
+        if (!adminSifre.Any(char.IsUpper)) ihlaller.Add("en az bir büyük harf");
+        if (!adminSifre.Any(char.IsLower)) ihlaller.Add("en az bir küçük harf");
+        if (!adminSifre.Any(char.IsDigit)) ihlaller.Add("en az bir rakam");
+        if (!adminSifre.Any(c => !char.IsLetterOrDigit(c))) ihlaller.Add("en az bir özel karakter (örn. ! ? @ # $)");
+
+        if (ihlaller.Count > 0)
+        {
+            logger.LogError("[SEED] SEED_ADMIN_PASSWORD kurallara uymuyor: {Ihlaller}", string.Join(", ", ihlaller));
+            logger.LogError("[SEED] Örnek uyumlu şifre: F1kir-YEG1TEK-2026-aX9kLm2");
+            return;
+        }
+
         // 3) Roller.
         string[] roller = ["Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin"];
         foreach (var rol in roller)
@@ -110,7 +127,7 @@ internal static class KurulumSeedAraci
             var sonuc = await kullaniciYoneticisi.CreateAsync(kullanici, h.Sifre);
             if (!sonuc.Succeeded)
             {
-                var hatalar = string.Join(", ", sonuc.Errors.Select(e => e.Description));
+                var hatalar = FikirPlatformu.Api.Endpoints.SifreKuraliMesaji.Turkce(sonuc);
                 logger.LogError("[SEED] {Email} oluşturulamadı: {Hatalar}", h.Email, hatalar);
                 continue;
             }

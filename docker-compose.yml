@@ -44,6 +44,19 @@ services:
       # --- E-posta doğrulama / şifre sıfırlama bağlantılarındaki taban adres ---
       Frontend__BaseUrl: ${FRONTEND__BASEURL:-}
 
+      # --- Kullanılmayan hesap yönetimi (YEĞİTEK madde 39) ---
+      # Hareketsiz hesaplar otomatik kilitlenir ve raporlanır.
+      # SystemAdmin / MinistryOfficial muaftır.
+      #   Rapor: GET  /api/admin/pasif-hesaplar
+      #   Geri aç: POST /api/admin/pasif-hesaplar/tekrar-aktiflestir
+      PasifHesap__Enabled: ${PASIF_HESAP_ENABLED:-true}
+      PasifHesap__GunSayisi: ${PASIF_HESAP_GUN:-90}
+      PasifHesap__KontrolGunu: ${PASIF_HESAP_KONTROL_GUN:-30}
+
+      # --- CAPTCHA (YEĞİTEK madde 2) ---
+      # Yalnızca güvenlik testi sırasında true yapılır; test sonrası kaldırılmalı.
+      Captcha__Disabled: ${CAPTCHA_DISABLED:-false}
+
       # --- CORS ---
       # Aynı domain + nginx reverse proxy önerilir → BOŞ bırakın (SameSite=Lax, CORS yok).
       # Ayrı origin dağıtımda virgülle ayrılmış liste verin.

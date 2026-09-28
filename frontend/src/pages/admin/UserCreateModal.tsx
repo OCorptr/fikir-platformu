@@ -1,4 +1,4 @@
-// Kullanıcı Ekleme Drawer (Lightbox Modal) — Sprint 11.49.
+﻿// Kullanıcı Ekleme Drawer (Lightbox Modal) — Sprint 11.49.
 //
 // UserListPage'in "+ Yönetici Ekle" / "+ Ekle" butonlarından çağrılır.
 // Sağdan slide-in drawer; ESC veya overlay tıklamayla kapanır.
@@ -24,6 +24,7 @@ import {
 } from "../../services/admin";
 import { getProvinces } from "../../services/references";
 import { rolAdi } from "../../services/roles";
+import { sifreKuralHatasi } from "../../services/sifreKurallari";
 import type { ProvinceRef } from "../../types";
 import { ApiHttpError } from "../../services/api";
 
@@ -143,7 +144,8 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
     }
     if (!firstName.trim() || firstName.trim().length < 2) h.firstName = "Ad en az 2 karakter.";
     if (!lastName.trim() || lastName.trim().length < 2) h.lastName = "Soyad en az 2 karakter.";
-    if (password.length < 8) h.password = "Şifre en az 8 karakter.";
+    const pwHata = sifreKuralHatasi(password);
+    if (pwHata) h.password = pwHata;
     if (ilSecimiGerekli && (ilKoduState === "" || !ilKoduState)) {
       h.ilKodu = "İl seçimi zorunlu.";
     }

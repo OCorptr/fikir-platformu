@@ -26,14 +26,13 @@ Bu doküman `SECURITY_IMPLEMENTATION_PLAN.md` ile birlikte production öncesi ya
 ## Uygulanan Kontroller
 
 ### Kimlik Doğrulama (plan §2)
-- Şifre politikası (`Program.cs` Identity options):
+- Şifre politikası (`Program.cs` Identity options, Sprint 11.53):
   `RequiredLength = 8`, `RequireUppercase = true`, `RequireLowercase = true`,
-  `RequireDigit = false`, `RequireNonAlphanumeric = false`
-- **⚠️ YEĞİTEK madde 16 ile çelişiyor** (bkz. `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md`).
-  Madde "büyük/küçük harf, rakam, özel karakter" istiyor; uygulamada rakam ve özel
-  karakter zorunlu değil. Kurum uyum şifreleri için bilinçli olarak gevşetildi.
-  Sprint 12'de karar verilecek.
-- Öğrenci kayıt uçları da **aynı** politikayı uygular (min 8 + büyük/küçük harf)
+  `RequireDigit = true`, `RequireNonAlphanumeric = true`
+  → **YEĞİTEK madde 16 tam olarak karşılanıyor.**
+- Frontend doğrulaması `frontend/src/services/sifreKurallari.ts` — backend ile birebir aynı
+- Identity hataları `SifreKuraliMesaji` ile Türkçeye çevrilir (İngilizce mesaj dönmez)
+- Öğrenci kayıt uçları da **aynı** politikayı uygular
 - Lockout: 5 başarısız deneme → **5 dakika** (Identity varsayılanı; özel ayar yok)
 - Şifre süre sonu: 90 gün eşiği **hesaplanıyor ama zorlanmıyor** (Sprint 12'de kapatılacak,
   YEĞİTEK madde 17)
@@ -77,10 +76,19 @@ Bu doküman `SECURITY_IMPLEMENTATION_PLAN.md` ile birlikte production öncesi ya
 - `aria-live="polite"` durum bildirimi, `role="alert"` hata sayfaları
 - `@media (prefers-contrast: more)` yüksek kontrast modu
 
-### Pasif Hesap Yönetimi (plan §6.3)
-- `PasifHesapTespitService` **DEVRE DIŞI** — Sprint 11.29'da pasif hesap kilitleme tamamen kaldırıldı.
-  Kayıt: `Program.cs:177` yorum satırı. Hiçbir hesap 90 gün hareketsizlik nedeniyle kilitlenmiyor.
-- Aktif arka plan servisleri: `AuthEventRetentionService` (log temizleme) ve
+### Pasif Hesap Yönetimi (plan §6.3) — YEĞİTEK madde 39
+- `PasifHesapTespitService` **AKTİF** (Sprint 11.53'te Sprint 11.29'daki kaldırma geri alındı;
+  madde 39 "kullanılmayan hesaplar raporlanır ve pasife alınır" diyor).
+- 90 gün hareketsizlikte hesap kilitlenir (`LockoutEnd = MaxValue`) ve `AuthEvent`
+  tablosuna `AccountDisabled` kaydı yazılır → kalıcı denetim izi.
+- **Ayrıcalıklı roller muaf:** `SystemAdmin` ve `MinistryOfficial` asla otomatik
+  kilitlenmez (aksi halde sisteme kimse giremez).
+- Hiç giriş kaydı olmayan hesaplar atlanır (yeni hesap yanlışlıkla kilitlenmesin).
+- Yönetici uçları:
+  - `GET  /api/admin/pasif-hesaplar` — rapor (hangi hesap, ne zaman, neden)
+  - `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir` — hesabı geri açar
+- Ayarlar: `PasifHesap_Enabled` (true), `PasifHesap_GunSayisi` (90), `PasifHesap_KontrolGunu` (30)
+- Diğer aktif arka plan servisleri: `AuthEventRetentionService` (log temizleme) ve
   `EskiOgrenciKayitTemizlemeService` (KVKK 4+ yıl öğrenci silme)
 
 ## Plan §6.4 — TODO (Production Öncesi)

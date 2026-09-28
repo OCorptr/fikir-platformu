@@ -1,4 +1,4 @@
-// Şifre Sıfırlama sayfası — Sprint 11.17 yeniden tasarım.
+﻿// Şifre Sıfırlama sayfası — Sprint 11.17 yeniden tasarım.
 //
 // URL: /sifre-sifirla?token=...&userId=...   (Admin Panel'den)
 //   veya: /sifre-sifirla?token=...&email=... (forgot-password akışı)
@@ -10,6 +10,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { sifreKurallaraUyuyor, sifreKuralHatasi } from "../services/sifreKurallari";
 import { apiRequest, ApiHttpError } from "../services/api";
 
 interface ResetInfo {
@@ -79,8 +80,10 @@ export function SifreSifirlaPage() {
       setHata("Yeni şifre ve tekrarı eşleşmiyor.");
       return;
     }
-    if (yeniSifre.length < 8) {
-      setHata("Yeni şifre en az 8 karakter olmalıdır.");
+    // Sprint 11.53: YEĞİTEK madde 16 — kurallar backend ile birebir aynı.
+    const kuralHatasi = sifreKuralHatasi(yeniSifre);
+    if (kuralHatasi) {
+      setHata(kuralHatasi);
       return;
     }
 
