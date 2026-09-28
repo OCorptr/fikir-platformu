@@ -854,10 +854,22 @@ input[type="range"] {
   transition: transform 0.08s, box-shadow 0.15s, border-color 0.15s;
   box-shadow: 0 0.25rem 0.7rem rgba(22, 53, 92, 0.18);
 }
-.mfa-yontem-kart:hover:not(:disabled) {
+.mfa-yontem-kart:hover:not(:disabled),
+.mfa-yontem-kart:focus-visible,
+.mfa-yontem-kart:active:not(:disabled) {
   transform: translateY(-2px);
-  border-color: #2c5d96;
+  border-color: #f4c542;
   box-shadow: 0 0.5rem 1.1rem rgba(22, 53, 92, 0.32);
+  color: #fff;
+  background: linear-gradient(155deg, #2a5d9e 0%, #1a4a82 65%, #16355C 100%);
+}
+.mfa-yontem-kart:hover:not(:disabled) *,
+.mfa-yontem-kart:focus-visible *,
+.mfa-yontem-kart:active:not(:disabled) * {
+  color: #fff;
+}
+.mfa-yontem-kart.onerilen:hover:not(:disabled) {
+  border-color: #f4c542;
 }
 .mfa-yontem-kart:active:not(:disabled) {
   transform: translateY(0);
