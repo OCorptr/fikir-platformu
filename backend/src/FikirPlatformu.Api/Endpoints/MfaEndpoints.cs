@@ -443,13 +443,19 @@ public static class MfaEndpoints
         };
         await http.SignInAsync(hedefScheme, principal, props);
 
-        // Onur (S11.71): "Sistem Yöneticisi girebilmeliydi buraya da" (/il-panel).
+        // Onur (S11.71/11.75): "Sistem Yöneticisi → İl AR-GE Paneline gitmiyor,
+        // anasayfaya atıyor."
         // MFA zorunlu roller arasında olduğu için sistem yöneticisinin asıl
-        // oturumu BURADA açılır — yukarıdaki giriş satırındaki ek cookie
-        // yazımı MFA öncesi yapıldığı için sonradan eziliyordu. Sistem
-        // yöneticisi kuralın istisnası olduğu için diğer panellerin cookie'leri
-        // de burada yazılır. Diğer roller için davranış değişmez.
-        if (principal.IsInRole("SystemAdmin"))
+        // oturumu BURADA açılır — giriş endpoint'indeki ek cookie yazımı MFA
+        // öncesi yapıldığı için sonradan eziliyordu. Sistem yöneticisi kuralın
+        // istisnası olduğu için diğer panellerin cookie'leri de burada yazılır.
+        //
+        // DİKKAT (S11.75): Rol kontrolü `principal.IsInRole(...)` ile YAPILMAZ.
+        // `CreateUserPrincipalAsync` yalnızca kimlik claim'leri üretir, rol
+        // claim'i EKLEMEZ — bu yüzden IsInRole her zaman false dönüyor ve
+        // hiçbir ek cookie yazılmıyordu. Doğru kaynak `roller` listesidir
+        // (UserManager.GetRolesAsync, yukarıda alındı).
+        if (roller.Contains("SystemAdmin"))
         {
             foreach (var digerScheme in new[] { "ProvinceScheme", "MinistryScheme", IdentityConstants.ApplicationScheme })
             {
