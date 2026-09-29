@@ -22,7 +22,7 @@ güvence sağladığını anlatır; madde bazlı uyum matrisi oradadır.
 | 8.1–8.4 | CAPTCHA, PII log maskeleme, TOTP secret şifreleme, WCAG erişilebilirlik, composite index |
 | 9–10 | SystemAdmin kullanıcı yönetimi, e-posta OTP, Gmail API, cross-context guard |
 | 11.1–11.50 | Admin panel, bulk CSV, privacy guard, dokümantasyon sistemi |
-| **11.51** | **Sertleştirme:** Gmail token env'e (DB tablosu düştü), üretim CORS fallback'i kaldırıldı, `Captcha__Disabled` |
+| **11.51** | **Sertleştirme:** Gmail token env'e (DB tablosu düştü), üretim CORS fallback'i kaldırıldı |
 | **11.52** | **Teslim hazırlığı:** canlı DB parolası taşıyan `seed/ilk_hesaplar.py` **silindi**, bayat `compose.yaml` silindi, `deploy/nginx/fikir.conf` eklendi, **CSP + HSTS** eklendi, `AdminMaintenance__Secret` zorunlu |
 | **11.53** | **Parola politikası 5 sınıfa** (≥8, büyük, küçük, rakam, özel karakter) + Türkçe hatalar; ölü `BypassPasswordValidator` kaldırıldı; **pasif hesap servisi geri açıldı** (YG-16, YG-39) |
 | **11.59** | Gmail gönderen adı mojibake → RFC 2047 encoded-word |

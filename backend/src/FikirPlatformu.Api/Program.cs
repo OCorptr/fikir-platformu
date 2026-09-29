@@ -436,10 +436,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Sprint 11.52 (YEĞİTEK madde 2): Kapça güvenlik testi sırasında kapatılabilir.
-// Ortam değişkeni: Captcha__Disabled=true  (varsayılan: açık)
-CaptchaEndpoints.Ayarla(builder.Configuration.GetValue("Captcha:Disabled", false));
-
 var app = builder.Build();
 
 // EF Core migration'ları otomatik uygula (Sprint 10 — yoksa deployment'ta yeni

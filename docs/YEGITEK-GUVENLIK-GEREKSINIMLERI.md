@@ -26,7 +26,7 @@
 | **YG-38** | Güvenlik testi dokümanı hazırlanacak. Kod tarafı hazır (matris bu dosyada), **test raporu** eksik. |
 
 > Son denetim: Sprint 11.81 · Kod tabanı: `20d1df7`
-> Sprint 11.53–11.81 arasında kapatılanlar: YG-16 (parola 5 sınıf), YG-17 (90 gün), YG-20 (her sayfadan çıkış), YG-39 (pasif hesap), YG-02 (`Captcha__Disabled`), YG-03/31/32 (CSV beyaz liste), YG-07 (nginx TLS), YG-09 (log maskeleme).
+> Sprint 11.53–11.81 arasında kapatılanlar: YG-16 (parola 5 sınıf), YG-17 (90 gün), YG-20 (her sayfadan çıkış), YG-39 (pasif hesap), YG-02 (kapça kaldırma kararı temizlendi), YG-03/31/32 (CSV beyaz liste), YG-07 (nginx TLS), YG-09 (log maskeleme).
 > YG-39 Sprint 11.29'da kapatılmış, 11.53'te geri açılmıştı — bu satır Sprint 11.81'de düzeltildi.
 
 ---
@@ -36,7 +36,7 @@
 | # | Gereksinim (YEĞİTEK ifadesi) | Durum | Kanıt / Açıklama |
 |---|---|---|---|
 | YG-01 | Güvenli yazılım geliştirme kurallarına uymaktadır ve dokümandaki tedbirleri aşağıdaki şekilde sağlar. | ✅ | Tüm kontroller bu matriste madde madde gösteriliyor. `SECURITY.md` kontrol listesi. |
-| YG-02 | Uygulamada giriş yöntemi olarak kimlik doğrulama ve kapça özelliği bulunur. (Güvenlik testi aşamasında kapça devre dışı bırakılabilir) | ✅ | Kimlik doğrulama + kapça mevcut (`/api/auth/captcha/new`, `/verify`, Sprint 8.1). **Sprint 11.52:** kapça `Captcha__Disabled=true` ortam değişkeniyle güvenlik testi sırasında kapatılabilir hale getirildi. Varsayılan **açık**. |
+| YG-02 | Uygulamada giriş yöntemi olarak kimlik doğrulama ve kapça özelliği bulunur. (Güvenlik testi aşamasında kapça devre dışı bırakılabilir) | ✅ | Kimlik doğrulama + kapça mevcut (`/api/auth/captcha/new`, `/verify`, Sprint 8.1). Matematik CAPTCHA, tek kullanımlık, 5 dakika ömür, replay korumalı; başarısız denemeler `auth_events`'e maskeli yazılır. **Sprint 11.83:** kapçayı kapatma anahtarı (`Captcha__Disabled`) **kaldırıldı** — hiç kullanılmamıştı ve yanlışlıkla üretimde açık bırakılması riskiydi. Testler ayrı ortamda, kendi domain'iyle yapılır. |
 
 | YG-03 / 31 / 32 | Yalnızca izin verilen dosya türleri yüklenebilmeli | ✅ | **Sprint 11.63:** `/api/admin/users/bulk` ucunda üç katmanlı beyaz liste: (1) uzantı `.csv`, (2) MIME `text/csv` / `application/csv` / `text/plain` / `application/vnd.ms-excel` / `application/octet-stream`, (3) içerik — zorunlu başlık sütunları mevcut. Önceden yalnızca varlık + 5 MB boyut kontrolü vardı. Uzantı ve MIME istemci kontrollü olduğu için üçünü birlikte uygulanır; dosya diske yazılmaz, yalnızca ayrıştırılır |
 | YG-04 | Uygulamada SQL Injection konusunda veri girişi içeren kodlarda gerekli önlemler alınır. | ✅ | Tüm sorgular EF Core ile parametrik. Ham SQL yalnızca `FromSqlRaw`/`ExecuteSqlRaw` ile sabit string. SQL Injection testi: parametrik sorgu kullanımı. |
@@ -109,7 +109,7 @@
 
 | # | Madde | Yapılan |
 |---|---|---|
-| **YG-02** | Kapçayı test için kapatabilme | `Captcha__Disabled` ortam değişkeni eklendi (varsayılan açık) |
+| **YG-02** | Kapçayı test için kapatabilme | `Captcha__Disabled` kaldırıldı (11.83) — kullanılmıyordu, risk yaratıyordu. Testler ayrı ortamda yapılır |
 | **YG-07** | TLS 1.2+ zorlaması | `deploy/nginx/fikir.conf` repoya eklendi; TLS 1.0/1.1 devre dışı, HSTS |
 | **YG-09** | Loglarda düz metin PII yok | Login + şifre sıfırlama logları maskelendi |
 | **YG-41** | Hata durumunda PII sızıntısı yok | 500 yanıtlarından istisna detayı kaldırıldı |

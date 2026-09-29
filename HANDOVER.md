@@ -40,7 +40,7 @@ Kaynak: `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` (41 maddelik kurum listesi)
 
 | Sprint | Konu | Maddeler |
 |---|---|---|
-| 11.51 | Gmail token env'e taşındı, DB tablosu düştü; hardcoded Render origin kaldırıldı; `Captcha__Disabled` | — |
+| 11.51 | Gmail token env'e taşındı, DB tablosu düştü; hardcoded Render origin kaldırıldı | - |
 | 11.52 | Canlı DB parolası `seed/ilk_hesaplar.py` içinde bulundu → **dosya silindi**, `.NET` seed yolu; bayat `compose.yaml` (PostgreSQL) silindi; `deploy/nginx/fikir.conf` eklendi; `scripts/verify.sh` + `scripts/make_handover.sh` (Linux-native) | YG-20 |
 | 11.53 | Parola politikası 5 sınıfa çıkarıldı (≥8 karakter, büyük, küçük, rakam, özel karakter). Türkçe hata mesajları. Kullanılmayan hesap servisi yeniden açıldı (90 gün → pasife al, `SystemAdmin`/`MinistryOfficial` muaf) + admin rapor/endpoint | **YG-16, YG-39** |
 | 11.59 | Gmail gönderen adı mojibake (RFC 2047 encoded-word) | — |
@@ -145,7 +145,6 @@ Değerler **bu dosyada tutulmaz**. Render → Environment.
 | `Cors__AllowedOrigins` | **Zorunlu** — hardcoded fallback 11.51'de kaldırıldı |
 | `AdminMaintenance__Secret` | **SECRET — zorunlu.** Gömülü varsayılan kaldırıldı; tanımlı değilse maintenance endpoint'leri 403 döner |
 | `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password` | İlk admin. **Yalnızca boş veritabanında** çalışır (mevcut Render DB'sine eklemek hiçbir şey yapmaz) |
-| `Captcha__Disabled` | `true` ise CAPTCHA devre dışı (sadece test) |
 | `PasifHesap_GunSayisi` / `PasifHesap_KontrolGunu` / `PasifHesap_Enabled` | Kullanılmayan hesap servisi (varsayılan 90 gün) |
 
 ### Roller ve paneller

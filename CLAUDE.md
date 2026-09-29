@@ -171,7 +171,7 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 - ✅ **YG-17** Rol bazlı parola yaşı: 75 gün uyarı, 90 gün zorunlu. `MinistryOfficial` zorunlu, diğerleri tavsiye, `SystemAdmin` muaf
 - ✅ **YG-25** CSP + HSTS başlıkları
 - ✅ **YG-13/18** Denetim raporları: gece 02:00 UTC JSONL + CSV özeti
-- ✅ **YG-38 hazırlığı** `Captcha__Disabled` anahtarı
+- ✅ **YG-38 hazırlığı** test ortamı ayrıştırıldı (kapça kapatma anahtarı 11.83'te kaldırıldı)
 - ✅ Gömülü production origin'leri kaldırıldı (CORS, OAuth redirect, frontend API URL)
 - ✅ `deploy/nginx/fikir.conf` + Linux `verify.sh` / `make_handover.sh`
 - ✅ Obsolete PostgreSQL `compose.yaml` silindi
