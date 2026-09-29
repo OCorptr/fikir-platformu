@@ -677,6 +677,15 @@ app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 {
     status = "healthy",
     application = "Geleceğin Fikri API",
+    // Sprint 11.84: Sürüm damgası. Canlıda hangi build'in çalıştığını ve
+    // ortam değişkenlerinin uygulanıp uygulanmadığını doğrulamak için.
+    // (HSTS başlığı `IsProduction()` koşuluna bağlıydı; canlıda gelmediği için
+    //  production olup olmadığımız uzaktan görülemiyordu.)
+    version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "bilinmiyor",
+    commit = (Environment.GetEnvironmentVariable("RENDER_GIT_COMMIT")
+              ?? Environment.GetEnvironmentVariable("GIT_COMMIT")
+              ?? "calisma-ortaminda-yok"),
+    environment = builder.Environment.EnvironmentName,
     utcTime = clock.UtcNow
 }));
 
