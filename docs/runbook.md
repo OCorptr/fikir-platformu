@@ -209,7 +209,9 @@ curl -X OPTIONS "https://fikir-platformu.onrender.com/api/auth/login" \
 # Beklenen: 204 + Access-Control-Allow-Origin: https://fikir-platformu-web.onrender.com
 ```
 
-**Çözüm:** Render env'de `Cors__AllowedOrigins=https://fikir-platformu-web.onrender.com,http://localhost:5173` ekle. Veya hardcoded fallback zaten var (Sprint 10.7+).
+**Çözüm:** Render env'de `Cors__AllowedOrigins=https://fikir-platformu-web.onrender.com,http://localhost:5173` ekle.
+
+> ⚠️ **Gömülü origin fallback 11.52'de kaldırıldı.** Artık `Cors__AllowedOrigins` boşsa CORS middleware hiç kurulmaz (same-origin mod). Env tanımlı değilse tarayıcı "CORS policy" hatası verir — bu kasıtlıdır, koddan origin listesi düzenlenmez.
 
 ### OAuth handshake fail
 

@@ -102,9 +102,10 @@ FikirPlatformu.Domain  (Pure domain types, no deps)
   └── (model entities, value objects)
 
 FikirPlatformu.Tests  (xUnit)
-  ├── IdeaTests.cs               — domain durum geçişleri
-  ├── ProfanityTextMatcherTests.cs
-  └── SubmitIdeaServiceTests.cs  — 17 test, `scripts/verify.ps1` çalıştırır
+  ├── IdeaTests.cs               — domain durum geçişleri (6)
+  ├── ProfanityTextMatcherTests.cs — (8)
+  ├── Rfc2047Tests.cs            — MIME başlık kodlama (6)
+  └── SubmitIdeaServiceTests.cs  — (3) · toplam 23 test, `scripts/verify.ps1` çalıştırır
 ```
 
 ---

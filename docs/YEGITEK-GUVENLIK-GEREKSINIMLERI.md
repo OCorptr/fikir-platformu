@@ -65,7 +65,7 @@
 |---|---|---|---|
 | YG-18 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ⚠️ | YG-13 ile aynı madde; aynı mekanizma. |
 | YG-19 | En az yetki prensibi uygulanır. | ✅ | Policy bazlı: `StudentOnly`, `ProvinceOnly`, `MinistryOnly`, Admin whitelist. Her endpoint kendi rol/policy'sini ister. Sprint 11 privacy guard: `/api/admin/users*` Student'a açık değil. |
-| YG-20 | Kullanıcı her sayfadan oturum sonlandırabilmelidir. | ✅ | **Sprint 11.62:** `KullaniciCikis` bileşeni `App.tsx` içinde uygulamanın tamamına bağlandı (sabit konumlu buton). `/admin/*` altında render edilmez — AdminLayout kendi menüsünü içerir. Hangi oturumun kapatılacağı açılan sayfanın yolundan çıkarılır (`contextFromPath`). Boşta kalan `PublicLayout.tsx` silindi (hiçbir yerde kullanılmıyordu) |
+| YG-20 | Kullanıcı her sayfadan oturum sonlandırabilmelidir. | ✅ | **Sprint 11.62:** `KullaniciCikis` bileşeni `App.tsx` içine bağlandı. **Sprint 11.73'te sabit konumlu buton kaldırıldı** — çıkış artık (a) her panelin sol kenar panelinde ve (b) ana sayfa ile `/fikir` sayfalarındaki Yetkili Girişi penceresinin "oturum açık" ekranında. Hangi oturumun kapatılacağı **açılan sayfanın yolundan** çıkarılır (`contextFromPath`): `/il-panel` → il, `/bakanlik` → bakanlık, `/admin` → üçü birden. Boşta kalan `PublicLayout.tsx` silindi. |
 | YG-21 | Oturum kimliği için zaman aşımı ve hareketsizlik süresi belirlenir. | ✅ | Idle timeout 30 dk sliding; absolute timeout 8 saat (`auth_issued_at` claim + `OnValidatePrincipal` reddi). `PreMfaScheme` 10 dk. |
 | YG-22 | HttpOnly, Secure, SameSite gibi güvenlik bayrakları kullanılır. | ✅ | Tüm cookie'lerde `HttpOnly = true`, `SecurePolicy` (production'da `Always`), `SameSite` (cross-origin `None`+`Secure`, same-origin `Lax`). |
 | YG-23 | Yetkisiz kaynaklara CORS kısıtlamaları uygulanır. | ✅ | `Cors__AllowedOrigins` whitelist + Sprint 10.7 hardcoded production fallback. Preflight testi: `OPTIONS /api/auth/login` → 204 + `Access-Control-Allow-Origin`. |
@@ -79,7 +79,7 @@
 | YG-26 | Parola ve API anahtarları kaynak kodda eklenmez. | ✅ | Tüm gizli değerler env değişkeni / Render Secret / `user-secrets` üzerinden. `Mail__Gmail__ClientSecret` repo'da yok. Refresh token DB'de şifreli. |
 | YG-27 | Girdi doğrulama tüm veri tiplerinde yapılır. | ✅ | ASP.NET Core `AddValidation()` (built-in) + `DataAnnotations` (`[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`, `[RegularExpression]`) → 400 + `ValidationProblemDetails`. |
 | YG-28 | CSRF koruması (CSRF token, SameSite vb.) uygulanır. | ✅ | `SameSite` cookie + JSON `Content-Type` zorunluluğu (custom request guard) + CORS whitelist. Çapraz origin JSON istekleri tarayıcı tarafında bloke edilir. |
-| YG-29 | XSS açıkları için girdiler filtrele**nir**, güvenli çıktı üretilir. | ✅ | React varsayılan escape; `dangerouslySetInnerHTML` **kullanılmıyor**. Küfür filtresi `ProfanityTextMatcher` (10 test). |
+| YG-29 | XSS açıkları için girdiler filtrele**nir**, güvenli çıktı üretilir. | ✅ | React varsayılan escape; `dangerouslySetInnerHTML` **kullanılmıyor**. Küfür filtresi `ProfanityTextMatcher` (8 test). |
 | YG-30 | SQL/NoSQL enjeksiyonları parametrik sorgularla önlenir. | ✅ | EF Core parametrik sorgu; `AsNoTracking` + projection (Sprint 8.4). MySQL/Pomelo escaping. |
 | YG-31 | Dosya yüklemede MIME türü ve uzantı kontrolleri yapılır (beyaz liste prensibi). | ✅ | Bkz. YG-03 — Sprint 11.63 uç noktaya üç katmanlı beyaz listeye geçirildi |
 | YG-32 | Yüklenen dosyalar beyaz listedeki türlerle sınırlıdır. | ✅ | Bkz. YG-03 |

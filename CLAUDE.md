@@ -33,7 +33,7 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 - **Bundle:** Vite content-based hash. `dist/assets/index-<hash>.js` + `index-<hash>.css`.
 - **Routing:** React Router v7 declarative. `<Routes>` + `<Route>`. **Kritik:** `useNavigate()` SPA navigation Modal context'inde çalışmıyor (Modal içinde pushState tetiklenmiyor). Modal navigation için `window.location.href` (full page load) gerekli.
 - **HttpOnly cookies:** JS'den okunamaz. `document.cookie.split(...)` kontrolü yanlış — backend 200/401 response'a güven.
-- **CORS bridge:** Frontend (`.onrender.com`) + Backend (`.onrender.com`) farklı domain. Relative URL SPA fallback'e düşer. `services/api.ts`'in `backendApiUrl()` helper'ı hardcoded `https://fikir-platformu.onrender.com` fallback.
+- **CORS bridge:** Frontend + Backend farklı origin'de olduğunda relative URL'ler SPA fallback'e düşer; `services/api.ts`'in `backendApiUrl()` helper'ı veya `VITE_API_BASE_URL` kullanılır. **Koda production origin GÖMÜLMEZ** (Sprint 11.58'de kaldırıldı) — aksi halde kurum kendi domain'ini kullanamaz.
 
 ### DB — TiDB Cloud Frankfurt
 
@@ -83,7 +83,7 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 | `backend/src/FikirPlatformu.Api/Endpoints/StudentIdeaEndpoints.cs` | `/api/student/ideas*` — öğrenci taslak/gönderim |
 | `backend/src/FikirPlatformu.Api/Endpoints/ProvinceEndpoints.cs` | `/api/province/*` — inbox, read, assign, evaluators, evaluations, candidates, approve, implementations |
 | `backend/src/FikirPlatformu.Api/Endpoints/MinistryEndpoints.cs` | `/api/ministry/periods*`, `/api/ministry/implementations` |
-| `backend/tests/FikirPlatformu.Tests/` | xUnit — `IdeaTests`, `ProfanityTextMatcherTests`, `SubmitIdeaServiceTests` (17 test) |
+| `backend/tests/FikirPlatformu.Tests/` | xUnit — `IdeaTests` 6, `ProfanityTextMatcherTests` 8, `SubmitIdeaServiceTests` 3, `Rfc2047Tests` 6 (**23 test**) |
 | `backend/src/FikirPlatformu.Infrastructure/Email/GmailApiEmailSender.cs` | OAuth2 HTTPS, `EncodeSubjectRfc2047` (Türkçe karakter), HTML body base64 |
 | `backend/src/FikirPlatformu.Infrastructure/Auth/GmailRefreshToken.cs` | Entity (encrypted token persist) |
 | `backend/src/FikirPlatformu.Infrastructure/Security/HassasVeriSifreleme.cs` | PBKDF2 encrypt `SifreleGmail/CozGmail` |
@@ -136,6 +136,12 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 
 | Sprint | Commit | Kök neden | Düzeltme |
 |---|---|---|---|
+| **11.78** | `adac877` | `/me` context'i **rolden** tahmin ediliyordu; sistem yöneticisinin province cookie'si `ministry` diye etiketleniyor, il-panel sessizce ana sayfaya atıyordu | `KullaniciBilgisiGetir` context'i çağırandan (doğrulanmış scheme) alır |
+| **11.76** | `6003fc3` | `CreateUserPrincipalAsync` **rol claim'i üretmiyor**; `IsInRole()` hep false, `ProvinceOnly` politikası 403 veriyordu | Rol claim'leri girişte açıkça yazılır; `/me` `gelenSchemeler` raporlar |
+| **11.71-11.75** | `39a422f`,`ce0629e` | `GirisIcinSchemeSec` SystemAdmin'i hiçbir context'te saymıyordu + MFA geçişi ek cookie'leri eziliyordu | Sistem yöneticisi tüm scheme'lerde oturum açar; `roller` listesinden yazılır (11.75) |
+| **11.59** | — | Non-ASCII MIME header ham UTF-8 idi, Gmail `GeleceÃ„ÂŸin Fikri` gösteriyordu | RFC 2047 encoded-word (`Rfc2047Tests`) |
+| **11.53** | `b2ae0b2` | `BypassPasswordValidator` etkisizdi (built-in validator'ı kaldırmıyor) | Kaldırıldı; 5 sınıf kuralı zorunlu |
+| **11.52** | `cdf800f` | `BekleyinSprint12` bakım kodu gömülü **bilinen** anahtarla korunuyordu | `AdminMaintenance__Secret` zorunlu, sabit-zamanlı karşılaştırma, yoksa 403 |
 | **11.50** | `64bbb7a` | Dokümantasyon dağınıktı, AI oturumları sürekli yanlış bilgi okuyordu | `AGENTS.md` + `CLAUDE.md` + `HANDOVER.md` + `docs/architecture.md` + `docs/runbook.md` + ADR |
 | **11.49** | `007c575` | İlkel ekleme ekranı + çift buton | Slide-in drawer modal, CSV rehber, üst +Yeni butonu kaldırıldı |
 | **11.48** | `d44069f` | `MustChangePassword=true` flag | Maintenance endpoint clear-flag |
@@ -143,8 +149,8 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 | **11.43** | `dab2e35` | "Şifre değişmeli" rozeti (Identity default) | Maintenance endpoint set-password-raw (raw SQL UPDATE) |
 | **11.36** | `0778854` | OAuth state 3rd-party cookie engeli | `window.open` → `window.location.href` (aynı sekme, 1st-party) |
 | **11.35** | `5570249` | Duplicate `/forgot-password` route shadowed `/api/auth/login` | Eski route kaldırıldı → tüm endpoint'ler canlandı |
-| **11.27** | Sprint 11.27 | SPA nav Modal context'inde pushState tetiklenmiyordu | `window.location.href` (full page reload) Modal içinde |
-| **10.7+** | `69b14dd` | CORS `Cors__AllowedOrigins` env yok, `UseCors` `UseAuthentication` sonrasında | Hardcoded fallback + middleware order fix |
+| **11.27** | — | SPA nav Modal context'inde pushState tetiklenmiyordu | `window.location.href` (full page reload) Modal içinde |
+| **10.7+** | `69b14dd` | CORS `Cors__AllowedOrigins` env yok, `UseCors` `UseAuthentication` sonrasında | Middleware order fix. **Gömülü origin fallback 11.52'de kaldırıldı** |
 | **10.7+** | `5decfcd` | `<Navigate>` declarative component Modal içinde çalışmıyor | `window.location.href = "/mfa-login"` |
 | **10.7+** | `7a2b62e` | `document.cookie` ile HttpOnly PreMfa kontrolü sonsuz loop | Cookie kontrolü kaldırıldı, backend 200/401'e güven |
 | **10.7+** | `2e08f44` | `useEffect [needsGmailOAuth]` mount-time tetikleme | Trigger on `yontemSec("Email")` user action |
@@ -156,43 +162,48 @@ Onur (kullanıcı) ulusal YEGİTEK projesi için fikir değerlendirme platformu 
 
 ---
 
-## 🎯 Sprint state (HEAD: `64bbb7a`)
+## 🎯 Sprint state (HEAD: `20d1df7`)
 
-### Tamamlanan (Sprint 11 — Admin Panel)
+### Tamamlanan — YEĞİTEK güvenlik sertleştirme (11.51–11.55)
 
-- ✅ User CRUD (MinistryOfficial, ProvinceManager, ProvinceEvaluator; Student excluded)
-- ✅ MFA reset / lockout temizleme
-- ✅ Rol atama (atama-only, geçiş yok)
-- ✅ Force password reset (mail ile link)
-- ✅ Şifremi Unuttum (Yetkili + Öğrenci)
-- ✅ Bulk CSV import
-- ✅ Privacy guard (Student erişim yok)
-- ✅ Admin Panel Frontend (3-group accordion, il alt-groups, Turkish labels, 2-column grid)
-- ✅ Drawer modal for user creation (Sprint 11.49)
-- ✅ CSV format rehber (Sprint 11.49)
-- ✅ Sistem Admin seed — `SeedSystemAdmin__Email`/`__Password` env'i ile (boş DB'de oluşur; var olan hesaba dokunmaz)
-- ✅ OAuth handshake DB-persist (Sprint 11.36)
-- ✅ Maintenance endpoints: `set-password-raw`, `unlock-account`, `clear-must-change-password`, `admin-reset`
-- ✅ Debug endpoints: `mail-mod`, `mail-sender`, `last-login`, `last-sifre-reset`, `cors-config`, `cors-test`
+- ✅ **YG-16** Parola politikası: 5 sınıf zorunlu (8+ karakter, büyük, küçük, rakam, özel karakter). `BypassPasswordValidator` kaldırıldı — zaten etkisizdi
+- ✅ **YG-39** Pasif hesap yönetimi: 90 gün hareketsizlikte kilitleme, `SystemAdmin`/`MinistryOfficial` muaf. `GET /api/admin/pasif-hesaplar`
+- ✅ **YG-17** Rol bazlı parola yaşı: 75 gün uyarı, 90 gün zorunlu. `MinistryOfficial` zorunlu, diğerleri tavsiye, `SystemAdmin` muaf
+- ✅ **YG-25** CSP + HSTS başlıkları
+- ✅ **YG-13/18** Denetim raporları: gece 02:00 UTC JSONL + CSV özeti
+- ✅ **YG-38 hazırlığı** `Captcha__Disabled` anahtarı
+- ✅ Gömülü production origin'leri kaldırıldı (CORS, OAuth redirect, frontend API URL)
+- ✅ `deploy/nginx/fikir.conf` + Linux `verify.sh` / `make_handover.sh`
+- ✅ Obsolete PostgreSQL `compose.yaml` silindi
+
+### Tamamlanan — arayüz birleştirme (11.64–11.82)
+
+- ✅ Admin paneli tek tema (`admin-theme.css`), il/bakanlık/öğrenci panelleri korundu
+- ✅ Kenar paneli **menüsü ve çıkış bağlamı panele göre** seçilir (role göre değil)
+- ✅ Rol → panel eşlemesi tek kaynakta: `components/YetkiliPanelSecim.tsx`
+- ✅ Sistem yöneticisi üç panele de erişir, tüm illeri görür (`ilId: null`)
+- ✅ Sessiz yönlendirme kaldırıldı → panel oturumu yoksa açık uyarı
+- ✅ Tüm sayfalarda mobil uyumluluk (320–1920px ölçüldü, taşma 0)
+- ✅ Anasayfa altındaki iki kart tek kural paylaşıyor (`stil.css`)
 
 ### Açık / bekleyen (Sprint 12)
 
 - 🚧 **Per-user Gmail mimarisi** — Sprint 12'de planlanıyor (ADR 0001)
 - 🚧 **Maintenance endpoint'leri production'dan kaldır** — Sprint 12 admin panel "SystemAdmin yönetimi" ile değiştir
-- 🚧 **Test user account hardening** — `onur35bilisim@gmail.com` MFA setup tamamlansın
-- 🚧 **i18n infrastructure** — şu an hardcoded Türkçe; Sprint 12+ sonra i18n
-- 🚧 **AWS SES migration** — Gmail Test Mode 100 user limit + 7-day refresh token. Production 1000+ user için gerekli
-- 🚧 **`/giris` route** — orphan `PublicLayout.tsx` ve `KullaniciCikis.tsx` dosyaları `App.tsx`'e bağlı değil. Onur istediğinde route eklenebilir
+- 🚧 **YG-38 güvenlik testi dokümanı** — kod hazır, doküman yazılacak
+- 🚧 **YG-08** Öğrenci PII'si diskte şifreli değil (infrastructure seviyesinde çözüm gerekir)
+- 🚧 **YG-13/18** Merkezî sisteme otomatik iletim yok (JSONL/CSV dosya çıktısı yeterli değil)
+- 🚧 **i18n infrastructure** — şu an hardcoded Türkçe
+- 🚧 **AWS SES migration** — Gmail Test Mode 100 user limit + 7-day refresh token
 - 🚧 **Email template management** — şu an hardcoded HTML
-- 🚧 **xUnit + Vitest** — Sprint 4 T35/T36 O-Freeze legacy backlog'undan
-- 🚧 **Per-il şifre sıfırlama mail tracking** — şu an sadece Sistem Admin görür
+- 🚧 **Yeğil alan (light) tema** — `mobil-test.html?light=1` ile ölçüldü, tokenlar eksik
 
 ### Known issues
 
 - 🔧 **EF Core CLI sandbox sorunu** — `dotnet ef migrations add` dosya yazmıyor. Lokal geliştirici makinede CI ile çalıştır.
-- 🔧 **Modal SPA nav** — `useNavigate` Modal context'inde çalışmıyor. `window.location.href` workaround.
+- 🔧 **Modal SPA nav** — `useNavigate` Modal context'inde çalışmıyor. `window.location.href` workaround (`YetkiliPanelSecim.fullPageNav`).
 - 🔧 **HTTPS-only cookies** — cross-origin SameSite=None; Secure zorunlu. Development'ta farklı port test'i sorunlu olabilir.
-- 🔧 **`/api/__maintenance/*`** production'da — Sprint 12'de kaldırılacak, ama Sprint 11.x boyunca acil müdahale için gerekli.
+- 🔧 **`/api/__maintenance/*`** production'da — Sprint 12'de kaldırılacak, `AdminMaintenance__Secret` yoksa zaten 403.
 
 ---
 

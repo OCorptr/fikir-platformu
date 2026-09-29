@@ -27,7 +27,7 @@
 | Roles | SystemAdmin + MinistryOfficial |
 | MFA | TOTP (Authenticator) |
 
-> 🔒 **Şifreler bu dosyada tutulmaz** (Sprint 11.52). Render env (`SEED_ADMIN_PASSWORD`) veya parola kasası.
+> 🔒 **Şifreler bu dosyada tutulmaz** (Sprint 11.52). Render env (`SeedSystemAdmin__Password`) veya parola kasası.
 > Şifre değiştirme sonrası MFA yeniden kurulur; parola değişimi oturumu geçersiz kılar (Sprint 11.55).
 
 ## 🎯 Sprint State (HEAD: `20d1df7`)

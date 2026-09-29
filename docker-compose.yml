@@ -38,8 +38,10 @@ services:
 
       # --- İlk sistem yöneticisi (veritabanı boşsa otomatik oluşturur) ---
       # Kurulum sonrası bu ikisini sunucudan kaldırın.
-      SeedSystemAdmin__Email: ${SEED_ADMIN_EMAIL:-}
-      SeedSystemAdmin__Password: ${SEED_ADMIN_PASSWORD:-}
+      # Not: .env içinde de `SeedSystemAdmin__Email` adı kullanılır. Aşağıdaki
+      # eski adlar (SEED_ADMIN_*) geriye dönük uyum için desteklenir.
+      SeedSystemAdmin__Email: ${SeedSystemAdmin__Email:-${SEED_ADMIN_EMAIL:-}}
+      SeedSystemAdmin__Password: ${SeedSystemAdmin__Password:-${SEED_ADMIN_PASSWORD:-}}
 
       # --- E-posta doğrulama / şifre sıfırlama bağlantılarındaki taban adres ---
       Frontend__BaseUrl: ${FRONTEND__BASEURL:-}
@@ -69,7 +71,7 @@ services:
       # --- CORS ---
       # Aynı domain + nginx reverse proxy önerilir → BOŞ bırakın (SameSite=Lax, CORS yok).
       # Ayrı origin dağıtımda virgülle ayrılmış liste verin.
-      Cors__AllowedOrigins: ${CORS_ALLOWED_ORIGINS:-}
+      Cors__AllowedOrigins: ${Cors__AllowedOrigins:-${CORS_ALLOWED_ORIGINS:-}}
 
       # --- E-posta ---
       # Hiçbir mod tanımlanmazsa DevelopmentEmailSender devreye girer:
@@ -81,8 +83,10 @@ services:
       Mail__Gmail__SenderAddress: ${MAIL__GMAIL__SENDERADDRESS:-}
       Mail__Gmail__SenderName: ${MAIL__GMAIL__SENDERNAME:-Geleceğin Fikri}
       Mail__Gmail__RedirectUri: ${MAIL__GMAIL__REDIRECTURI:-}
-      # Not: Mail__Gmail__RefreshToken YOK — refresh token DB'ye şifreli kaydedilir
-      # (Sprint 11.36). OAuth handshake: /admin/oauth ekranından tetiklenir.
+      # Refresh token önce ENV'den okunur; yoksa DB'deki şifreli kayıt
+      # (gmail_refresh_tokens, Id=1) kullanılır — Sprint 11.36.
+      # OAuth handshake: /admin/oauth ekranından tetiklenir.
+      Mail__Gmail__RefreshToken: ${MAIL__GMAIL__REFRESHTOKEN:-}
       # SMTP modu
       Mail__Host: ${MAIL__HOST:-}
       Mail__Port: ${MAIL__PORT:-587}

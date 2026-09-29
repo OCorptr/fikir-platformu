@@ -74,7 +74,7 @@ https://fikir-platformu.onrender.com/api/auth/gmail-oauth/start
 | `Mail__Gmail__RedirectUri` | `https://fikir-platformu.onrender.com/api/auth/gmail-oauth/callback` |
 | `Mail__Gmail__SenderAddress` | `fikir.platformu.iletisim@gmail.com` |
 | `Mail__Gmail__SenderName` | `Geleceğin Fikri` |
-| ~~`Mail__Gmail__RefreshToken`~~ | **Artık gerekmiyor** — DB'de (`gmail_refresh_tokens`) saklanıyor |
+| `Mail__Gmail__RefreshToken` | **İki yol desteklenir.** Adım 4'teki token'ı buraya yazabilirsiniz; yoksa boş bırakın — uygulama DB'deki şifreli kaydı kullanır. `GmailApiEmailSender` önce env'e, sonra `gmail_refresh_tokens` (Id=1) tablosuna bakar. |
 
 **Save** → Render otomatik redeploy yapar (~3dk).
 
@@ -115,9 +115,10 @@ Backend log'unda göreceğin:
 
 ## Not
 
-- **Refresh token** DB'de şifreli saklanır (`gmail_refresh_tokens`, PBKDF2). Env'de tutulmaz.
+- **Refresh token** önce `Mail__Gmail__RefreshToken` env'inden, yoksa DB'deki şifreli
+  kayıttan (`gmail_refresh_tokens`, PBKDF2) okunur. Elle env'e yazmak zorunlu değildir.
 - OAuth callback `/api/auth/gmail-oauth/callback` → DB upsert → `returnTo`'ya redirect.
-  Elle env'e yazma adımı **Sprint 11.36 ile kaldırıldı**.
+  DB'ye yazma yolu Sprint 11.36'da kaldırılmadan önce tek yoldu; artık **her iki yol da geçerlidir**.
 - **Token expire olursa:** `/admin/oauth` sayfasından handshake'i tekrarla (Sprint 11.36).
   Google Test Mode refresh token 7 gün; Production domain doğrulaması sonrası 6 ay.
 - Birden fazla alıcıya gönderimde bile Gmail API tek seferde en fazla 100 alıcı destekler; YEĞİTEK için yeterli.

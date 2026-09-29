@@ -18,6 +18,8 @@ YEĞİTEK için geliştirilen dijital fikir paylaşım platformu — öğrenci, 
 | **Deployment rehberi** | [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 | **Gmail OAuth2 kurulumu** (MFA Email OTP için) | [`docs/GOOGLE-OAUTH-SETUP.md`](docs/GOOGLE-OAUTH-SETUP.md) |
 | **Güvenlik politikası** | [`SECURITY.md`](SECURITY.md) |
+| **YEĞİTEK 41 maddelik güvenlik listesi + durum** | [`docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md`](docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md) |
+| **Kuruma teslim edilmesi bekleyen bilgiler** | [`docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md`](docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md) |
 
 ## Sprint özeti (aktif)
 
@@ -32,6 +34,11 @@ YEĞİTEK için geliştirilen dijital fikir paylaşım platformu — öğrenci, 
 | Sprint 9 | SystemAdmin kullanıcı yönetimi + MFA setup/verify + docker-compose |
 | Sprint 10 | MFA Email OTP yöntemi + cross-context guard + Gmail API OAuth2 + Render.yaml cache headers + atomic deploy hard reset |
 | Sprint 11 | Admin panel (user CRUD, bulk CSV, privacy guard), Gmail refresh token DB-persist, dokümantasyon sistemi |
+| Sprint 11.51-11.55 | YEĞİTEK güvenlik sertleştirme: parola politikası (YG-16), pasif hesap yönetimi (YG-39), CSP/HSTS, gömülü origin'lerin kaldırılması, Linux doğrulama ve paketleme betikleri |
+| Sprint 11.56-11.63 | Render frontend build'i `package-lock.json` ile düzeltildi, RFC 2047 gönderen adı (mojibake), CSV beyaz listesi (YG-03/31/32) |
+| Sprint 11.64-11.68 | Admin paneli görsel birleştirme, rol filtreleri, `sifreKurallari.ts` tek doğruluk kaynağı |
+| Sprint 11.69-11.78 | Rol bazlı 90 günlük parola yaşı, tüm sayfalarda çıkış, panel seçim ekranı, `/me` context düzeltmesi (adac877) |
+| Sprint 11.79-11.81 | Kenar paneli menüsü panele göre, il yönetimi yetkisi tek kurala bağlandı, tüm sayfalarda mobil uyumluluk ölçüldü |
 | Sprint 12 (sıradaki) | Per-user Gmail mimarisi, maintenance endpoint'leri kaldır, AWS SES migration, i18n |
 
 ## Yerel geliştirme
@@ -65,7 +72,7 @@ Frontend: `http://localhost:5173` (Vite dev server, `/api/*` → backend proxy)
 ./scripts/verify.ps1
 ```
 
-Restore + Release derleme + xUnit testleri (17) + frontend tip kontrolü + frontend üretim derlemesi.
+Restore + Release derleme + xUnit testleri (23) + frontend tip kontrolü + frontend üretim derlemesi.
 
 ## Deployment ortamları
 
@@ -89,7 +96,7 @@ Her ortam **aynı repo**'yu kullanır. `.env.example` ortam bağımsız şablon 
 │   │   ├── FikirPlatformu.Application/
 │   │   ├── FikirPlatformu.Domain/
 │   │   └── FikirPlatformu.Infrastructure/   # Email sender + Identity + Migrations
-│   ├── tests/FikirPlatformu.Tests/          # xUnit (17 test)
+│   ├── tests/FikirPlatformu.Tests/          # xUnit (23 test)
 │   └── README.md
 ├── frontend/                      # React 19 + Vite 8 + TypeScript 7
 │   ├── Dockerfile                 # nginx multi-stage build
@@ -126,7 +133,7 @@ Her ortam **aynı repo**'yu kullanır. `.env.example` ortam bağımsız şablon 
 - **Frontend:** React 19 + Vite 8 + TypeScript 7, üç runtime dependency (react, react-dom, react-router)
 - **DB:** MySQL 8+ (Pomelo provider), TiDB Cloud uyumlu, `SchemaBehavior.Ignore` (Pomelo MySQL "public" schema hatasını önler)
 - **MFA:** TOTP (Google/MS Authenticator) veya Email OTP — kullanıcı seçer. `/api/auth/mfa/{setup,verify-setup,verify,send-email-otp,disable,cancel}` endpointleri. TOTP secret'ları Data Protection API ile şifrelenmiş.
-- **Email:** 4 mod (geliştirme test, Gmail API OAuth2 HTTPS, SMTP fallback, Resend HTTPS API). Refresh token **DB'de şifreli saklanır** (`gmail_refresh_tokens`, PBKDF2 — Sprint 11.36+), env'de tutulmaz.
+- **Email:** 4 mod (geliştirme test, Gmail API OAuth2 HTTPS, SMTP fallback, Resend HTTPS API). Refresh token önce `Mail__Gmail__RefreshToken` env'inden, yoksa DB'deki şifreli kayıttan (`gmail_refresh_tokens`, PBKDF2) okunur (Sprint 11.36+).
 - **Frontend SPA fallback:** Render rewrite `/*` → `/index.html`. Vite build hash'li asset isimleri üretir (`index-<hash>.js`).
 
 ## İlk kurulum
@@ -134,8 +141,13 @@ Her ortam **aynı repo**'yu kullanır. `.env.example` ortam bağımsız şablon 
 ```bash
 cp .env.example .env
 # .env içindeki CHANGE_ME değerlerini kendi kurumunuza göre doldurun.
-#   Zorunlu: DB_CONNECTION_STRING, ADMINMAINTENANCE__SECRET,
-#            SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, FRONTEND__BASEURL, Mail__*
+#   Zorunlu: DB_CONNECTION_STRING, AdminMaintenance__Secret,
+#            SeedSystemAdmin__Email, SeedSystemAdmin__Password,
+#            Frontend__BaseUrl, Mail__*
+#
+# ⚠️ Değişken adları kodla BİREBİR aynı olmalıdır. Uygulama `A:B:C`
+#    yapısını env'de `A__B__C` olarak okur; yanlış ad sessizce yok sayılır
+#    ve kurulum "başarılı" görünürken ayar uygulanmamış olur.
 
 docker compose up -d                 # kendi MySQL'iniz varsa
 docker compose --profile with-mysql up -d   # MySQL container ile

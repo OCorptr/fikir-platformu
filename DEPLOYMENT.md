@@ -40,14 +40,14 @@ pnpm run build  # VITE_API_BASE_URL boş → relative /api (nginx proxy'ler)
 
 # 6) İlk sistem yöneticisi hesabı
 #    .env'teki SeedSystemAdmin__Email + SeedSystemAdmin__Password ile oluşur (DB boşsa),
-#    ya da elle:  cd backend && SEED_ADMIN_PASSWORD='<güçlü>' dotnet run --project src/FikirPlatformu.Api -- seed
+#    ya da elle:  cd backend && SeedSystemAdmin__Password='<güçlü>' dotnet run --project src/FikirPlatformu.Api -- seed
 #    Diğer hesaplar (il yöneticisi, değerlendirici, öğrenci) uygulama içinden açılır.
 
 # 7) systemd + nginx ayarla (Bölüm 5-6)
 sudo systemctl enable --now fikir-api
 sudo nginx -t && sudo systemctl reload nginx
 
-# 8) Test: https://fikir.meb.gov.tr → "Yetkili Girişi" → .env'teki SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD
+# 8) Test: https://fikir.meb.gov.tr → "Yetkili Girişi" → .env'teki SeedSystemAdmin__Email / SeedSystemAdmin__Password
 ```
 
 ### B) docker-compose ile (kendi MySQL'in yoksa)
@@ -211,10 +211,10 @@ pnpm run build
 
 > ⚠️ **Aynı domain** mimarisinde `Cors__AllowedOrigins__0` **boş** olmalı. Sistem otomatik olarak `SameSite=Lax` cookie ve CORS'sız çalışır.
 >
-> ⚠️ Sprint 10.7'den beri `Cors__AllowedOrigins` **boş olsa bile** kod içinde hardcoded
-> production fallback devreye girer (`https://fikir-platformu-web.onrender.com` +
-> `http://localhost:5173/5174`). Aynı domain kurulumunda bunu kapatmak için
-> `Program.cs` içindeki fallback listesini düzenle veya env'i production origin'iyle doldur.
+> ⚠️ Sprint 11.52'den beri kod içinde **gömülü origin listesi yoktur**. `Cors__AllowedOrigins`
+> boşsa CORS middleware hiç kurulmaz ve cookie'ler `SameSite=Lax` olur — same-origin
+> reverse proxy kurulumu için bu doğru davranıştır. Ayrı-origin dağıtımda env'i
+> **mutlaka** doldurun; aksi halde tarayıcı "CORS policy" hatası verir.
 >
 > **Cross-origin** gerekirse (ör. frontend ayrı subdomain'de) bu değeri doldurun — sistem `SameSite=None; Secure` cookie'ye geçer.
 >
@@ -344,7 +344,7 @@ elle üretilen hash çalışmaz ve hesap kilitlenir.
 
 İlk sistem yöneticisi iki yoldan biriyle oluşur:
 
-**Yol A — `.env` ile (önerilen).** `SEED_ADMIN_EMAIL` ve `SEED_ADMIN_PASSWORD`
+**Yol A — `.env` ile (önerilen).** `SeedSystemAdmin__Email` ve `SeedSystemAdmin__Password`
 tanımlıysa uygulama ilk açılışta (veritabanı boşsa) hesabı kendisi oluşturur.
 Ayrıca `SystemAdmin` ve `MinistryOfficial` rollerini atar.
 
@@ -352,7 +352,7 @@ Ayrıca `SystemAdmin` ve `MinistryOfficial` rollerini atar.
 
 ```bash
 cd backend
-SEED_ADMIN_PASSWORD='<güçlü şifre>' \
+SeedSystemAdmin__Password='<güçlü şifre>' \
   dotnet run --project src/FikirPlatformu.Api -- seed
 ```
 
@@ -446,18 +446,18 @@ Oluşma koşulu: veritabanı boşsa. Hesap zaten varsa hiçbir şey yapılmaz.
 Elle oluşturmak için:
 ```bash
 cd backend
-SEED_ADMIN_PASSWORD='<güçlü şifre>' dotnet run --project src/FikirPlatformu.Api -- seed
+SeedSystemAdmin__Password='<güçlü şifre>' dotnet run --project src/FikirPlatformu.Api -- seed
 ```
 
-Kurulum tamamlandıktan sonra `.env` içindeki `SEED_ADMIN_PASSWORD` ve
-`SEED_ADMIN_EMAIL` değerlerini silin.
+Kurulum tamamlandıktan sonra `.env` içindeki `SeedSystemAdmin__Password` ve
+`SeedSystemAdmin__Email` değerlerini silin.
 
 ### İlk giriş akışı (Sistem Yöneticisi)
 
 1. **Siteye git:** `https://fikir.meb.gov.tr`
 2. **Anasayfada** "Yetkili Girişi" butonuna tıkla
-3. **E-posta:** `.env`'de verdiğiniz `SEED_ADMIN_EMAIL`
-4. **Şifre:** `.env`'de verdiğiniz `SEED_ADMIN_PASSWORD`
+3. **E-posta:** `.env`'de verdiğiniz `SeedSystemAdmin__Email`
+4. **Şifre:** `.env`'de verdiğiniz `SeedSystemAdmin__Password`
 5. **CAPTCHA** sorusunu çöz
 6. **MFA kurulum sayfası** açılır:
    - Google Authenticator veya Microsoft Authenticator uygulamasını aç
@@ -527,11 +527,16 @@ Yetkili kullanıcılar için **iki** MFA yöntemi açıktır:
 
 ### Frontend otomatik Email flow
 
-1. Yetkili email/şifre ile login → backend `mfaRequired:true` → frontend `/mfa-login`
-2. Kullanıcı 📧 kartına tıklar
-3. Backend `mfaGetMethod()` → `needsGmailOAuth:true` dönerse frontend **otomatik** `/api/auth/gmail-oauth/start`'e yönlendirir (manuel URL gerekmez)
-4. Google login → Allow → callback → `/mfa-login`'e relative redirect
-5. Email yöntemi tekrar seç → kod **gerçekten mail'e gelir** → scheme upgrade → panele yönlendir
+1. Yetkili e-posta/şifre ile giriş → backend `mfaRequired:true` → frontend `/mfa-login`
+2. Kullanıcı "E-posta kodu" seçeneğini seçer
+3. Frontend **doğrudan** `/api/mfa/send-email-otp` çağırır. Kod ekranı açılır ve
+   gönderim sürerken buton "Kod gönderiliyor…" durumuna geçer.
+   (Sprint 11.65: ekranda OAuth'a otomatik yönlendirme **kaldırıldı** — 11.51'de
+   per-user OAuth yerine sistem sabit göndericiye geçildi, bu artık geçerli bir yol değil.)
+4. `send-email-otp` 401 dönerse `needsGmailOAuth:true` gelir ve o zaman **Elle**
+   OAuth başlatılır: `/api/auth/gmail-oauth/start` (token `Mail__Gmail__RefreshToken`
+   env'inde ya da DB'de tanımlıysa bu adım hiç gerekmez)
+5. Kod e-postaya gelir → scheme upgrade → panele yönlendirilir
 
 ### Cross-context guard
 
