@@ -34,7 +34,7 @@ Her kontrol için çalıştırılan komut ve gözlenen sonuç yazılıdır.
 | Frontend | `https://fikir-platformu-web.onrender.com` (Render Static Site) |
 | Veritabanı | TiDB Cloud (MySQL uyumlu) |
 | Commit | `4ca5452` (Sprint 11.84) |
-| Testler | `dotnet test` → **47/47 başarılı** |
+| Testler | `dotnet test` → **51/51 başarılı** |
 | Sürüm kontrolü | `git log`, `curl -I`, `Get-Content` ile kanıtlandı |
 
 **Kullanılan araçlar:** `curl`, `Invoke-WebRequest`, `dotnet test` (xUnit), ripgrep statik tarama.
@@ -250,7 +250,7 @@ ripgrep ile tüm kaynak, yapılandırma ve şablon dosyaları tarandı
 
 ### 4.8 Otomatik regresyon testleri
 
-`dotnet test` → **47/47 başarılı**
+`dotnet test` → **51/51 başarılı**
 
 | Dosya | Test | Kapsam |
 |---|---|---|
@@ -403,8 +403,8 @@ Sekmeyi açık bırakıp 8 saat sonra bir uç çağrısı yapın → 401 bekleni
 | Test edilen madde sayısı | 41 |
 | Otomatik doğrulanan kontrol | 9 grup |
 | Elle yapılacak test | 10 adet (Bölüm 5) |
-| **Bulunan açık** | **3** (1 kritik yapısal, 2 orta) |
-| **Düzeltilen açık** | **3 / 3** |
+| **Bulunan açık** | **4** (1 kritik yapısal, 1 yüksek, 2 orta) |
+| **Düzeltilen açık** | **4 / 4** |
 | Açık kalan | **0** (bu test kapsamında) |
 | Bağımsız denetim | **Yapılmadı** — kurumun sorumluluğunda |
 
@@ -421,29 +421,106 @@ Sekmeyi açık bırakıp 8 saat sonra bir uç çağrısı yapın → 401 bekleni
 
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
+| 1.1 | 29.09.2026 | Deploy logu incelendi. BULGU-4 (başlangıç SQL'i) bulundu ve düzeltildi. HSTS canlıda doğrulandı. 4 başlangıç denetim testi eklendi. `/api/health` sürüm damgası eklendi. |
 | 1.0 | 29.09.2026 | İlk sürüm. 3 açık bulundu ve düzeltildi (açık yönlendirme, HSTS, frontend CSP). 24 regresyon testi eklendi. |
 
 ---
 
 ## 10. Doğrulama durumu
 
+**Canlı ortamda doğrulandı** — Render commit `8d4b14a`, 29.09.2026.
+
 | Bulgu | Kod | Test | Canlı doğrulama |
 |---|---|---|---|
-| BULGU-1 — Açık yönlendirme | ✅ düzeltildi | ✅ 24 test | ⏳ deploy bekliyor |
-| BULGU-2 — HSTS yok | ✅ düzeltildi | — | ⏳ deploy bekliyor |
-| BULGU-3 — Frontend CSP yok | ✅ nginx'e eklendi | — | ⏳ kurulumda doğrulanacak |
+| BULGU-1 — Açık yönlendirme | ✅ | ✅ 24 test | ⏳ OAuth callback'i tamamlanmadan test edilemez (elle) |
+| BULGU-2 — HSTS yok | ✅ | ✅ statik denetim | ✅ **doğrulandı** — `max-age=31536000; includeSubDomains` |
+| BULGU-3 — Frontend CSP yok | ✅ nginx | — | ⏳ kurulumda doğrulanacak (Render panel başlığı) |
 
-> ⚠️ **Bu rapor yazıldığı sırada Render demo ortamına otomatik deploy çalışmıyor.**
-> `https://fikir-platformu.onrender.com/api/health` ucu Sprint 11.84 derlemesini
-> yansıtmıyor (sürüm damgası eksik). Kod yerelde doğrulandı:
->
-> ```
-> dotnet publish src/FikirPlatformu.Api/... → başarılı (yalnızca uyarı)
-> dotnet test → 47/47 başarılı
-> ```
->
-> Render panelinden son commitin (`5e84d2b`) deploy durumu kontrol edilmeli ve
-> gerekirse "Manual Deploy" tetiklenmelidir. **Yayına almadan önce canlı
-> doğrulama tamamlanmalıdır** — bu rapordaki düzeltmeler ancak o zaman kanıtlanmış
-> sayılır.
+### Doğrulanan canlı başlıklar (11.85)
+
+```
+$ curl -sI https://fikir-platformu.onrender.com/api/health
+  content-security-policy:  default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; …  ✅
+  strict-transport-security: max-age=31536000; includeSubDomains                                    ✅ (yeni)
+  x-content-type-options:     nosniff                                                               ✅
+  x-frame-options:            DENY                                                                   ✅
+  referrer-policy:            strict-origin-when-cross-origin                                        ✅
+  permissions-policy:         geolocation=(), microphone=(), camera=(), payment=()                  ✅
+```
+
+### BULGU-4 — Kuruluşta tüm bakanlık yetkilileri parola değiştirmeye zorlanıyordu · **DÜZELTİLDİ**
+
+| | |
+|---|---|
+| **Ciddiyet** | Yüksek (kullanıcıyı kilitler) |
+| **Dosya** | `backend/src/FikirPlatformu.Api/Program.cs` (başlangıç SQL'i) |
+| **Bulunma** | Sprint 11.85, Render deploy logu |
+
+**Açıklama.** Parola yaşı özelliği (YG-17) mevcut kullanıcılarda `PasswordChangedAt`
+NULL olduğu için uyarı/zorlama göstermemesi için başlangıçta bir geriye dönük
+değerleme çalıştırıyordu. Sorgu şu sütuna bakıyordu:
+
+```sql
+SET `PasswordChangedAt` = COALESCE(`LastLoginAt`, UTC_TIMESTAMP())
+```
+
+**`AspNetUsers` tablosunda `LastLoginAt` sütunu yoktur** (`ApplicationUser` modelinde
+de yok). Sorgu hata veriyor, `try/catch` ile yutuluyor ve **hiçbir kullanıcı
+doldurulmuyordu.**
+
+**Etki.** `SifreYasiPolicy` NULL değeri "en kötü senaryo" olarak yorumlar:
+
+> `return new Durum(null, null, true, true, "Değişiklik tarihi kayıtlı değil")`
+
+Yani **her bakanlık yetkilisi (`MinistryOfficial`) girişte parola değiştirmeye
+zorlanıyordu**, öğrenci ve il personeli gereksiz uyarı alıyordu. Özellik
+kötüleşmesi ilk açılışta değil, ilk girişte fark edilecekti.
+
+**Düzeltme.** Sütun referansı kaldırıldı, `UTC_TIMESTAMP()` kullanılıyor:
+her kullanıcıya 90 gün daha verilir, kimse kilitlenmez.
+
+**Doğrulama.** `ProgramYapilandirmaDenetimi` test dosyası eklendi — bu hata
+sınıfının (başlangıç yapılandırması hataları) tekrarını derleme aşamasında yakalar.
+
+---
+
+## 11. Öğrenilen: derlenme ≠ çalışma
+
+Sprint 11.84'te HSTS düzeltmesi **uygulamayı açılmaz hâle getirmişti:**
+
+```
+fail: Unhandled exception. System.InvalidOperationException:
+      The service collection cannot be modified because it is read-only.
+      at Program.<Main>$() in Program.cs:line 549
+```
+
+`builder.Services.Configure<ForwardedHeadersOptions>(...)` çağrısı
+`builder.Build()` satırından **sonra** kalmıştı.
+
+| Kontrol | Sonuç | Yakaladı mı |
+|---|---|---|
+| `dotnet build` | ✅ başarılı | ❌ **hayır** |
+| `dotnet test` (23 test) | ✅ 23/23 | ❌ **hayır** |
+| `dotnet publish` | ✅ başarılı | ❌ **hayır** |
+| Uygulamayı çalıştır / deploy logu | ❌ **çöktü** | ✅ **evet** |
+
+**Sonuç.** "Derleniyor + testler geçiyor" kontrolü bir DI hatasını yakalayamaz.
+Bunun için:
+
+1. `ProgramYapilandirmaDenetimi` — 4 test eklendi:
+   - `Build()` sonrası `builder.Services` çağrısı
+   - güvenlik başlığı middleware'inin `UseCors`'tan önce gelmesi
+   - HSTS'in `IsHttps` koşuluna bağlanmaması
+2. `/api/health` ucuna **sürüm damgası** eklendi (`commit`, `environment`).
+   Böylece "canlıda hangi build var?" sorusu uzaktan cevaplanabiliyor:
+
+```json
+{ "version": "1.0.0.0",
+  "commit": "8d4b14ab9132a1fd9aa1e7d632cb463c00e4d8ea",
+  "environment": "Production" }
+```
+
+> Bu sürüm damgası olmasaydı "deploy oldu mu, eski mi?" sorusunu yalnızca
+> Render paneline bakarak cevaplayabilirdim.
+
 
