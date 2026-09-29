@@ -99,7 +99,7 @@ Bu dört sprint, **aynı hatada dört kez yanlış kök neden** bulundu. Hepsi d
 | `deploy/nginx/fikir.conf` | TLS + `/api` proxy + SPA fallback |
 | `scripts/verify.sh`, `scripts/make_handover.sh` | Linux-native doğrulama ve paketleme |
 | `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` | 41 maddelik kurum listesi ve durum |
-| `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` | **YG-38 test raporu** — 4 bulgu, 4 düzeltme, 10 elle test senaryosu |
+| `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` | **YG-38 test raporu** — 25 test, 4 bulgu, 4 düzeltme (kurum formatında, kısa) |
 | `docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md` | Onur'dan teyit bekleyen bilgiler |
 
 ## 🚧 Açık işler

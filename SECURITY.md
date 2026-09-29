@@ -228,8 +228,11 @@ import'u (`POST /api/admin/users/bulk`) ve **üç katmanlı** beyaz listeye sahi
 - MFA kapatma (ayrıcalıklı rol bloklu)
 - Parola politikası: 5 sınıf, Türkçe hata mesajı
 - Pasif hesap: 90 gün → kilitleme + `AccountDisabled` kaydı
-- Backend xUnit: **23/23** (`backend/tests/FikirPlatformu.Tests`)
+- Açık yönlendirme (open redirect): dış origin, protocol-relative, `javascript:` engellendi — **24 regresyon testi**
+- Başlangıç yapılandırması: DI kaydının `Build()` sonrasında kalmaması, HSTS'in `IsHttps`'e bağlanmaması — **4 denetim testi**
+- Backend xUnit: **51/51** (`backend/tests/FikirPlatformu.Tests`)
 
+> Ayrıntılı test raporu: [`docs/YGITEK-GUVENLIK-TEST-RAPORU.md`](docs/YGITEK-GUVENLIK-TEST-RAPORU.md) (YG-38).
 > Frontend'de birim test çerçevesi **yok** (Vitest kurulmadı). Arayüz doğrulaması
 > **manuel Playwright** ile yapılır; mobil davranış `frontend/public/mobil-test.html`
 > üzerinden 320–1920px aralığında ölçülür.
@@ -240,9 +243,9 @@ import'u (`POST /api/admin/users/bulk`) ve **üç katmanlı** beyaz listeye sahi
 
 - [x] TOTP secret DB şifreleme (Data Protection API) — Sprint 8.2
 - [x] CSP header — Sprint 11.52
-- [x] HSTS header — Sprint 11.52
+- [x] HSTS header — Sprint 11.52 · **düzeltildi 11.85** (temselî proxy arkasında hiç gönderilmiyordu)
 - [x] Canlı sır temizliği (`seed/ilk_hesaplar.py` silindi) — Sprint 11.52
-- [ ] **YG-38 — güvenlik testi dokümanı** (test raporu)
+- [x] **YG-38 — güvenlik test raporu** (`docs/YGITEK-GUVENLIK-TEST-RAPORU.md`) — Sprint 11.85
 - [ ] **YG-13/18 — merkezî log iletimi** (kurum altyapısı bekleniyor)
 - [ ] YG-08 — öğrenci PII'si depolama şifrelemesi
 - [ ] Maintenance endpoint'lerini production'dan kaldır (Sprint 12)
