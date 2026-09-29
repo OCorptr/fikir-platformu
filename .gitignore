@@ -43,3 +43,7 @@ backend/src/FikirPlatformu.Api/dev-email/
 
 # root-level node_modules (CLI tool kurulumları)
 node_modules/
+
+# arac/temp klasorleri (commit edilmez)
+.cortexkit/
+prepared-media/

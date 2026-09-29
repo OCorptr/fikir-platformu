@@ -224,16 +224,26 @@ Reference:
 
 ```
 src/
-  ├── App.tsx                   — Routes
+  ├── App.tsx                   — Routes + <SifreKilit> + <KosulluUstBar>
   ├── main.tsx                  — Entry
+  ├── types.ts                  — Tüm DTO arayüzleri (MeSession, InboxEntry, …)
+  ├── styles.css                — 1401 satır (modern tema katmanı)
+  ├── admin-theme.css           — 983 satır (admin panel teması, Sprint 11.64+)
   ├── components/
   │   ├── AuthModal.tsx         — Öğrenci login modal (kapatılamaz, /fikir)
-  │   ├── YetkiliGirisModal.tsx — Yetkili login modal (Sprint 10.7)
-  │   ├── AdminAuthGuard.tsx    — /admin/* rol guard
-  │   ├── ProtectedRoute.tsx     — /il-panel/* + /bakanlik/* context guard
+  │   ├── YetkiliGirisModal.tsx — Yetkili giriş + panel seçimi (ana sayfa)
+  │   ├── YetkiliPanelSecim.tsx — **TEK doğruluk kaynağı**: rol→panel, rol etiketi,
+  │   │                            ilYoneticiMi(), fullPageNav()  (Sprint 11.73/11.80)
+  │   ├── AdminAuthGuard.tsx    — /admin/* SystemAdmin guard
+  │   ├── ProtectedRoute.tsx    — context guard + **açık yetki uyarısı** (S11.77)
+  │   ├── SifreKilit.tsx        — 90 günlük parola zorlaması (YG-17)
+  │   ├── AdminLayout.tsx       — Kenar paneli (il-panel + bakanlık)
   │   ├── AccessibilityPanel.tsx— WCAG erişilebilirlik paneli
-  │   ├── UstBar.tsx            — Üst bar (anasayfa + /fikir)
-  │   ├── PublicLayout.tsx      — (orphan — App.tsx'e bağlı değil)
+  │   ├── ErisilebilirlikYardimci.tsx
+  │   ├── UstBar.tsx            — Üst bar
+  │   ├── CaptchaField.tsx      — CAPTCHA alanı
+  │   ├── KullaniciCikis.tsx    — Sabit çıkış düğmesi (S11.71'de kaldırıldı,
+  │   │                           dosya kaldı ama App.tsx'e bağlı DEĞİL)
   │   └── ...
   ├── pages/
   │   ├── HomePage.tsx          — Landing
@@ -250,19 +260,36 @@ src/
   │   ├── ApplicationDetailPage.tsx(/il-panel/fikir/:id)
   │   ├── MinistryPage.tsx        (/bakanlik + /bakanlik/donemler)
   │   └── admin/
-  │       ├── AdminLayout.tsx
-  │       ├── UserListPage.tsx       (Sprint 11.9 + 11.49)
-  │       ├── UserCreateModal.tsx    (Sprint 11.49 NEW — drawer)
-  │       ├── UserEditPage.tsx       (/admin/users/:id)
-  │       ├── UserBulkPage.tsx       (Sprint 11.5 + 11.49 redesign)
-  │       └── OAuthAyarlaPage.tsx    (/admin/oauth)
+  │       ├── AdminLayout.tsx        — /admin için ÜST menü (kenar paneli DEĞİL)
+  │       ├── UserListPage.tsx       — tablo (Sprint 11.64: kart listesinden çevrildi)
+  │       ├── UserCreateModal.tsx    — yönetici oluşturma (Sprint 11.49)
+  │       ├── UserEditPage.tsx       — /admin/users/:id
+  │       ├── UserBulkPage.tsx       — CSV toplu ekleme
+  │       ├── DenetimRaporlariPage.tsx— YG-13/18 rapor ekranı (Sprint 11.61)
+  │       └── OAuthAyarlaPage.tsx    — /admin/oauth (E-posta Ayarları)
   ├── services/
   │   ├── api.ts                — backendApiUrl(), ApiHttpError
   │   ├── auth.ts               — register, login, logout, me, mfa*, oauth
   │   ├── admin.ts              — Admin User CRUD
-  │   ├── roles.ts              — rolAdi() UI label mapper
+  │   ├── roles.ts              — rolAdi() UI etiket eşleyici
+  │   ├── sifreKurallari.ts     — parola kuralları (backend ile birebir aynı)
   │   └── references.ts         — iller + kategoriler
-  └── styles.css                — ~1800 satır, tüm CSS
+```
+
+### 🎨 CSS katmanları — **yükleme sırası önemlidir**
+
+```
+index.html
+  ├── <link> /assets/css/fonts.css        27 satır
+  ├── <link> /assets/css/stil.css      1575 satır  ← anasayfa + panel dili
+  ├── <link> /assets/css/admin-panel.css 334 satır ← kenar paneli yerleşimi
+  └── <link> /assets/index-<hash>.css   (Vite)     ← src/styles.css + src/admin-theme.css
+```
+
+> ⚠️ **Tuzak (Sprint 11.68):** `src/` içindeki CSS **her zaman son yüklenir** ve
+> `stil.css`'i ezebilir. Bu iki yüzey ayrı bakım gerektirir. Ana sayfa düğmelerinin
+> rozeti görünmüyordu çünkü `button.ozellik` (styles.css) `.ozellik-arsiv`'i
+> (stil.css) özgüllük ile siliyordu.
 
 styles.css organization:
   ├── Reset + variables
@@ -272,10 +299,22 @@ styles.css organization:
   ├── Yetkili Giriş Modal (.yg-*)
   ├── MFA Login/Setup (.mfa-*)
   ├── Admin Panel (.admin-*)
-  ├── Drawer Modal (.drawer-overlay, .drawer-panel) — Sprint 11.49
-  ├── CSV Rehber (.csv-rehber, .csv-adim, .csv-tablosu) — Sprint 11.49
-  └── Animations (keyframes drawerSlideIn, etc.)
+  ├── Admin panel (.adm-*) — asıl uygulama admin-theme.css'de
+  └── Animations
+
+admin-theme.css organization (admin-theme.css):
+  ├── Değişkenler (--yt-*, --adm-kart-pad)
+  ├── Sayfa (.adm-sayfa, .adm-h1/h2)
+  ├── Filtre çubuğu (.adm-filtre-cubugu — 4 sütun grid, tek satır)
+  ├── Tablo (.adm-tablo, .adm-tablo-kaydir — yatay kaydırma)
+  ├── Kart (.adm-kart), rozet, buton, form
+  ├── Modal (.adm-modal-*)
+  ├── @media: 1100 / 900 / 860 / 560 px
+  └── prefers-reduced-motion, prefers-color-scheme
 ```
+
+**Mobil:** 320–1920px aralığında yatay taşma **sıfır** (Playwright ile ölçüldü,
+Sprint 11.81). Ölçüm sayfası: `frontend/public/mobil-test.html`.
 
 ---
 

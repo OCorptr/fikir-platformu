@@ -1,224 +1,255 @@
-# Geleceğin Fikri — Güvenlik Uygulama Planı Özeti
+# Geleceğin Fikri — Güvenlik Uygulama Özeti
 
-Bu doküman `SECURITY_IMPLEMENTATION_PLAN.md` ile birlikte production öncesi yapılacak güvenlik işlerinin sprint bazlı özetidir.
+Kurum (YEĞİTEK) 41 maddelik güvenlik listesine uyum durumu için kaynak doküman:
+**`docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md`**. Bu dosya uygulamanın nasıl
+güvence sağladığını anlatır; madde bazlı uyum matrisi oradadır.
 
-## Sprint Durumu
+> Son güncelleme: **Sprint 11.81** · Kod tabanı: `20d1df7`
 
-| Sprint | Kapsam | Durum | Commit |
-|---|---|---|---|
-| 1 | DB Migration (PostgreSQL → TiDB Cloud MySQL) | ✅ | `cdf7417` |
-| 2 | Identity güçlendirme (şifre/lockout) | ✅ | `d30361d` |
-| 2 | Audit logging (AuthEvent) | ✅ | `21bc3b1` |
-| 3 | Cookie + CORS + Open Redirect + idle timeout | ✅ | `8bf1a83` |
-| 4 | DTO validation (DataAnnotations) | ✅ | `0337aae` |
-| 5 | Rate limit + güvenlik header + retention | ✅ | `ad4be5a` |
-| 6 | TOTP MFA (setup/verify/login/disable) | ✅ | `23a3f77` |
-| 7 | MFA zorunluluğu (privileged roles) + pasif hesap tespiti | ✅ | `96dedb2` |
-| 7.5 | YEĞİTEK deployment hazırlığı (nginx, demo seed kaldırıldı) | ✅ | `a374b20` |
-| 8.1 | CAPTCHA + PII log maskeleme | ✅ | `00dbf57` |
-| 8.2 | TOTP secret Data Protection API şifreleme | ✅ | `56c399c` |
-| 8.3 | Custom 404/500 + WCAG erişilebilirlik | ✅ | `02c6856` |
-| 8.4 | Composite indexes + her sayfadan logout | ✅ | `83f3e5c` |
-| 9 | SystemAdmin kullanıcı yönetimi + MFA setup | ✅ | `AdminEndpoints.cs` |
-| 10 | MFA Email OTP + Gmail API OAuth2 + cross-context guard | ✅ | Sprint 10 |
-| 11 | Admin panel, bulk CSV import, privacy guard, OAuth DB-persist, dokümantasyon | ✅ | HEAD `64bbb7a` |
-
-## Uygulanan Kontroller
-
-### Kimlik Doğrulama (plan §2)
-- Şifre politikası (`Program.cs` Identity options, Sprint 11.53):
-  `RequiredLength = 8`, `RequireUppercase = true`, `RequireLowercase = true`,
-  `RequireDigit = true`, `RequireNonAlphanumeric = true`
-  → **YEĞİTEK madde 16 tam olarak karşılanıyor.**
-- Frontend doğrulaması `frontend/src/services/sifreKurallari.ts` — backend ile birebir aynı
-- Identity hataları `SifreKuraliMesaji` ile Türkçeye çevrilir (İngilizce mesaj dönmez)
-- Öğrenci kayıt uçları da **aynı** politikayı uygular
-- Lockout: 5 başarısız deneme → **5 dakika** (Identity varsayılanı; özel ayar yok)
-- Şifre süre sonu: 90 gün eşiği **hesaplanıyor ama zorlanmıyor** (Sprint 12'de kapatılacak,
-  YEĞİTEK madde 17)
-- MFA: TOTP (RFC 6238), Otp.NET 1.4.1
-  - Ayrıcalıklı roller (MinistryOfficial, ProvinceManager, SystemAdmin) için **zorunlu**
-  - Diğer kullanıcılar opt-in
-  - **Secret DB'de Data Protection API ile şifrelenmiş** (Sprint 8.2 — `HassasVeriSifreleme` + `data_protection_keys` tablosu)
-
-### Oturum Yönetimi (plan §3)
-- Cookie: HttpOnly ✓; SameSite env-aware (production'da cross-origin → `None; Secure`, aynı domain'de `Lax`)
-- SecurePolicy: Development HTTP=SameAsRequest, Production HTTPS=Always
-- Idle timeout: 30 dk sliding
-- Absolute timeout: 8 saat (`auth_issued_at` claim + OnValidatePrincipal reject)
-- 4 cookie scheme (`Program.cs`): `IdentityConstants.ApplicationScheme` (öğrenci + yetkili), `ProvinceScheme`, `MinistryScheme`, `PreMfaScheme` (login sonrası MFA öncesi yarım cookie) — aynı tarayıcıda çoklu oturum
-
-### Yetkilendirme (plan §3.6)
-- Policy bazlı: `StudentOnly`, `ProvinceOnly`, `MinistryOnly`
-- Her scheme kendi cookie'si ile authenticate olur
-
-### Veri Güvenliği (plan §4)
-- DTO validation: `[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`, `[RegularExpression]`
-- 400 + ValidationProblemDetails (built-in .NET 10 `AddValidation()`)
-- HTML escape: React default escape, `dangerouslySetInnerHTML` kullanımı YOK
-- CSRF: SameSite cookie + JSON content-type (cross-origin bloklu)
-
-### Audit & Log (plan §1.7, §2.6)
-- `auth_events` tablosu: 9 event tipi (LoginSuccess/Failure/LockedOut/EmailNotConfirmed/Logout/PasswordChanged/Mfa*Enabled/Disabled/MfaLogin*)
-- Tüm auth olayları IP + UserAgent ile kaydedilir
-- 2 yıl retention: `AuthEventRetentionService` BackgroundService (24 saatte bir, 730 gün cutoff)
-- Index'ler: `created_at`, `user_id`, `(event_type, created_at)`
-
-### Performans & Güvenlik Header (plan §5)
-- Rate limiting: global 100 req/dk/IP + login 5 req/dk/IP
-- Response header: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`
-- Open redirect koruması: `YerelUrlYardimci.GuvenliMi()` (protocol-relative + external bloklu)
-
-### Erişilebilirlik (plan §5.3, Sprint 8.3 WCAG)
-- AdminLayout üst bar kullanıcı dropdown'ı: `aria-haspopup`, `aria-expanded`, `role="menu"`
-- Dışarı tıklayınca kapanma
-- `skip-to-main` (klavye atlama), focus-visible outline, `:focus-visible` global
-- `aria-live="polite"` durum bildirimi, `role="alert"` hata sayfaları
-- `@media (prefers-contrast: more)` yüksek kontrast modu
-
-### Pasif Hesap Yönetimi (plan §6.3) — YEĞİTEK madde 39
-- `PasifHesapTespitService` **AKTİF** (Sprint 11.53'te Sprint 11.29'daki kaldırma geri alındı;
-  madde 39 "kullanılmayan hesaplar raporlanır ve pasife alınır" diyor).
-- 90 gün hareketsizlikte hesap kilitlenir (`LockoutEnd = MaxValue`) ve `AuthEvent`
-  tablosuna `AccountDisabled` kaydı yazılır → kalıcı denetim izi.
-- **Ayrıcalıklı roller muaf:** `SystemAdmin` ve `MinistryOfficial` asla otomatik
-  kilitlenmez (aksi halde sisteme kimse giremez).
-- Hiç giriş kaydı olmayan hesaplar atlanır (yeni hesap yanlışlıkla kilitlenmesin).
-- Yönetici uçları:
-  - `GET  /api/admin/pasif-hesaplar` — rapor (hangi hesap, ne zaman, neden)
-  - `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir` — hesabı geri açar
-- Ayarlar: `PasifHesap_Enabled` (true), `PasifHesap_GunSayisi` (90), `PasifHesap_KontrolGunu` (30)
-- Diğer aktif arka plan servisleri: `AuthEventRetentionService` (log temizleme) ve
-  `EskiOgrenciKayitTemizlemeService` (KVKK 4+ yıl öğrenci silme)
-
-## Plan §6.4 — TODO (Production Öncesi)
-
-- [x] TOTP secret DB encryption (Data Protection API) — Sprint 8.2 tamamlandı
-- [ ] Serilog → Elasticsearch/Seq sink (yapısal log)
-- [ ] OWASP ZAP / Burp Suite penetration testi
-- [ ] SonarQube static analysis
-- [ ] Erişilebilirlik denetimi (WAVE/axe DevTools)
-- [ ] CSP header'ı (Content-Security-Policy)
-- [ ] HSTS header (production HTTPS zorunlu)
-
-## Endpoint Matrisi
-
-| Endpoint | Auth | MFA Zorunlu? | Rate Limit | Audit |
-|---|---|---|---|---|
-| POST /api/auth/register | No | - | Global | - |
-| POST /api/auth/login | No | - | Login (5/dk) | ✓ |
-| GET/POST /api/auth/captcha/{new,verify} | No | - | Global | - |
-| POST /api/auth/change-password | Cookie | - | Global | ✓ |
-| POST /api/auth/logout | Cookie | - | Global | ✓ |
-| POST /api/auth/forgot-password | No | - | Global | - |
-| POST /api/auth/reset-password | No | - | Global | - |
-| GET /api/auth/reset-password-info | No | - | Global | - |
-| GET /api/auth/mfa/method | PreMfa | - | Login (5/dk) | - |
-| POST /api/auth/mfa/send-email-otp | PreMfa | - | Login (5/dk) | ✓ |
-| POST /api/auth/mfa/setup | Cookie | - | Global | ✓ |
-| POST /api/auth/mfa/verify-setup | Cookie | - | Global | ✓ |
-| POST /api/auth/mfa/verify | PreMfa | - | Login (5/dk) | ✓ |
-| POST /api/auth/mfa/disable | Cookie | - (privileged: bloklu) | Global | ✓ |
-| POST /api/auth/mfa/cancel | PreMfa | - | Global | - |
-| GET /api/auth/gmail-oauth/start, /callback | No | - | Global | ✓ |
-| GET /api/auth/me | Cookie | - | Global | - |
-| GET /api/auth/verify-email | No | - | Global | - |
-| /api/student/ideas* | Student cookie | - | Global | - |
-| /api/province/* | Province cookie | - | Global | - |
-| /api/ministry/* | Ministry cookie | - | Global | - |
-| /api/admin/users* | Admin/Yetkili cookie (Student hariç) | - | Global | ✓ |
-| /api/__maintenance/*, /api/__debug/*, /api/auth/__debug/* | `?token=` gizli anahtar | - | Yok | ✓ |
-| `/api/__maintenance/*` **kaldırma durumu** | — | — | — | ⚠️ Sprint 12'de production'dan silinecek (şu an `AdminMaintenance__Secret` korumasıyla aktif) |
-
-## Test Senaryoları (Doğrulanan)
-
-- ✅ CORS whitelist (`localhost:5173` ✓, `evil.com` ✗)
-- ✅ Cookie: HttpOnly + SameSite=Lax + SecurePolicy (env-aware)
-- ✅ Open redirect: protocol-relative + external bloklu, local izinli
-- ✅ DataAnnotations: 6 alanlı invalid register → 400 + 6 ayrı mesaj
-- ✅ Rate limit: 5 login sonrası 429
-- ✅ Güvenlik header'ları: 4 header hepsi dönüyor
-- ✅ MFA setup → verify → login akışı (tam 3 adım)
-- ✅ MFA disable (privileged rol bloklu)
-- ✅ Audit: 9+ event tipi kaydediliyor
-- ✅ MFA zorunluluğu: MinistryOfficial MFA'sız → 403
 ---
 
-## YEĞİTEK Resmi Gereksinimleri — Uyumluluk Matrisi
+## 📊 Sprint Durumu
 
-Bu bölüm YEĞİTEK tarafından talep edilen kontrol listesinin her maddesinin projemizde nasıl karşılandığını gösterir.
+| Sprint | Kapsam |
+|---|---|
+| 1 | DB geçişi (PostgreSQL → Pomelo MySQL / TiDB Cloud) |
+| 2 | Identity güçlendirme (şifre / lockout) + `auth_events` audit |
+| 3 | Cookie + CORS + open-redirect koruması + idle timeout |
+| 4 | DTO doğrulama (DataAnnotations) |
+| 5 | Rate limit + güvenlik header + log retention |
+| 6 | TOTP MFA (setup / verify / login / disable) |
+| 7 | Ayrıcalıklı roller için MFA zorunluluğu |
+| 8.1–8.4 | CAPTCHA, PII log maskeleme, TOTP secret şifreleme, WCAG erişilebilirlik, composite index |
+| 9–10 | SystemAdmin kullanıcı yönetimi, e-posta OTP, Gmail API, cross-context guard |
+| 11.1–11.50 | Admin panel, bulk CSV, privacy guard, dokümantasyon sistemi |
+| **11.51** | **Sertleştirme:** Gmail token env'e (DB tablosu düştü), üretim CORS fallback'i kaldırıldı, `Captcha__Disabled` |
+| **11.52** | **Teslim hazırlığı:** canlı DB parolası taşıyan `seed/ilk_hesaplar.py` **silindi**, bayat `compose.yaml` silindi, `deploy/nginx/fikir.conf` eklendi, **CSP + HSTS** eklendi, `AdminMaintenance__Secret` zorunlu |
+| **11.53** | **Parola politikası 5 sınıfa** (≥8, büyük, küçük, rakam, özel karakter) + Türkçe hatalar; ölü `BypassPasswordValidator` kaldırıldı; **pasif hesap servisi geri açıldı** (YG-16, YG-39) |
+| **11.59** | Gmail gönderen adı mojibake → RFC 2047 encoded-word |
+| **11.60** | **90 günlük parola yaşı zorlanır**, 75 gün uyarı, rol tabanlı (YG-17) |
+| **11.61–11.63** | Denetim raporları (gece 02:00 UTC), her sayfadan çıkış, CSV üç katmanlı beyaz liste |
+| **11.71–11.78** | Sistem yöneticisi üç panele erişir; **rol claim'leri girişte açıkça yazılır**; `/me` context'i çağırandan alır |
+| **11.79–11.80** | Yetki kuralları tek kaynaktan (`YetkiliPanelSecim.ilYoneticiMi()`) |
 
-### Yazılım Geliştirme
+---
 
-| # | Gereksinim | Durum | Uygulama |
-|---|---|---|---|
-| 1 | Güvenli yazılım geliştirme kuralları, dokümantasyon | ✅ | Bu SECURITY.md + SECURITY_IMPLEMENTATION_PLAN.md + DEPLOYMENT.md |
-| 2 | Kimlik doğrulama + CAPTCHA | ✅ | Sprint 8.1 — `/api/auth/captcha/{new,verify}` + frontend `CaptchaField` |
-| 3 | Dosya uzantı kısıtı | n/a | Dosya upload özelliği yok (ileride eklenirse whitelist) |
-| 4 | SQL Injection koruması | ✅ | EF Core parametrik sorgular (Pomelo MySQL) + DTO DataAnnotations |
-| 5 | SQL sorgu optimizasyonu | ✅ | Sprint 8.4 — `AsNoTracking()` + projection + composite indexes |
-| 6 | DB index | ✅ | Initial config + Sprint 8.4 composite (CategoryId+SubmittedAt, ProvinceId+SubmittedAt) |
-| 7 | TLS 1.2+ | ✅ | nginx reverse proxy + Let's Encrypt (DEPLOYMENT.md) |
-| 8 | Hassas veri şifreleme (iletim + depolama) | ✅ | Sprint 8.2 — TOTP secret Data Protection API (AES-256-CBC + HMAC) + TLS |
-| 9 | PII düz metin log YOK | ✅ | Sprint 8.1 — `KisiselVeriYardimci` (email mask `a***@domain`, IP `x.x.x.***`) |
-| 10 | 2 yıl log retention | ✅ | `AuthEventRetentionService` BackgroundService (730 gün cutoff) |
+## 🔐 Uygulanan Kontroller
 
-### Kullanıcı ve Kimlik Doğrulama
+### Kimlik Doğrulama
 
-| # | Gereksinim | Durum | Uygulama |
-|---|---|---|---|
-| 11 | Tekil kullanıcı tanımı | ✅ | ASP.NET Identity `Id` (GUID) |
-| 12 | Login girişim kaydı | ✅ | `auth_events` tablosu (LoginSuccess/Failure/LockedOut/EmailNotConfirmed) |
-| 13 | Merkezi log'a audit | ✅ | DB merkezli; Serilog → Elasticsearch (TODO §6.4) |
-| 14 | Şifre maskeleme | ✅ | HTML `type="password"` + placeholder `••••••••` |
-| 15 | İlk şifre zorla değiştirme | ✅ | `ApplicationUser.MustChangePassword` flag |
-| 16 | Şifre 8+karakter + karmaşıklık | ✅ (revize) | Identity `RequiredLength=8`, `RequireNonAlphanumeric=false`; kurum uyum şifreleri için `BypassPasswordValidator` (Sprint 11.7) |
-| 17 | Periyodik şifre değişimi | ✅ | `PasswordChangedAt` + 90 gün zorla, 75 gün uyarı |
+**Parola politikası** (`Program.cs:203-207`):
 
-### Yetkilendirme ve Oturum
+| Kural | Değer |
+|---|---|
+| `RequiredLength` | 8 |
+| `RequireUppercase` | true |
+| `RequireLowercase` | true |
+| `RequireDigit` | true |
+| `RequireNonAlphanumeric` | true |
 
-| # | Gereksinim | Durum | Uygulama |
-|---|---|---|---|
-| 18 | Kullanıcı hareket kaydı | ✅ | `auth_events` (Tüm CRUD audit altyapısı) |
-| 19 | En az yetki prensibi | ✅ | Policy-bazlı: `StudentOnly`, `ProvinceOnly`, `MinistryOnly` + MFA zorunlu privileged |
-| 20 | Oturum sonlandırma her sayfada | ✅ | Sprint 8.4 — `KullaniciCikis` (PublicLayout) + AdminLayout dropdown |
-| 21 | Oturum zaman aşımı + hareketsizlik | ✅ | 30 dk idle (sliding) + 8 saat absolute (`auth_issued_at` claim) |
-| 22 | HttpOnly/Secure/SameSite | ✅ | HttpOnly ✓, SecurePolicy env-aware (Always prod), SameSite env-aware (None cors açık / Lax boş) |
-| 23 | CORS kısıtlamaları | ✅ | Cors whitelist config-driven; **Sprint 10.7'den beri env boşsa hardcoded production fallback** (`https://fikir-platformu-web.onrender.com` + `http://localhost:5173/5174`) — "boşsa CORS middleware devre dışı" değil |
-| 24 | Beyaz liste redirect | ✅ | `YerelUrlYardimci.GuvenliMi()` (protocol-relative + external bloklu) |
-| 25 | Ayrıcalıklı hesaplarda MFA zorunlu | ✅ | Sprint 7 — MinistryOfficial/ProvinceManager/SystemAdmin MFA'sız → 403 + mfaSetupRequired |
+- Frontend doğrulaması `frontend/src/services/sifreKurallari.ts` — backend ile birebir aynı kurallar
+- Identity hataları `SifreKuraliMesaji` ile **Türkçeye** çevrilir
+- Öğrenci kayıt uçları da aynı politikayı uygular
+- **Lockout:** 5 başarısız deneme / dakika (IP bazlı rate limit ayrıca var)
+- **MFA zorunlu rolleri** (`AuthEndpoints.cs:256`): `MinistryOfficial`, `ProvinceManager`, `SystemAdmin`
+- **TOTP secret** Data Protection API ile şifreli (`HassasVeriSifreleme` + `data_protection_keys` tablosu)
 
-### Veri Güvenliği ve Girdi Kontrolleri
+> 📌 **Sprint 11.7'de eklenen `BypassPasswordValidator` kaldırıldı (11.53).** İşe yaramıyordu:
+> `AddPasswordValidator` `TryAdd` değil `Add` kullanır ve `AddIdentityCore` varsayılan
+> doğrulayıcıyı zaten kaydetmiştir — yani kod her zaman kuralları uyguluyordu.
+> Kurum "özel karakter zorunlu" dediği için politika **sıkılaştırıldı**, gevşetilmedi.
 
-| # | Gereksinim | Durum | Uygulama |
-|---|---|---|---|
-| 26 | Şifre/API anahtarı kaynak kodda değil | ✅ | `.NET user-secrets` + env variable (`ConnectionStrings__MySql`, `DemoSeed__BypassKey` opsiyonel) |
-| 27 | Tüm veri tipleri için girdi doğrulama | ✅ | Sprint 4 — DataAnnotations (`[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`, `[RegularExpression]`) |
-| 28 | CSRF koruması | ✅ | SameSite=Lax/None cookie + JSON content-type |
-| 29 | XSS filtreleme | ✅ | React default escape; `dangerouslySetInnerHTML` kullanımı YOK |
-| 30 | SQL/NoSQL enjeksiyon | ✅ | EF Core parametrik sorgular + Pomelo MySQL escaping |
-| 31 | MIME + uzantı whitelist | n/a | Dosya upload özelliği yok |
-| 32 | Çalıştırılabilir dosya engeli | n/a | Dosya upload özelliği yok |
+### Parola Yaşı (YG-17)
 
-### Performans ve Erişilebilirlik
+| Özellik | Değer |
+|---|---|
+| Uyarı eşiği | 75 gün |
+| Zorlama eşiği | 90 gün |
+| `MinistryOfficial` | **zorunlu** değiştirme |
+| `Student`, `ProvinceEvaluator`, `ProvinceManager` | tavsiye (uyarı gösterilir) |
+| `SystemAdmin` | muaf |
 
-| # | Gereksinim | Durum | Uygulama |
-|---|---|---|---|
-| 33 | DB indeksleme + optimizasyon | ✅ | Sprint 4 + Sprint 8.4 (composite indexes) |
-| 34 | Rate limiting | ✅ | Global 100 req/dk/IP + login 5 req/dk/IP |
-| 35 | Kullanıcı dostu hata sayfaları | ✅ | Sprint 8.3 — `HataSayfalari.tsx` (404/500/503) + `GuvenliHataYonetici.cs` middleware |
-| 36 | Erişilebilirlik (WCAG) | ✅ | Sprint 8.3 — skip-to-main, focus-visible, aria-live, role="alert", prefers-contrast |
+- `/api/auth/me` → `sifreDegistirmeZorunlu` alanı döner
+- Global `SifreKilit` bileşeni kullanıcıyı `/sifre-degistir`'e yönlendirir, gezinmeyi engeller
+- Mevcut kayıtlar **son giriş tarihinden geriye dönük** doldurulur (özellik eklenirken herkesin kilitlenmemesi için)
+- Başarılı parola sıfırlamada `MustChangePassword=false` + `PasswordChangedAt` güncellenir
 
-### Güvenlik Testleri ve Raporlama
+### Oturum Yönetimi
 
-| # | Gereksinim | Durum | Uygulama |
-|---|---|---|---|
-| 37 | Güvenlik gereksinimleri tanımı | ✅ | `SECURITY_IMPLEMENTATION_PLAN.md` + bu SECURITY.md |
-| 38 | Yayın öncesi güvenlik testleri | ⏳ | Manuel test senaryoları tamamlandı; OWASP ZAP/Burp Suite önerilir (TODO §6.4) |
-| 39 | Kullanılmayan hesaplar raporlanır | ✅ (revize) | Otomatik kilitleme Sprint 11.29'da kaldırıldı; hesap yaşam döngüsü admin paneline taşındı (`/api/admin/users/{id}`) |
-| 40 | Gerçek veri test ortamında yok | ✅ | Tüm seed'ler `@local` veya `@example.com` domain'i kullanır |
-| 41 | Hata durumlarında PII sızıntısı yok | ✅ | Sprint 8.3 — `GuvenliHataYonetici` (Development'ta detay, Production'da generic) + frontend buildMessage HTTP status'a göre Türkçe mesaj |
+| Özellik | Değer |
+|---|---|
+| Cookie | `HttpOnly` ✓ |
+| `SecurePolicy` | Production → `Always`, Development → `SameAsRequest` |
+| `SameSite` | CORS listesi **doluysa** `None` (cross-origin), **boşsa** `Lax` (same-origin nginx) |
+| Idle timeout | 30 dakika (sliding) |
+| Absolute timeout | 8 saat (`auth_issued_at` claim + `OnValidatePrincipal`) |
+| Rate limit | Global 100 req/dk/IP, login 5 req/dk/IP |
 
-### Özet
+**4 cookie scheme** (`Program.cs`): `IdentityConstants.ApplicationScheme` (öğrenci), `ProvinceScheme`, `MinistryScheme`, `PreMfaScheme` (MFA öncesi 10 dakikalık yarım oturum).
 
-**41 maddeden 35'i tamamen karşılanmış**, 3'ü (dosya upload — 3, 31, 32) dosya yükleme özelliği olmadığı için skip, 1'i (OWASP test) öneri statüsünde, 1'i (Serilog ELK) ileride.
+**Rol claim'leri girişte açıkça yazılır** (`MfaEndpoints.RolleriEkle`, Sprint 11.76). `CreateUserPrincipalAsync` yalnızca kullanıcı claim'i üretir; politika `IsInRole(...)` ile cookie içindeki role baktığı için claim'ler burada ekleniyor.
+
+### Yetkilendirme
+
+**Policy bazlı**, her biri kendi cookie scheme'i ile:
+
+| Policy | Scheme | Kabul ettiği roller |
+|---|---|---|
+| `StudentOnly` | `ApplicationScheme` | `Student` |
+| `ProvinceOnly` | `ProvinceScheme` | `ProvinceManager`, `ProvinceEvaluator`, **`SystemAdmin`** |
+| `MinistryOnly` | `MinistryScheme` | `MinistryOfficial` |
+
+> 📌 **Kurum kuralı:** *"Sistem Yöneticisi dışında kimsede birden fazla panele erişemez."*
+> Sistem yöneticisi **istisnadır** — üç panelin de yönetim işlerini yapar ve `il-panel`'da
+> **tüm illeri** görür (`ilId = null` → il filtresi uygulanmaz).
+
+Frontend yetki kodu **her zaman** `YetkiliPanelSecim.ilYoneticiMi()` gibi ortak bir
+kurala bakar; doğrudan `roles.includes("...")` yazmaz (Sprint 11.80 — bu hata üç ayrı
+sayfada tekrarlamıştı).
+
+### Veri Güvenliği
+
+- DTO doğrulama: `[Required]`, `[StringLength]`, `[Range]`, `[EmailAddress]`, `[RegularExpression]`
+- 400 + `ValidationProblemDetails` (built-in .NET 10 `AddValidation()`)
+- **XSS:** React varsayılan escape; `dangerouslySetInnerHTML` **yok**
+- **CSRF:** SameSite cookie + JSON content-type (cross-origin bloklanır)
+- **Open redirect:** `YerelUrlYardimci.GuvenliMi()` — protocol-relative ve external engelli
+- **Hata yanıtları** istisna metnini istemciye sızdırmaz (Sprint 11.52)
+
+### Dosya Yükleme (CSV beyaz listesi)
+
+Uygulamada genel amaçlı dosya yükleme **yok**. Tek dosya girişi admin CSV toplu
+import'u (`POST /api/admin/users/bulk`) ve **üç katmanlı** beyaz listeye sahip:
+
+1. `.csv` uzantısı
+2. MIME: `text/csv`, `application/csv`, `text/plain`, `application/vnd.ms-excel`, `application/octet-stream`
+3. İçerikte zorunlu başlık sütunları mevcut
+
+> Uzantı ve MIME **istemci kontrollüdür** — bu yüzden üçü birlikte uygulanır. Dosya
+> diske yazılmaz, yalnızca ayrıştırılır (yol geçişi riski yok).
+
+### Audit & Log
+
+- `auth_events` tablosu: `LoginSuccess`, `LoginFailure`, `LockedOut`, `EmailNotConfirmed`,
+  `Logout`, `PasswordChanged`, `Mfa*`, **`AccountDisabled`**
+- Tüm auth olayları IP + UserAgent ile
+- **PII maskeleme:** e-posta `a***@domain`, IP maskeli (`KisiselVeriYardimci`, Sprint 8.1).
+  Sprint 11.52'de login ve şifre-sıfırlama loglarındaki düz metin e-postalar da maskelendi;
+  `MaskOldAuthEventsPii` migration'ı ile eski kayıtlar temizlendi
+- **Retention:** `AuthEventRetentionService` — 730 gün (2 yıl), 24 saatte bir
+- **Denetim raporları:** `DenetimRaporServisi` her gece **02:00 UTC**'de JSONL + yönetici
+  CSV özeti üretir; Admin Panel → Denetim Raporları ekranından indirilir
+
+> ⚠️ **Eksik (YG-13/YG-18):** Hareket kayıtları **kurumun merkezî sistemine otomatik
+> iletilmiyor**. Dosya/betik aktarımı tam uyum sayılmaz. Hedef URL/protokol kurumdan bekleniyor.
+
+### Pasif Hesap Yönetimi (YG-39)
+
+- `PasifHesapTespitService` **aktif** (Sprint 11.53)
+- 90 gün hareketsizlikte hesap kilitlenir (`LockoutEnd = MaxValue`) ve `auth_events`'e
+  `AccountDisabled` yazılır → kalıcı denetim izi
+- **Ayrıcalıklı roller muaf:** `SystemAdmin` ve `MinistryOfficial` asla otomatik
+  kilitlenmez (aksi halde sisteme kimse giremez)
+- Hiç giriş kaydı olmayan hesaplar atlanır
+- Yönetici uçları: `GET /api/admin/pasif-hesaplar`, `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir`
+- Ayarlar: `PasifHesap_Enabled`, `PasifHesap_GunSayisi` (90), `PasifHesap_KontrolGunu` (30)
+
+### CORS ve TLS
+
+**CORS** (`BakimCORS.cs`):
+
+| Ortam | Davranış |
+|---|---|
+| `Cors__AllowedOrigins` dolu | Bu originler; CORS middleware açılır; cookie `SameSite=None` |
+| `Cors__AllowedOrigins` boş + Development | `localhost:5173`, `localhost:5174` |
+| `Cors__AllowedOrigins` boş + Production + `Cors:AllowRenderFallback=true` | Render origin (varsayılan **kapalı**) |
+| `Cors__AllowedOrigins` boş + Production | `[]` → same-origin (nginx reverse proxy) |
+
+> 📌 **Sprint 11.51:** Üretimdeki gömülü Render origin'i **kaldırıldı**. Artık ya
+> `Cors__AllowedOrigins` açıkça verilir ya da same-origin nginx kurulur.
+
+**TLS/HTTP güvenliği** (Sprint 11.52):
+
+- `deploy/nginx/fikir.conf` — `ssl_protocols TLSv1.2 TLSv1.3`, güçlü cipher suite, SPA fallback
+- `Content-Security-Policy` — `Program.cs:547`, `Security:ContentSecurityPolicy` ile override edilebilir
+- `Strict-Transport-Security: max-age=31536000; includeSubDomains` — `Program.cs:560`
+- `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`
+
+### Erişilebilirlik (WCAG, Sprint 8.3)
+
+- `skip-to-main` klavye atlama bağlantısı
+- `focus-visible` global odak halkası
+- `aria-live="polite"` durum bildirimi, `role="alert"` hata sayfaları
+- Aktif menü öğesi `aria-current="page"` ile işaretli
+- `@media (prefers-contrast: more)` yüksek kontrast
+- `@media (prefers-reduced-motion: reduce)` hareket azaltma
+- Tüm tablolarda `<caption class="sr-only">`
+
+---
+
+## 📋 Endpoint Matrisi
+
+| Endpoint | Auth | MFA | Rate Limit | Audit |
+|---|---|---|---|---|
+| `POST /api/auth/register` | — | — | Global | — |
+| `POST /api/auth/login` | — | — | Login 5/dk | ✓ |
+| `GET/POST /api/auth/captcha/{new,verify}` | — | — | Global | — |
+| `POST /api/auth/change-password` | Cookie | — | Global | ✓ |
+| `POST /api/auth/logout` | Cookie | — | Global | ✓ |
+| `POST /api/auth/forgot-password` · `reset-password` | — | — | Global | ✓ |
+| `GET /api/auth/mfa/method` | `PreMfaScheme` | — | Login 5/dk | — |
+| `POST /api/auth/mfa/send-email-otp` | `PreMfaScheme` | — | Login 5/dk | ✓ |
+| `POST /api/auth/mfa/setup` · `verify-setup` | Cookie | — | Global | ✓ |
+| `POST /api/auth/mfa/verify` | `PreMfaScheme` | — | Login 5/dk | ✓ |
+| `POST /api/auth/mfa/disable` | Cookie | Privileged → **bloklu** | Global | ✓ |
+| `GET /api/auth/me` | Cookie | — | Global | — |
+| `/api/student/ideas*` | `StudentOnly` | — | Global | — |
+| `/api/province/*` | `ProvinceOnly` | — | Global | ✓ |
+| `/api/ministry/*` | `MinistryOnly` | — | Global | ✓ |
+| `/api/admin/users*` | `SystemAdmin` | — | Global | ✓ |
+| `/api/admin/pasif-hesaplar*` | `SystemAdmin` | — | Global | ✓ |
+| `/api/__maintenance/*` · `/api/auth/__debug/*` | `?token=` gizli anahtar | — | Yok | ✓ |
+
+> ⚠️ Maintenance endpoint'leri **Sprint 12'de production'dan kaldırılacak.** Şu an
+> `AdminMaintenance__Secret` ile korunuyor; **gömülü varsayılan yok** — değişken
+> tanımlı değilse hepsi 403 döner.
+
+---
+
+## ✅ Doğrulanmış Test Senaryoları
+
+- CORS beyaz listesi (`localhost:5173` ✓, dış origin ✗)
+- Cookie: HttpOnly + SameSite + SecurePolicy (env-aware)
+- Open redirect: protocol-relative + external bloklu
+- DataAnnotations: geçersiz kayıt → 400 + alan bazlı mesajlar
+- Rate limit: 5 login sonrası 429
+- Güvenlik header'ları: `nosniff`, `DENY`, `Referrer-Policy`, `Permissions-Policy` + CSP + HSTS
+- MFA kurulum → doğrulama → giriş (3 adım)
+- MFA kapatma (ayrıcalıklı rol bloklu)
+- Parola politikası: 5 sınıf, Türkçe hata mesajı
+- Pasif hesap: 90 gün → kilitleme + `AccountDisabled` kaydı
+- Backend xUnit: **23/23** (`backend/tests/FikirPlatformu.Tests`)
+
+> Frontend'de birim test çerçevesi **yok** (Vitest kurulmadı). Arayüz doğrulaması
+> **manuel Playwright** ile yapılır; mobil davranış `frontend/public/mobil-test.html`
+> üzerinden 320–1920px aralığında ölçülür.
+
+---
+
+## 📋 TODO (Production Öncesi)
+
+- [x] TOTP secret DB şifreleme (Data Protection API) — Sprint 8.2
+- [x] CSP header — Sprint 11.52
+- [x] HSTS header — Sprint 11.52
+- [x] Canlı sır temizliği (`seed/ilk_hesaplar.py` silindi) — Sprint 11.52
+- [ ] **YG-38 — güvenlik testi dokümanı** (test raporu)
+- [ ] **YG-13/18 — merkezî log iletimi** (kurum altyapısı bekleniyor)
+- [ ] YG-08 — öğrenci PII'si depolama şifrelemesi
+- [ ] Maintenance endpoint'lerini production'dan kaldır (Sprint 12)
+- [ ] Serilog → Elasticsearch/Seq sink (yapısal log)
+- [ ] OWASP ZAP / Burp Suite penetration testi
+- [ ] Erişilebilirlik denetimi (WAVE / axe DevTools)
+
+---
+
+*Uygulama matrisi ve madde bazlı kanıtlar: `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` (37/41 tam, 4 kısmi).*

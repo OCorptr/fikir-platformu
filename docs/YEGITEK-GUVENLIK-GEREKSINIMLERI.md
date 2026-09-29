@@ -12,12 +12,22 @@
 
 | Durum | Adet | Anlamı |
 |---|---|---|
-| ✅ **UYUM** | — | Gereksinim kodda mevcut ve çalışır durumda |
-| ⚠️ **KISMİ** | — | Kısmen mevcut, eksik yönü var, teslimde açıklanmalı |
-| ❌ **EKSİK** | — | Kodda yok, Sprint 12 öncesi eklenmeli |
-| ➖ **UYGULANMAZ** | — | Özellik projede yok; "n/a" gerekçesiyle teslim |
+| ✅ **UYUM** | 37 | Gereksinim kodda mevcut ve çalışır durumda |
+| ⚠️ **KISMİ** | 4 | Kısmen mevcut, eksik yönü var, teslimde açıklanmalı |
+| ❌ **EKSİK** | 0 | Kodda yok |
+| ➖ **UYGULANMAZ** | 0 | Özellik projede yok; "n/a" gerekçesiyle teslim |
 
-> Son denetim: Sprint 11.52 · Kod tabanı: `64bbb7a` → `5c72e6d`
+**Açık kalan 4 madde:**
+
+| Madde | Eksik yön |
+|---|---|
+| **YG-08** | İletim TLS ile şifreli, depolamada şifreli. **Eksik:** öğrenci PII'si (ad-soyad, TC, telefon) DB'de düz metin. |
+| **YG-13 / YG-18** | Hareket kayıtları `auth_events` tablosunda, `DenetimRaporServisi` her gece 02:00 UTC'de JSONL + CSV yazıyor, yönetici ekrandan indiriyor. **Eksik:** kurumun **merkezî** sistemine otomatik iletim yok. Dosya/betik aktarımı yeterli sayılmaz — teslimde açıklanmalı. |
+| **YG-38** | Güvenlik testi dokümanı hazırlanacak. Kod tarafı hazır (matris bu dosyada), **test raporu** eksik. |
+
+> Son denetim: Sprint 11.81 · Kod tabanı: `20d1df7`
+> Sprint 11.53–11.81 arasında kapatılanlar: YG-16 (parola 5 sınıf), YG-17 (90 gün), YG-20 (her sayfadan çıkış), YG-39 (pasif hesap), YG-02 (`Captcha__Disabled`), YG-03/31/32 (CSV beyaz liste), YG-07 (nginx TLS), YG-09 (log maskeleme).
+> YG-39 Sprint 11.29'da kapatılmış, 11.53'te geri açılmıştı — bu satır Sprint 11.81'de düzeltildi.
 
 ---
 
@@ -43,7 +53,7 @@
 |---|---|---|---|
 | YG-11 | Kullanıcılar ve sistemler tekil olarak tanımlanır. | ✅ | ASP.NET Core Identity: `AspNetUsers.Id` GUID primary key, `NormalizedEmail` unique index. |
 | YG-12 | Başarılı/başarısız kimlik doğrulama girişimleri izlenir ve kayıt altına alınır. | ✅ | `auth_events` tablosu: `LoginSuccess`, `LoginFailure`, `LockedOut`, `EmailNotConfirmed`, `Logout`, `PasswordChanged`, `Mfa*` event tipleri. IP + UserAgent ile. |
-| YG-13 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ✅ | **Sprint 11.61:** `DenetimRaporServisi` her gece 02:00 UTC'de hareket kayıtlarını JSON Lines + CSV özet olarak dosyaya yazar. Sistem yöneticisi **Admin Panel → Denetim Raporları** ekranından görüntüler/indirir. **Kalan:** merkezî sisteme *otomatik* iletim yok (kurum altyapısı bilinmiyor) — dosya `rsync`/betikle aktarılabilir. |
+| YG-13 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ⚠️ | **Sprint 11.61:** `DenetimRaporServisi` her gece 02:00 UTC'de hareket kayıtlarını JSON Lines + CSV özet olarak dosyaya yazar. Sistem yöneticisi **Admin Panel → Denetim Raporları** ekranından görüntüler/indirir. **Kalan:** merkezî sisteme *otomatik* iletim yok (kurum altyapısı bilinmiyor) — dosya `rsync`/betikle aktarılabilir. |
 | YG-14 | Parolalar varsayılan olarak maskelenir, açık metin olarak gösterilmez veya iletilmez. | ✅ | Frontend `type="password"`, gösterge yok. Şifre hiçbir log'a yazılmaz. Backend şifreyi asla response'a koymaz. |
 | YG-15 | İlk parola belirleme güvenli mekanizmalarla yapılır ve ik kullanımda değişiklik zorunludur. | ✅ | `ApplicationUser.MustChangePassword` flag. Admin yeni kullanıcı oluştururken flag `true`. `/api/auth/change-password` zorunlu kılıyor. `MfaSetup` sonrası da set ediliyor. |
 | YG-16 | Parolalar en az 8 karakter (büyük/küçük harf, rakam, özel karakter) içerir. | ✅ | **Sprint 11.53:** `RequiredLength = 8`, `RequireUppercase = true`, `RequireLowercase = true`, `RequireDigit = true`, `RequireNonAlphanumeric = true` — beş koşulun beşi de zorunlu. Frontend doğrulaması `frontend/src/services/sifreKurallari.ts` ile backend ile birebir aynı; Identity hataları `SifreKuraliMesaji` ile Türkçeye çevrilir. Ölü kod olan `BypassPasswordValidator` kaldırıldı. |
@@ -53,7 +63,7 @@
 
 | # | Gereksinim | Durum | Kanıt / Açıklama |
 |---|---|---|---|
-| YG-18 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ✅ | YG-13 ile aynı madde; aynı mekanizma. |
+| YG-18 | Kullanıcı hareket kayıtları merkezi sisteme iletilebilir. | ⚠️ | YG-13 ile aynı madde; aynı mekanizma. |
 | YG-19 | En az yetki prensibi uygulanır. | ✅ | Policy bazlı: `StudentOnly`, `ProvinceOnly`, `MinistryOnly`, Admin whitelist. Her endpoint kendi rol/policy'sini ister. Sprint 11 privacy guard: `/api/admin/users*` Student'a açık değil. |
 | YG-20 | Kullanıcı her sayfadan oturum sonlandırabilmelidir. | ✅ | **Sprint 11.62:** `KullaniciCikis` bileşeni `App.tsx` içinde uygulamanın tamamına bağlandı (sabit konumlu buton). `/admin/*` altında render edilmez — AdminLayout kendi menüsünü içerir. Hangi oturumun kapatılacağı açılan sayfanın yolundan çıkarılır (`contextFromPath`). Boşta kalan `PublicLayout.tsx` silindi (hiçbir yerde kullanılmıyordu) |
 | YG-21 | Oturum kimliği için zaman aşımı ve hareketsizlik süresi belirlenir. | ✅ | Idle timeout 30 dk sliding; absolute timeout 8 saat (`auth_issued_at` claim + `OnValidatePrincipal` reddi). `PreMfaScheme` 10 dk. |
@@ -89,7 +99,7 @@
 |---|---|---|---|
 | YG-37 | Güvenlik gereksinimleri tanımlanarak tasarım yapılır. | ✅ | `SECURITY.md` + bu matris + `docs/adr/0001` (ADR) + mimari kararlar `HANDOVER.md`'de kayıtlı. |
 | YG-38 | Yayına alınmadan önce güvenlik testleri yapılır. | ⚠️ | Manuel test senaryoları tamamlandı (CORS, cookie, open redirect, rate limit, MFA akışı, audit). **Eksik:** otomatik güvenlik test paketi ve bağımsız penetrasyon testi → teslim öncesi planlanmalı. |
-| YG-39 | Kullanılmayan hesaplar raporlanır ve pasife alınır. | ❌ | **Sprint 11.29'da `PasifHesapTespitService` tamamen devre dışı bırakıldı** (`Program.cs:177` yorum satırı). Hiçbir hesap pasife alınmıyor. Bu madde ile **çelişiyor** → Sprint 12'de geri açılması gerekiyor. |
+| YG-39 | Kullanılmayan hesaplar raporlanır ve pasife alınır. | ✅ | **Sprint 11.53'te geri açıldı.** `PasifHesapTespitService` `PasifHesap_GunSayisi` (varsayılan 90) gündür hareketsiz hesabı pasife alır ve `auth_events` tablosuna `AccountDisabled` yazar. `SystemAdmin` ve `MinistryOfficial` **muaf** — kurum yönetim erişimi tümden kilitlenmesin diye. Yönetici işlemleri: `GET /api/admin/pasif-hesaplar` (rapor) ve `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir`. Yapılandırma: `PasifHesap_GunSayisi`, `PasifHesap_KontrolGunu`, `PasifHesap_Enabled`. |
 | YG-40 | Gerçek veriler test ortamında kullanılmaz. | ✅ | Tüm seed/test verileri `@fikir.local` / `@example.com` / `+90 555 …` placeholder. Test kullanıcıları sentetik. |
 | YG-41 | Hata durumlarında özel nitelikli kişisel veri açığa çıkmaz. | ✅ | `GuvenliHataYonetici` + `KisiselVeriYardimci` maskeleme + production'da stack trace gizli. **Sprint 11.52:** şifre sıfırlama 500 yanıtında istisna tipi ve mesajı istemciye dökülüyordu — kaldırıldı, artık genel Türkçe mesaj dönüyor ve detay yalnızca sunucu logunda. |
 
@@ -107,12 +117,14 @@
 | **YG-16** | Parolada rakam + özel karakter zorunluluğu | `RequireDigit` ve `RequireNonAlphanumeric` açıldı; ölü `BypassPasswordValidator` silindi; Türkçe hata mesajları eklendi |
 | **YG-39** | Kullanılmayan hesap raporlama + pasife alma | `PasifHesapTespitService` geri açıldı: 90 gün hareketsizlikte kilitler + `AccountDisabled` kaydı yazar. Yönetici `GET /api/admin/pasif-hesaplar` ile raporlar, `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir` ile geri açar. Ayrıcalıklı roller muaf |
 
-## ❌ Sprint 12'de kapatılması gereken maddeler
+## Teslimde açıklanması gereken maddeler (4)
 
-| # | Madde | Yapılacak |
-|---|---|---|
-| **YG-08** | PII depolama şifrelemesi | Öğrenci PII alanları için şifreleme veya "kişisel veri ≠ gizli veri" gerekçesi |
-| **YG-38** | Yayın öncesi güvenlik testi | Otomatik test paketi + bağımsız penetrasyon testi planı |
+| # | Madde | Yapılacak | Durum |
+|---|---|---|---|
+| **YG-08** | PII depolama şifrelemesi | Öğrenci PII alanları için şifreleme veya "kişisel veri ≠ gizli veri" gerekçesi | Bekliyor |
+| **YG-13** | Hareket kaydı merkezî iletimi | Kurumun merkezî sistemine otomatik aktarım (webhook veya aktarım betiği + kurum altyapısı) | **Kurum altyapısı bilinmiyor** — Onur'dan hedef URL/protokol gerekiyor |
+| **YG-18** | Hareket kaydı merkezî iletimi | YG-13 ile aynı altyapı | Aynı |
+| **YG-38** | Yayın öncesi güvenlik testi | Test dokümanı hazırlanacak (kod tarafı hazır, bu matris kanıt) | **Onur'un sırasında** |
 
 ---
 
@@ -120,8 +132,8 @@
 
 | Gereksinim | Gerekçe |
 |---|---|
-| YG-03, YG-31, YG-32 — genel amaçlı dosya yükleme | Uygulamada kullanıcıdan dosya kabul eden bir uç **yok** (fikir eki, proje dosyası, dosya kabini yok). **Mevcut tek dosya girişi** admin CSV toplu import'udur (`AdminEndpoints`): 5 MB boyut kontrolü var, ancak uzantı/MIME beyaz listesi ve `Path.GetFileFilename` sanitizasyonu eksik. CSV diske yazılmadığı için yol geçişi riski pratikte yok. Özellik eklendiğinde beyaz liste zorunlu kılınacaktır. |
+| YG-03, YG-31, YG-32 — genel amaçlı dosya yükleme | Uygulamada kullanıcıdan dosya kabul eden bir uç **yok** (fikir eki, proje dosyası, dosya kabini yok). **Mevcut tek dosya girişi** admin CSV toplu import'udur (`/api/admin/users/bulk`) ve bu uç **Sprint 11.63'te üç katmanlı beyaz listeye kavuşturuldu**: (1) `.csv` uzantısı, (2) izinli MIME türleri, (3) içerikte zorunlu başlık sütunları. CSV diske yazılmadığı için yol geçişi riski yok. Yeni dosya girişi eklendiğinde aynı üç katman zorunlu kılınacaktır. |
 
 ---
 
-*Bu matris kod tabanıyla birebir doğrulanarak hazırlanmıştır. Güncelleme: Sprint 11.52.*
+*Bu matris kod tabanıyla birebir doğrulanarak hazırlanmıştır. Son güncelleme: Sprint 11.81 (kod tabanı `20d1df7`).*
