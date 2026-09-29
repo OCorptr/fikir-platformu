@@ -44,7 +44,8 @@
 - **Frontend kilit dosyaları iki tane:** `pnpm-lock.yaml` (lokal geliştirme, pnpm) ve `package-lock.json` (Render Static Site build'i `npm ci && npm run build` kullandığı için). **Bağımlılık eklediğinde/guncellediğinde `bash scripts/sync-npm-lock.sh` calistir** — aksi halde Render build'i eski kilitle calisir veya basarisiz olur.
 - **Git config:** `git -c user.name=OnurCorptr -c user.email=onur35bilisim@gmail.com commit` — global config yok.
 - **Internet search zorunlu** her fix öncesi (Onur kuralı). `Microsoft Learn`, `context7`, `brave_web_search` tool'ları kullan.
-- **Test:** Backend'de xUnit var — `backend/tests/FikirPlatformu.Tests` (**23 test, 4 dosya**: `IdeaTests` 6, `SubmitIdeaServiceTests` 3, `Rfc2047Tests` 6, `ProfanityTextMatcherTests` 2×4=8). `scripts/verify.ps1` `dotnet test` çalıştırır. **Frontend'de Vitest yok** — UI doğrulama Playwright ile manual (`public/mobil-test.html` ölçüm sayfası).
+- **Test:** Backend'de xUnit var — `backend/tests/FikirPlatformu.Tests` (**51 test, 6 dosya**: `IdeaTests` 6, `SubmitIdeaServiceTests` 3, `Rfc2047Tests` 6, `ProfanityTextMatcherTests` 8, `GuvenliYonlendirmeTestleri` 24, `ProgramYapilandirmaDenetimi` 4). `scripts/verify.ps1` `dotnet test` çalıştırır. **Frontend'de Vitest yok** — UI doğrulama Playwright ile manual (`public/mobil-test.html` ölçüm sayfası).
+- 🔴 **"Derleniyor + testler geçiyor" yetmez (Sprint 11.84).** DI konteyneri `builder.Build()` sonrası dondurulur; sonraya yazılan `builder.Services.*` çağrısı derleme hatası vermez, 23/23 test yeşil kalır, uygulama **çalışırken** çöker ("service collection cannot be modified because it is read-only"). `ProgramYapilandirmaDenetimi` bu sınıfı yakalar. Canlıda hangi build'in çalıştığını `/api/health` → `commit` alanından doğrula.
 - **Olç, tahmin etme.** Genişlik/taşma/renk gibi ölçülebileni ölç. Görüntülemeden UI değişikliği yapma.
 
 ## 🧪 Testing & verification

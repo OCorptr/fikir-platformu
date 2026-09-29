@@ -8,7 +8,7 @@
 
 - **Commit:** `20d1df7` (Sprint 11.81 — Tüm sayfalarda mobil uyumluluk)
 - **Branch:** main
-- **Test:** 23/23 (xUnit), `tsc` temiz, frontend build başarılı
+- **Test:** 51/51 (xUnit), `tsc` temiz, frontend build başarılı
 - **Last deploy:** Render auto-deploy main push (~2-3 dk backend, ~1-2 dk frontend)
 
 ## 🌐 Services
@@ -30,11 +30,12 @@
 > 🔒 **Şifreler bu dosyada tutulmaz** (Sprint 11.52). Render env (`SeedSystemAdmin__Password`) veya parola kasası.
 > Şifre değiştirme sonrası MFA yeniden kurulur; parola değişimi oturumu geçersiz kılar (Sprint 11.55).
 
-## 🎯 Sprint State (HEAD: `20d1df7`)
+## 🎯 Sprint State (HEAD: `5e7c16c`)
 
-### ✅ YEĞİTEK Güvenlik Uyumlaması — 37/41 tam, 4 kısmi
+### ✅ YEĞİTEK Güvenlik Uyumlaması — 38/41 tam, 3 kısmi
 
 Kaynak: `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` (41 maddelik kurum listesi)
+Güvenlik test raporu: `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` (YG-38)
 
 **Kapatılan başlıklar (Sprint 11.51–11.63):**
 
@@ -69,7 +70,11 @@ Kaynak: `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` (41 maddelik kurum listesi)
 | 11.78 | **Asıl kök neden:** `KullaniciBilgisiGetir` context'i rolden *tahmin* ediyordu; sistem yöneticisinin province cookie'si `ministry` diye etiketleniyordu. Çağırandan alınıyor |
 | 11.79 | Kenar paneli menüsü ve çıkış bağlamı **panele** göre (role göre değil) |
 | 11.80 | İl yönetimi yetkisi tek kurala bağlandı: `YetkiliPanelSecim.ilYoneticiMi()` (aynı hata 3 ayrı yerde tekrarlamıştı) |
-| 11.81 | Tüm sayfalarda mobil uyumluluk: **ölçüldü** (320–1920px), 2 gerçek taşma hatası düzeltildi |
+| 11.81 | Tüm sayfalarda mobil uyumluluk: **ölçüldü** (320-1920px), 2 gerçek taşma hatası düzeltildi |
+| 11.82 | `.env.example` **kodla hizalandı** (3 yanlış değişken adı → kurulum sessizce başarısız olurdu), kalan MD senkronizasyonu |
+| 11.83 | `Captcha__Disabled` kaldırıldı — kullanılmamıştı, üretimde yanlışlıkla açılma riskiydi |
+| 11.84 | **YG-38 güvenlik test raporu.** 4 açık bulundu: açık yönlendirme (OWASP A01), HSTS yok, frontend CSP yok, bozuk başlangıç SQL'i |
+| 11.85 | DI kaydı `Build()` sonrasında kalmıştı → **deploy çöktü**. `LastLoginAt` kolonu yoktu. 4 başlangıç denetim testi + `/api/health` sürüm damgası |
 
 ### 🔧 Auth zinciri — Sprint 11.71–11.78 özeti
 
@@ -94,6 +99,7 @@ Bu dört sprint, **aynı hatada dört kez yanlış kök neden** bulundu. Hepsi d
 | `deploy/nginx/fikir.conf` | TLS + `/api` proxy + SPA fallback |
 | `scripts/verify.sh`, `scripts/make_handover.sh` | Linux-native doğrulama ve paketleme |
 | `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` | 41 maddelik kurum listesi ve durum |
+| `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` | **YG-38 test raporu** — 4 bulgu, 4 düzeltme, 10 elle test senaryosu |
 | `docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md` | Onur'dan teyit bekleyen bilgiler |
 
 ## 🚧 Açık işler
@@ -101,14 +107,14 @@ Bu dört sprint, **aynı hatada dört kez yanlış kök neden** bulundu. Hepsi d
 ### 🔴 Teslimi bloklayan
 
 - **Alan adı, DB adresi, kurulum yolu, SMTP/OAuth değerleri** — `docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md`. Onur'dan gerçek değerler bekleniyor. `.env.example` içindeki kurumsal değerler **tahmindir**.
+- **Bağımsız penetrasyon testi** — geliştiricinin testi bağımsız denetim sayılmaz. Kurumun kendi güvenlik ekibiyle yaptırılmalı (`docs/YGITEK-GUVENLIK-TEST-RAPORU.md` Bölüm 6).
 
-### 🟡 41 maddenin açık kalanları (4 kısmi)
+### 🟡 41 maddenin açık kalanları (3 kısmi)
 
 | Madde | Eksik yön |
 |---|---|
-| **YG-38** | Güvenlik testi dokümanı. Kod tarafı hazır (matris kanıt), **test raporu** yok. → Onur'un sırasında |
 | **YG-13 / YG-18** | Hareket kayıtları `auth_events` tablosunda, `DenetimRaporServisi` her gece 02:00 UTC'de JSONL + CSV yazıyor, yönetici ekrandan indiriyor. **Kurumun merkezî sistemine otomatik iletim yok** — dosya/betik aktarımı tam uyum sayılmaz, teslimde açıklanmalı. Hedef URL/protokol Onur'dan bekleniyor. |
-| **YG-08** | İletim ve depolama şifreli, ancak **öğrenci PII'si (ad-soyad, TC, telefon) DB'de düz metin** |
+| **YG-08** | İletim ve depolama şifreli, ancak **öğrenci PII'si (ad-soyad, TC, telefon) DB'de düz metin**. Çözüm: altyapı seviyesinde disk/volume şifrelemesi. |
 
 ### 🟢 Sprint 12 backlog
 

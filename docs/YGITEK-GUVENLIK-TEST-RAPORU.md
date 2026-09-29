@@ -15,7 +15,7 @@ Her kontrol için çalıştırılan komut ve gözlenen sonuç yazılıdır.
 | | Kapsam | Durum |
 |---|---|---|
 | ✅ | HTTP başlıkları, TLS, CORS, yönlendirme, hız sınırı, kimlik doğrulama sızıntısı, bakım uçları, kod içi statik tarama | **Bu raporda kanıtlandı** |
-| ✅ | Otomatik regresyon testleri (xUnit, 47 test) | **Bu raporda kanıtlandı** |
+| ✅ | Otomatik regresyon testleri (xUnit, 51 test) | **Bu raporda kanıtlandı** |
 | ⚠️ | Kullanıcı yolculuğu testleri (MFA akışı, panel yetkileri, CSV yükleme) | **Aşağıda listelendi, elle yapılacak** |
 | ❌ | Bağımsız penetrasyon testi, kaynak kodu incelemesi, yük/denial-of-service testi | **Kurumun kendi güvenlik ekibine bırakıldı** |
 

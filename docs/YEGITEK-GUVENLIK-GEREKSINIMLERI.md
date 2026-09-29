@@ -17,16 +17,18 @@
 | ❌ **EKSİK** | 0 | Kodda yok |
 | ➖ **UYGULANMAZ** | 0 | Özellik projede yok; "n/a" gerekçesiyle teslim |
 
-**Açık kalan 4 madde:**
+**Açık kalan 3 madde:**
 
 | Madde | Eksik yön |
 |---|---|
-| **YG-08** | İletim TLS ile şifreli, depolamada şifreli. **Eksik:** öğrenci PII'si (ad-soyad, TC, telefon) DB'de düz metin. |
-| **YG-13 / YG-18** | Hareket kayıtları `auth_events` tablosunda, `DenetimRaporServisi` her gece 02:00 UTC'de JSONL + CSV yazıyor, yönetici ekrandan indiriyor. **Eksik:** kurumun **merkezî** sistemine otomatik iletim yok. Dosya/betik aktarımı yeterli sayılmaz — teslimde açıklanmalı. |
-| **YG-38** | Güvenlik testi dokümanı hazırlanacak. Kod tarafı hazır (matris bu dosyada), **test raporu** eksik. |
+| **YG-08** | İletim TLS ile şifreli, depolamada şifreli. **Eksik:** öğrenci PII'si (ad-soyad, TC, telefon) DB'de düz metin. Çözüm altyapı seviyesinde disk/volume şifrelemesi — kurumun altyapısına bağlı. |
+| **YG-13 / YG-18** | Hareket kayıtları `auth_events` tablosunda, `DenetimRaporServisi` her gece 02:00 UTC'de JSONL + CSV yazıyor, yönetici ekrandan indiriyor. **Eksik:** kurumun **merkezî** sistemine otomatik iletim yok. Dosya/betik aktarımı yeterli sayılmaz — teslimde açıklanmalı. Çözüm: SIEM/webhook entegrasyonu. |
 
-> Son denetim: Sprint 11.81 · Kod tabanı: `20d1df7`
-> Sprint 11.53–11.81 arasında kapatılanlar: YG-16 (parola 5 sınıf), YG-17 (90 gün), YG-20 (her sayfadan çıkış), YG-39 (pasif hesap), YG-02 (kapça kaldırma kararı temizlendi), YG-03/31/32 (CSV beyaz liste), YG-07 (nginx TLS), YG-09 (log maskeleme).
+> **38 / 41 tam** · 3 kısmi · 0 eksik
+>
+> Son denetim: Sprint 11.85 · Kod tabanı: `5e7c16c`
+> Güvenlik test raporu: [`YGITEK-GUVENLIK-TEST-RAPORU.md`](YGITEK-GUVENLIK-TEST-RAPORU.md) — 4 açık bulundu, 4'ü düzeltildi.
+> Sprint 11.53–11.85 arasında kapatılanlar: YG-16 (parola 5 sınıf), YG-17 (90 gün), YG-20 (her sayfadan çıkış), YG-38 (güvenlik test raporu), YG-39 (pasif hesap), YG-02 (kapça kaldırma kararı temizlendi), YG-03/31/32 (CSV beyaz liste), YG-07 (nginx TLS + HSTS düzeltmesi), YG-09 (log maskeleme).
 > YG-39 Sprint 11.29'da kapatılmış, 11.53'te geri açılmıştı — bu satır Sprint 11.81'de düzeltildi.
 
 ---
@@ -98,7 +100,7 @@
 | # | Gereksinim | Durum | Kanıt / Açıklama |
 |---|---|---|---|
 | YG-37 | Güvenlik gereksinimleri tanımlanarak tasarım yapılır. | ✅ | `SECURITY.md` + bu matris + `docs/adr/0001` (ADR) + mimari kararlar `HANDOVER.md`'de kayıtlı. |
-| YG-38 | Yayına alınmadan önce güvenlik testleri yapılır. | ⚠️ | Manuel test senaryoları tamamlandı (CORS, cookie, open redirect, rate limit, MFA akışı, audit). **Eksik:** otomatik güvenlik test paketi ve bağımsız penetrasyon testi → teslim öncesi planlanmalı. |
+| YG-38 | Yayına alınmadan önce güvenlik testleri yapılır. | ✅ | **Sprint 11.84-11.85: `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` hazırlandı.** 41 maddenin kanıtı, 9 grup otomatik kontrol, 10 elle test senaryosu adım adım. Test sırasında **4 açık bulundu ve düzeltildi**: (1) açık yönlendirme (open redirect, OWASP A01:2021), (2) ters proxy arkasında HSTS hiç gönderilmiyordu, (3) frontend sayfasında CSP/`X-Frame-Options` yoktu, (4) başlangıç SQL'i var olmayan kolonu güncelliyordu — her bakanlık yetkilisi parola değiştirmeye zorlanıyordu. 28 regresyon testi eklendi (toplam 51). **Kalan:** bağımsız penetrasyon testi geliştiricinin sorumluluğunda değildir, kurumun kendi güvenlik ekibiyle yaptırılmalıdır (rapor Bölüm 6). |
 | YG-39 | Kullanılmayan hesaplar raporlanır ve pasife alınır. | ✅ | **Sprint 11.53'te geri açıldı.** `PasifHesapTespitService` `PasifHesap_GunSayisi` (varsayılan 90) gündür hareketsiz hesabı pasife alır ve `auth_events` tablosuna `AccountDisabled` yazar. `SystemAdmin` ve `MinistryOfficial` **muaf** — kurum yönetim erişimi tümden kilitlenmesin diye. Yönetici işlemleri: `GET /api/admin/pasif-hesaplar` (rapor) ve `POST /api/admin/pasif-hesaplar/tekrar-aktiflestir`. Yapılandırma: `PasifHesap_GunSayisi`, `PasifHesap_KontrolGunu`, `PasifHesap_Enabled`. |
 | YG-40 | Gerçek veriler test ortamında kullanılmaz. | ✅ | Tüm seed/test verileri `@fikir.local` / `@example.com` / `+90 555 …` placeholder. Test kullanıcıları sentetik. |
 | YG-41 | Hata durumlarında özel nitelikli kişisel veri açığa çıkmaz. | ✅ | `GuvenliHataYonetici` + `KisiselVeriYardimci` maskeleme + production'da stack trace gizli. **Sprint 11.52:** şifre sıfırlama 500 yanıtında istisna tipi ve mesajı istemciye dökülüyordu — kaldırıldı, artık genel Türkçe mesaj dönüyor ve detay yalnızca sunucu logunda. |

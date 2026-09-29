@@ -72,7 +72,7 @@ Frontend: `http://localhost:5173` (Vite dev server, `/api/*` → backend proxy)
 ./scripts/verify.ps1
 ```
 
-Restore + Release derleme + xUnit testleri (23) + frontend tip kontrolü + frontend üretim derlemesi.
+Restore + Release derleme + xUnit testleri (51) + frontend tip kontrolü + frontend üretim derlemesi.
 
 ## Deployment ortamları
 
@@ -96,7 +96,7 @@ Her ortam **aynı repo**'yu kullanır. `.env.example` ortam bağımsız şablon 
 │   │   ├── FikirPlatformu.Application/
 │   │   ├── FikirPlatformu.Domain/
 │   │   └── FikirPlatformu.Infrastructure/   # Email sender + Identity + Migrations
-│   ├── tests/FikirPlatformu.Tests/          # xUnit (23 test)
+│   ├── tests/FikirPlatformu.Tests/          # xUnit (51 test)
 │   └── README.md
 ├── frontend/                      # React 19 + Vite 8 + TypeScript 7
 │   ├── Dockerfile                 # nginx multi-stage build
