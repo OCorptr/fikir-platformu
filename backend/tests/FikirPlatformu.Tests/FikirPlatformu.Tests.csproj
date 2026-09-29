@@ -12,6 +12,9 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <!-- Sprint 11.84: açık yönlendirme (open redirect) düzeltmesinin regresyon
+         testi AuthEndpoints.GuvenliYonlendirmeHedefi'ni doğrudan çağırıyor. -->
+    <ProjectReference Include="..\..\src\FikirPlatformu.Api\FikirPlatformu.Api.csproj" />
     <ProjectReference Include="..\..\src\FikirPlatformu.Application\FikirPlatformu.Application.csproj" />
     <ProjectReference Include="..\..\src\FikirPlatformu.Domain\FikirPlatformu.Domain.csproj" />
     <ProjectReference Include="..\..\src\FikirPlatformu.Infrastructure\FikirPlatformu.Infrastructure.csproj" />

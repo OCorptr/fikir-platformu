@@ -1019,13 +1019,7 @@ grup.MapPost("/logout", async (
                     // current origin (backend) ile resolve olur → 404. Absolute frontend
                     // URL ile SPA /mfa-login'e yönlendir. Frontend:BaseUrl env'de set edilmeli.
                     var frontendBase = FrontendAdresi(cfg).TrimEnd('/');
-                    var basariPath = string.IsNullOrWhiteSpace(returnTo) ? "/" : returnTo;
-                    // Eğer returnTo zaten absolute (https://...) ise olduğu gibi kullan,
-                    // değilse frontend base ile birleştir. Hem local dev hem prod destekler.
-                    var absoluteTarget = basariPath.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
-                        || basariPath.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                        ? basariPath
-                        : $"{frontendBase}{basariPath}";
+                    var absoluteTarget = GuvenliYonlendirmeHedefi(returnTo, frontendBase);
                     return Results.Redirect(
                         $"{absoluteTarget}?gmail_oauth=ok{(refreshToken != null ? "&has_token=1" : "&has_token=0")}");
                 }
@@ -1086,6 +1080,47 @@ grup.MapPost("/logout", async (
 
     private static string FrontendAdresi(IConfiguration yapilandirma) =>
         (yapilandirma["Frontend:BaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
+
+    /// <summary>
+    /// Sprint 11.84 (güvenlik testi YG-38): Açık yönlendirme (open redirect) düzeltmesi.
+    ///
+    /// <para><b>Sorun:</b> <c>returnTo</c> sorgu parametresi hiç doğrulanmadan OAuth
+    /// <c>state</c> içine yazılıyor ve callback sonunda <c>https://kotu-site.example</c>
+    /// gibi HİÇBİR adrese yönlendirme yapılabiliyordu. Saldırgan kuruma ait bir
+    /// bağlantıyı paylaşıp kullanıcıyı kendi sitesine taşıyabiliyordu
+    /// (OWASP A01:2021).</para>
+    ///
+    /// <para><b>Kural:</b> yalnızca <c>/</c> ile başlayan GÖRELI yollar kabul edilir.
+    /// <c>//</c> ile başlayanlar "protocol-relative" olduğu için reddedilir. Mutlak
+    /// adresler yalnızca yapılandırılmış frontend origin'i ile aynı kaynaksa kabul
+    /// edilir. <c>javascript:</c>, <c>data:</c> ve farklı origin reddedilir.</para>
+    /// </summary>
+    public static string GuvenliYonlendirmeHedefi(string? returnTo, string frontendBase)
+    {
+        var govde = string.IsNullOrWhiteSpace(frontendBase) ? string.Empty : frontendBase.TrimEnd('/');
+        var anaSayfa = string.IsNullOrEmpty(govde) ? "/" : govde + "/";
+
+        if (string.IsNullOrWhiteSpace(returnTo)) return anaSayfa;
+
+        // Göreli yol: tek eğik çizgiyle başlamalı, protocol-relative OLMAMALI.
+        if (returnTo[0] == '/' && !returnTo.StartsWith("//", StringComparison.Ordinal))
+            return govde + returnTo;
+
+        // Mutlak adres: yalnızca yapılandırılmış frontend origin'i ile aynıysa.
+        // Kaynak zaten eşitlendiği için adres olduğu gibi döndürülebilir.
+        if (Uri.TryCreate(returnTo, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+            && Uri.TryCreate(anaSayfa, UriKind.Absolute, out var baseUri)
+            && string.Equals(uri.Scheme, baseUri.Scheme, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(uri.Host, baseUri.Host, StringComparison.OrdinalIgnoreCase)
+            && uri.Port == baseUri.Port)
+        {
+            return returnTo;
+        }
+
+        // Geri kalan her şey reddedilir.
+        return anaSayfa;
+    }
 
     /// <summary>Hesabın rolleri ile istenen giriş context'ine göre cookie scheme seçer.</summary>
     private static string? GirisIcinSchemeSec(IList<string> roller, string? istenenContext)

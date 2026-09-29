@@ -14,6 +14,7 @@ using FikirPlatformu.Infrastructure.Moderation;
 using FikirPlatformu.Infrastructure.Persistence;
 using FikirPlatformu.Infrastructure.Time;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -438,6 +439,15 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Sprint 11.84: Ters proxy (Render / nginx) önünde doğru çalışmak için zorunlu.
+// `UseForwardedHeaders` DI'dan değil pipeline'dan çağrılır ve `UseRouting`/`UseCors`
+// gibi middleware'lerden ÖNCE gelmelidir. Aksi halde şema HTTP sayılır, HSTS
+// yazılmaz ve cookie bayrakları yanlış hesaplanır.
+if (isProduction)
+{
+    app.UseForwardedHeaders();
+}
+
 // EF Core migration'ları otomatik uygula (Sprint 10 — yoksa deployment'ta yeni
 // kolonlar (örn. TwoFactorMethod) uygulanmaz, runtime'da hata verir).
 using (var scope = app.Services.CreateScope())
@@ -527,7 +537,26 @@ if (KurulumSeedAraci.CalistirilacakMi(args))
 // Permissions-Policy: gereksiz tarayıcı özelliklerini kapatma
 // Content-Security-Policy + Strict-Transport-Security: Sprint 11.52 (YG-07, YEĞİTEK maddeleri)
 //
-// HSTS yalnızca HTTPS üzerinden gönderilir; HTTP'de tarayıcı bunu yok sayar.
+// Sprint 11.84: Ters proxy arkasında HSTS hiç gönderilmiyordu. Render ve nginx TLS'i
+// sonlandırıp konteynere HTTP ile ilettiği için `HttpRequest.IsHttps` false dönüyordu.
+// `UseForwardedHeaders` olmadan şema yeniden kurulmaz → HSTS koşulu sağlanmıyor,
+// header yazılmıyordu. Aynı sebeple üretilen mutlak URL'ler de http:// olurdu.
+//
+// Yalnızca güvenilir vekil (KnownProxies) başlığı dikkate alınır; aksi halde
+// istemci `X-Forwarded-Proto` başlığını taklit edip HSTS'yi veya çerezi düşürebilirdi.
+if (isProduction)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+        // Render ve YEĞİTEK nginx'i yerel ağda; kaynak adres kısıtı uygulanamaz.
+        // Bunun yerine header değerleri yalnızca güvenilir kabul edilir ve aşağıda
+        // doğrulanır: Production'da X-Forwarded-Proto https olmak zorunda.
+    });
+}
+
 var hstsAktif = builder.Environment.IsProduction();
 app.Use(async (ctx, next) =>
 {
