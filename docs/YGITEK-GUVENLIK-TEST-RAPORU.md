@@ -110,9 +110,18 @@ $ curl -sI https://fikir-platformu.onrender.com/api/health
 **Etki.** Tarayıcı "yalnızca HTTPS kullan" kuralını öğrenemiyor; ilk istek
 düz HTTP ile yapılabilir (downgrade saldırısı).
 
-**Düzeltme.** `UseForwardedHeaders()` eklendi (şema ve istemci IP'si ters
-proxyden yeniden kurulur). `X-Forwarded-Proto` başlığı yalnızca üretimde
-dikkate alınır.
+**Düzeltme.** HSTS artık `HttpRequest.IsHttps` koşuluna bağlı **değil**. Üretimde
+koşulsuz gönderilir. Gerekçe: **RFC 6797 §8.1** — "HSTS başlığı güvensiz taşıma
+üzerinden alınan istemci tarafından yok sayılmalıdır." Yani HTTP üzerinden
+gönderilen HSTS tarayıcı tarafından zaten dikkate alınmaz; koşul koymak yalnızca
+başlığın hiç gönderilmesine yol açıyordu. Ayrıca `UseForwardedHeaders()` eklendi
+(şema ve istemci IP'si ters proxy üzerinden yeniden kurulur).
+
+> 🔎 **Temsilî proxy adresi sorunu:** `ForwardedHeadersOptions.KnownProxies`
+> listesine tek bir IP eklemek Render gibi dinamik proxy havuzlarında kırılgan
+> (IP'ler değişir). `KnownNetworks`/`KnownProxies` boşaltıldığında middleware tüm
+> kaynakları kabul eder. HSTS'nin koşuldan çıkarılması, çözümü proxy topolojisinden
+> tamamen bağımsız hâle getirdi.
 
 ---
 
@@ -413,3 +422,28 @@ Sekmeyi açık bırakıp 8 saat sonra bir uç çağrısı yapın → 401 bekleni
 | Sürüm | Tarih | Değişiklik |
 |---|---|---|
 | 1.0 | 29.09.2026 | İlk sürüm. 3 açık bulundu ve düzeltildi (açık yönlendirme, HSTS, frontend CSP). 24 regresyon testi eklendi. |
+
+---
+
+## 10. Doğrulama durumu
+
+| Bulgu | Kod | Test | Canlı doğrulama |
+|---|---|---|---|
+| BULGU-1 — Açık yönlendirme | ✅ düzeltildi | ✅ 24 test | ⏳ deploy bekliyor |
+| BULGU-2 — HSTS yok | ✅ düzeltildi | — | ⏳ deploy bekliyor |
+| BULGU-3 — Frontend CSP yok | ✅ nginx'e eklendi | — | ⏳ kurulumda doğrulanacak |
+
+> ⚠️ **Bu rapor yazıldığı sırada Render demo ortamına otomatik deploy çalışmıyor.**
+> `https://fikir-platformu.onrender.com/api/health` ucu Sprint 11.84 derlemesini
+> yansıtmıyor (sürüm damgası eksik). Kod yerelde doğrulandı:
+>
+> ```
+> dotnet publish src/FikirPlatformu.Api/... → başarılı (yalnızca uyarı)
+> dotnet test → 47/47 başarılı
+> ```
+>
+> Render panelinden son commitin (`5e84d2b`) deploy durumu kontrol edilmeli ve
+> gerekirse "Manual Deploy" tetiklenmelidir. **Yayına almadan önce canlı
+> doğrulama tamamlanmalıdır** — bu rapordaki düzeltmeler ancak o zaman kanıtlanmış
+> sayılır.
+
