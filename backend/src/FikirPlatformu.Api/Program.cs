@@ -580,7 +580,13 @@ app.Use(async (ctx, next) =>
            "base-uri 'self'; " +
            "form-action 'self'";
 
-    if (hstsAktif && ctx.Request.IsHttps)
+    // RFC 6797 §8.1: "HSTS başlığı güvensiz taşıma üzerinden alınan istemci
+    // tarafından yok sayılmalıdır." Bu yüzden koşulu `IsHttps` ile kontrol
+    // etmek doğru değildir — ters proxy TLS'i sonlandırdığında uygulama isteği
+    // HTTP görür ve başlık HİÇBİR ZAMAN gönderilmez (canlı ölçüm: 11.84 öncesi
+    // Render'da HSTS hiç yoktu). Üretimde koşulsuz göndermek hem standart
+    // uyumlu hem de proxy topolojisinden bağımsızdır.
+    if (hstsAktif)
     {
         h["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains";
     }
