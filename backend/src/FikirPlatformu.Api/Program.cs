@@ -437,6 +437,27 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Sprint 11.84: Ters proxy (Render / nginx) önünde doğru çalışmak için zorunlu.
+// TLS'i proxy sonlandırdığında şema HTTP sayılır; bu da üretilen mutlak URL'leri
+// (şifre sıfırlama bağlantısı, e-posta doğrulama) http:// yapar.
+//
+// ⚠️ DI kaydı `builder.Build()` ÖNCESİNE yapılmalı — sonrasında yapılırsa
+// "The service collection cannot be modified because it is read-only" ile
+// uygulama açılışta çöker (11.84'te bu yüzden deploy kırıldı).
+if (isProduction)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
+        // Render ve YEĞİTEK nginx IP'leri dinamiktir; tek bir IP'ye kısıtlamak
+        // kırılgan. Listeler boşaltıldığında middleware tüm kaynakları kabul
+        // eder. Yalnızca Production'da etkin olduğu için risk sınırlıdır —
+        // yerel HTTP bağlantılarında davranış değişmez.
+        options.KnownNetworks.Clear();
+        options.KnownProxies.Clear();
+    });
+}
+
 var app = builder.Build();
 
 // Sprint 11.84: Ters proxy (Render / nginx) önünde doğru çalışmak için zorunlu.
@@ -494,14 +515,21 @@ using (var scope = app.Services.CreateScope())
     // Sprint 11.60 / YG-17: PasswordChangedAt başlangıç değerlemesi.
     // Eski kayıtlarda bu alan NULL'dır. NULL, "ne zaman değiştirildiği
     // bilinmiyor" demektir ve politikada en kötü senaryo (zorunlu değişim)
-    // olarak yorumlanır. Kullanıcıları kilitlememek için son giriş tarihine,
-    // o da yoksa bugüne geriye dönük bir taban değer yazılır.
+    // olarak yorumlanır. Bu yüzden mevcut kullanıcıların hiçbiri dışarıda
+    // kalmaması için başlangıçta UTC_TIMESTAMP() yazılır → herkes 90 gün
+    // daha kullanır, kimse kilitlenmez.
+    //
+    // ⚠️ Sprint 11.84: Burada önce `COALESCE(LastLoginAt, ...)` kullanılıyordu
+    // ama `AspNetUsers` tablosunda `LastLoginAt` kolonu YOKTUR (ApplicationUser
+    // modelinde de yok). Sorgu hata veriyor, geri dönüş atılıyor ve hiçbir
+    // kullanıcı doldurulmuyordu — sonuç: HER bakanlık yetkilisi girişte
+    // parola değiştirmeye zorlanıyordu. Render deploy logunda yakalandı.
     try
     {
         var etkilenen = dbContext.Database.ExecuteSqlRaw(
             """
             UPDATE `AspNetUsers`
-            SET `PasswordChangedAt` = COALESCE(`LastLoginAt`, UTC_TIMESTAMP())
+            SET `PasswordChangedAt` = UTC_TIMESTAMP()
             WHERE `PasswordChangedAt` IS NULL
             """);
         if (etkilenen > 0)
@@ -537,26 +565,11 @@ if (KurulumSeedAraci.CalistirilacakMi(args))
 // Permissions-Policy: gereksiz tarayıcı özelliklerini kapatma
 // Content-Security-Policy + Strict-Transport-Security: Sprint 11.52 (YG-07, YEĞİTEK maddeleri)
 //
-// Sprint 11.84: Ters proxy arkasında HSTS hiç gönderilmiyordu. Render ve nginx TLS'i
-// sonlandırıp konteynere HTTP ile ilettiği için `HttpRequest.IsHttps` false dönüyordu.
-// `UseForwardedHeaders` olmadan şema yeniden kurulmaz → HSTS koşulu sağlanmıyor,
-// header yazılmıyordu. Aynı sebeple üretilen mutlak URL'ler de http:// olurdu.
-//
-// Yalnızca güvenilir vekil (KnownProxies) başlığı dikkate alınır; aksi halde
-// istemci `X-Forwarded-Proto` başlığını taklit edip HSTS'yi veya çerezi düşürebilirdi.
-if (isProduction)
-{
-    builder.Services.Configure<ForwardedHeadersOptions>(options =>
-    {
-        options.ForwardedHeaders = ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedFor;
-        options.KnownNetworks.Clear();
-        options.KnownProxies.Clear();
-        // Render ve YEĞİTEK nginx'i yerel ağda; kaynak adres kısıtı uygulanamaz.
-        // Bunun yerine header değerleri yalnızca güvenilir kabul edilir ve aşağıda
-        // doğrulanır: Production'da X-Forwarded-Proto https olmak zorunda.
-    });
-}
-
+// HSTS yalnızca HTTPS üzerinden gönderilir; HTTP'de tarayıcı bunu yok sayar
+// (RFC 6797 §8.1) — bu yüzden koşul `IsHttps` DEĞİLDİR. Sprint 11.84: koşul
+// konduğunda Render/nginx arkadaki uygulama isteği HTTP gördüğü için başlık
+// hiç gönderilmiyordu. Üretimde koşulsuz gönderilmesi standart uyumludur ve
+// proxy topolojisinden bağımsızdır.
 var hstsAktif = builder.Environment.IsProduction();
 app.Use(async (ctx, next) =>
 {
