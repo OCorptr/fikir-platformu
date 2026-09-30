@@ -468,19 +468,17 @@ export default function FikirPage() {
                 {calisiyor === "gonder" ? "Gönderiliyor…" : aktifTaslakId ? "Taslağı Gönder" : "Fikrimi Gönder"}
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 11.5 21 3l-5 18-4.5-7.5z"/><path d="M11.5 13.5 21 3"/></svg>
               </button>
+              <button
+                type="button"
+                className="btn-ikincil fikir-eylem-cikis"
+                onClick={handleCikis}
+                title="Öğrenci oturumunu kapat"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 4h3.2A1.8 1.8 0 0 1 20 5.8v12.4A1.8 1.8 0 0 1 18.2 20H15"/><path d="M10 8 6 12l4 4"/><path d="M6 12h9"/></svg>
+                Çıkış
+              </button>
             </div>
           </form>
-
-          <div style={{ marginTop: "1.5rem", paddingTop: "1rem", borderTop: "0.1rem solid #e3ecf4" }}>
-            <button
-              type="button"
-              className="btn-ikincil"
-              onClick={handleCikis}
-              style={{ width: "100%" }}
-            >
-              🚪 Çıkış Yap
-            </button>
-          </div>
 
           {taslaklar.length > 0 && (
             <div className="taslak-listesi">
@@ -493,28 +491,28 @@ export default function FikirPage() {
                       t.status === "Draft" ? "taslak-oge" : "fikir-oge tiklanabilir"
                     }
                   >
-                    <div className="taslak-sol">
+                    <div className="taslak-satir">
                       <span className={`durum taslak-durum taslak-durum--${t.status}`}>{durumEtiketi(t.status)}</span>
-                      <span className="taslak-icerik">{t.content.slice(0, 80)}{t.content.length > 80 ? "…" : ""}</span>
-                      {t.status !== "Draft" && (
-                        <span className="taslak-ozet">{durumOzeti(t.status)}</span>
-                      )}
-                    </div>
-                    <div className="taslak-sag">
-                      {t.status === "Draft" ? (
-                        <>
-                          <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>Düzenle</button>
-                          <button type="button" className="taslak-islem tehlikeli" onClick={() => handleTaslakSil(t.id)}>Sil</button>
-                        </>
-                      ) : (
-                        <button
-                          type="button"
-                          className="taslak-islem"
-                          onClick={() => detaySec(t)}
-                        >
-                          Durumunu Gör
-                        </button>
-                      )}
+                      <span className="taslak-icerik" title={t.content}>
+                        {t.content}
+                      </span>
+                      <div className="taslak-sag">
+                        {t.status === "Draft" ? (
+                          <>
+                            <button type="button" className="taslak-islem tehlikeli" onClick={() => handleTaslakSil(t.id)}>Sil</button>
+                            <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>Düzenle</button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="taslak-durum-gor"
+                            onClick={() => detaySec(t)}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                            Durumu
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </li>
                 ))}
