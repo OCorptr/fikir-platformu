@@ -211,10 +211,21 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
         <header className="adm-modal-ust">
           <div>
             <h2 id="drawer-baslik">{baslikMetni}</h2>
-            <small>
-              Rol: <b>{rolAdi(role)}</b>
-              {ilAdi && <> · İl: <b>{ilAdi}</b></>}
-            </small>
+            <div className="adm-modal-ust-rozet">
+              <span>
+                Rol: <b>{rolAdi(role)}</b>
+              </span>
+              {ilAdi && (
+                <>
+                  <span className="adm-modal-ust-rozet-sep" aria-hidden="true">
+                    ·
+                  </span>
+                  <span>
+                    İl: <b>{ilAdi}</b>
+                  </span>
+                </>
+              )}
+            </div>
           </div>
           <button
             type="button"
@@ -228,25 +239,27 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
 
         <form onSubmit={gonder} className="adm-modal-govde" noValidate>
           {genelHata && (
-            <div className="adm-bildirim adm-bildirim-hata" role="alert" aria-live="assertive" style={{ marginBottom: "1rem" }}>
+            <div className="adm-bildirim adm-bildirim-hata" role="alert" aria-live="assertive">
               {genelHata}
             </div>
           )}
           {sonOlusturulan && (
             <div className="adm-bildirim adm-bildirim-basari" role="status" aria-live="polite">
-              ✓ Kullanıcı oluşturuldu.
+              <b>Kullanıcı oluşturuldu.</b> Şifreyi aşağıdaki panodan kopyalayıp
+              kullanıcıya iletin.
             </div>
           )}
 
           <div className={`adm-alan ${alanHatalari.email ? "hata" : ""}`}>
             <label htmlFor="dc-email">
-              E-posta <span style={{ color: "#d8402f" }}>*</span>
+              E-posta <span className="adm-gerekli">*</span>
             </label>
             <input
               id="dc-email"
               ref={ilkInputRef}
               type="email"
               data-alan="email"
+              className="adm-input"
               autoComplete="off"
               spellCheck={false}
               value={email}
@@ -258,15 +271,16 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
             {alanHatalari.email && <span id="dc-email-hata" className="adm-alan-hata">{alanHatalari.email}</span>}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.7rem" }}>
+          <div className="adm-alan-ikili">
             <div className={`adm-alan ${alanHatalari.firstName ? "hata" : ""}`}>
               <label htmlFor="dc-ad">
-                Ad <span style={{ color: "#d8402f" }}>*</span>
+                Ad <span className="adm-gerekli">*</span>
               </label>
               <input
                 id="dc-ad"
                 type="text"
                 data-alan="firstName"
+                className="adm-input"
                 autoComplete="off"
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
@@ -277,12 +291,13 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
             </div>
             <div className={`adm-alan ${alanHatalari.lastName ? "hata" : ""}`}>
               <label htmlFor="dc-soyad">
-                Soyad <span style={{ color: "#d8402f" }}>*</span>
+                Soyad <span className="adm-gerekli">*</span>
               </label>
               <input
                 id="dc-soyad"
                 type="text"
                 data-alan="lastName"
+                className="adm-input"
                 autoComplete="off"
                 value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
@@ -295,37 +310,40 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
 
           <div className={`adm-alan ${alanHatalari.password ? "hata" : ""}`}>
             <label htmlFor="dc-sifre">
-              Geçici Şifre <span style={{ color: "#d8402f" }}>*</span>
+              Geçici Şifre <span className="adm-gerekli">*</span>
             </label>
             <div className="adm-sifre-kutu">
               <code aria-live="polite">{sifreGizli ? "•".repeat(password.length) : password}</code>
-              <button
-                type="button"
-                onClick={() => setSifreGizli((g) => !g)}
-                aria-label={sifreGizli ? "Şifreyi göster" : "Şifreyi gizle"}
-              >
-                {sifreGizli ? "👁 Göster" : "🙈 Gizle"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setPassword(guvenliSifreUret())}
-                aria-label="Yeni şifre üret"
-              >
-                🔄 Yeni Şifre
-              </button>
+              <div className="adm-sifre-kutu-eylem">
+                <button
+                  type="button"
+                  onClick={() => setSifreGizli((g) => !g)}
+                  aria-label={sifreGizli ? "Şifreyi göster" : "Şifreyi gizle"}
+                >
+                  {sifreGizli ? "Göster" : "Gizle"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPassword(guvenliSifreUret())}
+                  aria-label="Yeni şifre üret"
+                >
+                  Yeni şifre
+                </button>
+              </div>
             </div>
             <span className="adm-etiket-hint">
-              Şifreyi kullanıcıya iletin, ilk girişte değiştirmesi istenir.
+              Şifreyi kullanıcıya iletin; ilk girişte değiştirmesi istenir.
             </span>
           </div>
 
           {(grupKodu === "Yonetim") && (
             <div className="adm-alan">
               <label htmlFor="dc-rol">
-                Rol <span style={{ color: "#d8402f" }}>*</span>
+                Rol <span className="adm-gerekli">*</span>
               </label>
               <select
                 id="dc-rol"
+                className="adm-input"
                 value={role}
                 onChange={(e) => {
                   const yeniRol = e.target.value as AllowedRole;
@@ -347,11 +365,12 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
           {ilSecimiGerekli && (
             <div className={`adm-alan ${alanHatalari.ilKodu ? "hata" : ""}`}>
               <label htmlFor="dc-il">
-                İl <span style={{ color: "#d8402f" }}>*</span>
+                İl <span className="adm-gerekli">*</span>
               </label>
               <select
                 id="dc-il"
                 data-alan="ilKodu"
+                className="adm-input"
                 value={ilKoduState === "" ? "" : String(ilKoduState)}
                 onChange={(e) => setIlKoduState(e.target.value === "" ? "" : Number(e.target.value))}
                 disabled={Boolean(ilKodu)}
@@ -372,20 +391,20 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
 
         <footer className="adm-modal-alt">
           <button type="button" className="adm-btn adm-btn-sessiz" onClick={onClose} disabled={calisiyor}>
-            İptal
+            Kapat
           </button>
           {sonOlusturulan && (
-            <button type="button" className="adm-btn adm-btn-sessiz" onClick={panoyaKopyala}>
-              📋 Şifreyi Kopyala
+            <button type="button" className="adm-btn adm-btn-ana" onClick={panoyaKopyala}>
+              Şifreyi kopyala
             </button>
           )}
           <button
             type="submit"
             className="adm-btn adm-btn-ana"
             onClick={(e) => gonder(e as unknown as React.FormEvent)}
-            disabled={calisiyor}
+            disabled={calisiyor || Boolean(sonOlusturulan)}
           >
-            {calisiyor ? "Oluşturuluyor…" : sonOlusturulan ? "✓ Oluşturuldu" : "Kullanıcı Oluştur"}
+            {calisiyor ? "Oluşturuluyor…" : "Kullanıcı oluştur"}
           </button>
         </footer>
       </div>

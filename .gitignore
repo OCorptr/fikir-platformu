@@ -47,3 +47,4 @@ node_modules/
 # arac/temp klasorleri (commit edilmez)
 .cortexkit/
 prepared-media/
+yonetici-ekle-*.png

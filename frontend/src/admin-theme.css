@@ -707,8 +707,32 @@ summary.adm-grup-baslik:hover .adm-grup-ad {
   display: flex;
   align-items: flex-start;
   gap: 0.75rem;
-  padding: 1rem 1.1rem 0.75rem;
+  padding: 1rem 1.1rem 0.85rem;
   border-bottom: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
+}
+
+/* Rol + İl bilgisi başlıkta okunabilir bir rozet olarak dursun (satır içi
+ * `<small>` yerine). Onur (S11.86): başlık bölümü "nizami" olsun. */
+.adm-modal-ust .adm-modal-ust-alt {
+  margin-top: 0.3rem;
+}
+
+.adm-modal-ust-rozet {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: var(--yt-soluk);
+}
+
+.adm-modal-ust-rozet b {
+  color: var(--yt-lacivert);
+  font-weight: 700;
+}
+
+.adm-modal-ust-rozet-sep {
+  color: var(--yt-cizgi-kalinlik);
 }
 
 .adm-modal-ust h2 {
@@ -775,6 +799,46 @@ summary.adm-grup-baslik:hover .adm-grup-ad {
   margin-top: 0.25rem;
 }
 
+/* Onur (S11.86): "Yönetici Ekle ekranı karma karışık, nizami ve düzenli olsun."
+ * Satır içi `style={{...}}` yerine adlandırılmış sınıflar: alanlar arası boşluk
+ * tek yerden yönetilir, giriş/select aynı görünür. */
+
+/* Zorunlu alan yıldızı — her inputta tekrar eden satır içi renk yerine. */
+.adm-gerekli {
+  color: var(--yt-tehlike);
+  font-weight: 700;
+}
+
+/* Ad / Soyad gibi eşit genişlikte iki alan yan yana. Tek sütuna düşer. */
+.adm-alan-ikili {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 0.7rem;
+}
+
+.adm-alan {
+  margin-bottom: 0.9rem;
+}
+
+.adm-alan:last-child {
+  margin-bottom: 0;
+}
+
+.adm-modal-govde select.adm-input {
+  cursor: pointer;
+}
+
+.adm-modal-govde select.adm-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (max-width: 560px) {
+  .adm-alan-ikili {
+    grid-template-columns: 1fr;
+  }
+}
+
 .adm-modal-govde .adm-alan-hata + input,
 input[aria-invalid="true"].adm-input {
   border-color: var(--yt-tehlike);
@@ -800,16 +864,34 @@ input[aria-invalid="true"].adm-input {
   color: var(--yt-lacivert);
 }
 
+/* Onur (S11.86): şifre kutusu düzeni.
+ * Önceden `code` + 2 buton + "Gizle/Göster" tek satırda yarışıyordu; butonlar
+ * metne göre genişlik değiştirdiği için kutu kırılgan görünüyordu.
+ * Şimdi şifre metni kendi satırında, iki buton sağda sabit hizalı. */
+.adm-sifre-kutu {
+  flex-wrap: nowrap;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.adm-sifre-kutu-eylem {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+}
+
 .adm-sifre-kutu button {
   font: inherit;
   font-size: 0.8rem;
   font-weight: 700;
-  padding: 0.2rem 0.5rem;
+  /* Butonlar şifre kutusuyla aynı yükseklikte hizalansın. */
+  padding: 0.2rem 0.6rem;
   border-radius: var(--yt-r-pil);
   border: var(--yt-cizgi-kalinlik) solid var(--yt-cizgi);
   background: var(--yt-yuzey);
   color: var(--yt-soluk);
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .adm-sifre-kutu button:hover {

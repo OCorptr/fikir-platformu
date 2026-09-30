@@ -16,6 +16,11 @@ import {
 } from "../services/ideas";
 import { logout, me } from "../services/auth";
 import {
+  YetkiliPanelSecenekleri,
+  fullPageNav,
+  rolEtiketi,
+} from "../components/YetkiliPanelSecim";
+import {
   type CategoryRef,
   type MeSession,
   sessionForContext,
@@ -44,6 +49,16 @@ export default function FikirPage() {
   const [ben, setBen] = useState<MeSession | null>(null);
   const [kimlikKontrolEdildi, setKimlikKontrolEdildi] = useState(false);
   const [authAcik, setAuthAcik] = useState(false);
+  // Onur (S11.86): "herhangi bir yönetici login durumunda iken /fikir sayfasına
+  // giremez... Öğrenci kısmına ancak öğrenci hesabı ile giriş yapılır."
+  //
+  // SEBEP: Kontrol yalnızca student session'a bakıyordu. Yönetici oturumunda
+  // student session yok → modal açılıyordu ama `arkadaMi` (kapatılabilir,
+  // arkada görünen) olduğu için öğrenci sayfası EKRANDA KALIYORDU.
+  // Kullanıcı modalı kapatıp öğrenci fikir ekranını kullanabiliyordu.
+  // Ayrıca ProvinceManager/ProvinceEvaluator rollü bir kişi İL YÖNETİCİ
+  // olduğu için yönetici sayılır.
+  const [yetkiliRoller, setYetkiliRoller] = useState<string[] | null>(null);
   // AuthModal sekmesi (giris / kayit / dogrulamaBekleniyor) - maskot balonu buna gore guncellenir
   const [authMod, setAuthMod] = useState<"giris" | "kayit" | "dogrulamaBekleniyor">("giris");
   function balonYazisi(m: "giris" | "kayit" | "dogrulamaBekleniyor") {
@@ -69,6 +84,14 @@ export default function FikirPage() {
     const controller = new AbortController();
     me(controller.signal)
       .then((cevap) => {
+        // Önce yetkili oturumu kontrol et: yönetici /fikir'e giremez.
+        // province yetkiyi taşır (il yöneticisi/değerlendiricisi dahil).
+        const yetkili = sessionForContext(cevap, "province") ?? sessionForContext(cevap, "ministry");
+        if (yetkili) {
+          setYetkiliRoller(cevap.authenticated ? (cevap.roles ?? []) : []);
+          setBen(sessionForContext(cevap, "student"));
+          return;
+        }
         const s = sessionForContext(cevap, "student");
         setBen(s);
         if (!s) setAuthAcik(true); // /me 200 dönse bile student session yoksa modal aç
@@ -239,6 +262,42 @@ export default function FikirPage() {
             </div>
           </div>
         </main>
+    );
+  }
+
+  // Onur (S11.86): "Öğrenci kısmına ancak öğrenci hesabı ile giriş yapılır."
+  // Yönetici oturumu varsa öğrenci fikir ekranı hiç render edilmez; yerine
+  // ana sayfadaki "Yetkili Girişi" ile aynı panel yönlendirme ekranı çıkar.
+  if (yetkiliRoller) {
+    const etiket = rolEtiketi(yetkiliRoller);
+    return (
+      <main className="sayfa-ortak">
+        <div className="sayfa-ortak-ic">
+          <section className="mfa-kart">
+            <h1 className="mfa-baslik">Yetkili Paneli</h1>
+            <p className="mfa-mesaj">
+              {etiket
+                ? `${etiket} olarak giriş yaptınız.`
+                : "Bu tarayıcıda bir yetkili oturumu açık."}{" "}
+              Öğrenci fikir ekranına erişmek için çıkış yapıp öğrenci hesabınızla
+              giriş yapın. Aşağıdan gitmek istediğiniz panele geçebilirsiniz.
+            </p>
+            <div className="mfa-eylem">
+              <YetkiliPanelSecenekleri roller={yetkiliRoller} onGit={fullPageNav} />
+            </div>
+            <button
+              type="button"
+              className="mfa-geri"
+              onClick={async () => {
+                await logout();
+                window.location.href = "/";
+              }}
+            >
+              Çıkış yap
+            </button>
+          </section>
+        </div>
+      </main>
     );
   }
 

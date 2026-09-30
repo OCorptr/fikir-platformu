@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Yönetici Ekle — düzen ölçümü</title>
+  <link rel="stylesheet" href="/assets/css/stil.css" />
+  <link rel="stylesheet" href="/assets/css/admin-panel.css" />
+  <script>
+    // Gerçek uygulamanın yüklediği Vite CSS paketini (admin-theme.css dahil)
+    // dinamik olarak ekle. Elle yazılan dosya adı her build'de değişir.
+    fetch('/index.html')
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        var m = html.match(/href="(\/assets\/index-[A-Za-z0-9_-]+\.css)"/);
+        if (!m) return;
+        var l = document.createElement('link');
+        l.rel = 'stylesheet';
+        l.href = m[1];
+        document.head.appendChild(l);
+      });
+  </script>
+</head>
+<body>
+  <main class="adm-modal-perde">
+    <div class="adm-modal" id="m" role="dialog" aria-modal="true">
+      <header class="adm-modal-ust">
+        <div>
+          <h2>Yönetici Ekle</h2>
+          <div class="adm-modal-ust-rozet">
+            <span>Rol: <b>Bakanlık AR-GE Yetkilisi</b></span>
+            <span class="adm-modal-ust-rozet-sep" aria-hidden="true">·</span>
+            <span>İl: <b>Ankara</b></span>
+          </div>
+        </div>
+        <button type="button" class="adm-modal-kapat" aria-label="Kapat">✕</button>
+      </header>
+
+      <form class="adm-modal-govde">
+        <div class="adm-alan">
+          <label for="e">E-posta <span class="adm-gerekli">*</span></label>
+          <input id="e" class="adm-input" value="ornek.kullanici@kurum.gov.tr" />
+        </div>
+
+        <div class="adm-alan-ikili">
+          <div class="adm-alan">
+            <label for="a">Ad <span class="adm-gerekli">*</span></label>
+            <input id="a" class="adm-input" value="Ayşe" />
+          </div>
+          <div class="adm-alan">
+            <label for="s">Soyad <span class="adm-gerekli">*</span></label>
+            <input id="s" class="adm-input" value="Yılmaz" />
+          </div>
+        </div>
+
+        <div class="adm-alan">
+          <label>Geçici Şifre <span class="adm-gerekli">*</span></label>
+          <div class="adm-sifre-kutu">
+            <code>•••••••••••••</code>
+            <div class="adm-sifre-kutu-eylem">
+              <button type="button">Göster</button>
+              <button type="button">Yeni şifre</button>
+            </div>
+          </div>
+          <span class="adm-etiket-hint">Şifreyi kullanıcıya iletin; ilk girişte değiştirmesi istenir.</span>
+        </div>
+
+        <div class="adm-alan">
+          <label for="r">Rol <span class="adm-gerekli">*</span></label>
+          <select id="r" class="adm-input">
+            <option>İl AR-GE Yöneticisi</option>
+            <option selected>Bakanlık AR-GE Yetkilisi</option>
+            <option>İl AR-GE Değerlendiricisi</option>
+            <option>Sistem Yöneticisi</option>
+          </select>
+        </div>
+
+        <div class="adm-alan">
+          <label for="i">İl <span class="adm-gerekli">*</span></label>
+          <select id="i" class="adm-input">
+            <option selected>06 — Ankara</option>
+          </select>
+        </div>
+      </form>
+
+      <footer class="adm-modal-alt">
+        <button type="button" class="adm-btn adm-btn-sessiz">Kapat</button>
+        <button type="button" class="adm-btn adm-btn-ana">Kullanıcı oluştur</button>
+      </footer>
+    </div>
+  </main>
+</body>
+</html>
