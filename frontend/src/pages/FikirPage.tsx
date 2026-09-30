@@ -9,12 +9,15 @@ import { ApiHttpError } from "../services/api";
 import { getCategories } from "../services/references";
 import {
   deleteIdea,
+  getMyIdea,
   listMyIdeas,
   saveDraft,
   submitIdea,
   updateDraft,
 } from "../services/ideas";
 import { logout, me } from "../services/auth";
+import { FikirAsamaCizgisi } from "../components/FikirAsamaCizgisi";
+import { durumOzeti } from "../services/fikirAsamalari";
 import {
   YetkiliPanelSecenekleri,
   fullPageNav,
@@ -78,6 +81,30 @@ export default function FikirPage() {
   const [mesaj, setMesaj] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState<"taslak" | "gonder" | "sil" | "taslakYukle" | null>(null);
   const [gonderildiEkran, setGonderildiEkran] = useState<StudentIdeaDto | null>(null);
+
+  // Onur (S11.88): gonderilen fikrin asamasi her an gorulebilsin.
+  // Onceki davranista bu bilgi yalnizca gonderim aninda gorunuyordu.
+  const [seciliFikir, setSeciliFikir] = useState<StudentIdeaDto | null>(null);
+
+  // Detay icin sunucudan taze veri cek. Liste ekranda kalmis olabilir;
+  // yonetici asamayi ilerletmis olabilir.
+  const [detayYukleniyor, setDetayYukleniyor] = useState(false);
+
+  async function detaySec(fikir: StudentIdeaDto) {
+    setSeciliFikir(fikir);
+    setDetayYukleniyor(true);
+    try {
+      const taze = await getMyIdea(fikir.id);
+      setSeciliFikir(taze);
+      setTaslaklar((oncekiler) =>
+        oncekiler.map((t) => (t.id === taze.id ? taze : t)),
+      );
+    } catch {
+      // Sunucuya ulasilamazsa listedeki veriyle gostermeye devam et.
+    } finally {
+      setDetayYukleniyor(false);
+    }
+  }
 
   // 1) sayfa açılır — öğrenci oturumu kontrol et
   useEffect(() => {
@@ -318,7 +345,50 @@ export default function FikirPage() {
 
   const formIcerigi = (
     <section className={`fikir-karti ${authAcik ? "fikir-form-blur" : ""}`}>
-      {gonderildiEkran ? (
+      {seciliFikir ? (
+        // Onur (S11.88): fikrin asamasi her an gorulebilsin. Gonderim sonrasi
+        // ekrandaki cizgiyle ayni bilesyi kullanir - iki gorunum ayrismaz.
+        <div className="fikir-detay">
+          <button
+            type="button"
+            className="fikir-detay__kapat"
+            onClick={() => setSeciliFikir(null)}
+          >
+            ← Fikirlerime Dön
+          </button>
+
+          <h2 className="fikir-detay__baslik">{seciliFikir.content}</h2>
+
+          <dl className="fikir-detay__bilgi">
+            <div>
+              <dt>Durum</dt>
+              <dd>{durumEtiketi(seciliFikir.status)}</dd>
+            </div>
+            <div>
+              <dt>Kategori</dt>
+              <dd>{seciliFikir.categoryName}</dd>
+            </div>
+            <div>
+              <dt>İl</dt>
+              <dd>{seciliFikir.provinceName}</dd>
+            </div>
+            <div>
+              <dt>Gönderilme</dt>
+              <dd>
+                {seciliFikir.submittedAt
+                  ? new Date(seciliFikir.submittedAt).toLocaleDateString("tr-TR")
+                  : "Gönderilmedi"}
+              </dd>
+            </div>
+          </dl>
+
+          <p className="fikir-detay__ozet">
+            {detayYukleniyor ? "Güncel durum getiriliyor…" : durumOzeti(seciliFikir.status)}
+          </p>
+
+          <FikirAsamaCizgisi durum={seciliFikir.status} yon="asagi" />
+        </div>
+      ) : gonderildiEkran ? (
         <div className="basari">
           <svg className="basari-tik" viewBox="0 0 52 52">
             <circle cx="26" cy="26" r="24" fill="none" stroke="#16a34a" strokeWidth="3" />
@@ -417,17 +487,33 @@ export default function FikirPage() {
               <div className="bolum-basligi turkuaz">Taslaklarım & Geçmiş Fikirlerim</div>
               <ul>
                 {taslaklar.map((t) => (
-                  <li key={t.id} className={t.status === "Draft" ? "taslak-oge" : "fikir-oge"}>
+                  <li
+                    key={t.id}
+                    className={
+                      t.status === "Draft" ? "taslak-oge" : "fikir-oge tiklanabilir"
+                    }
+                  >
                     <div className="taslak-sol">
                       <span className={`durum taslak-durum taslak-durum--${t.status}`}>{durumEtiketi(t.status)}</span>
                       <span className="taslak-icerik">{t.content.slice(0, 80)}{t.content.length > 80 ? "…" : ""}</span>
+                      {t.status !== "Draft" && (
+                        <span className="taslak-ozet">{durumOzeti(t.status)}</span>
+                      )}
                     </div>
                     <div className="taslak-sag">
-                      {t.status === "Draft" && (
+                      {t.status === "Draft" ? (
                         <>
                           <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>Düzenle</button>
                           <button type="button" className="taslak-islem tehlikeli" onClick={() => handleTaslakSil(t.id)}>Sil</button>
                         </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="taslak-islem"
+                          onClick={() => detaySec(t)}
+                        >
+                          Durumunu Gör
+                        </button>
                       )}
                     </div>
                   </li>
