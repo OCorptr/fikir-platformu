@@ -441,12 +441,21 @@ body.sayfa-admin .yukleme-ekrani { min-height: 40vh; }
 }
 
 /* S11.90: Buton yazilari ASLA alt satira tasmasin. "Taslak Kaydet" iki
-   satira kirilip butonu buyutuyordu, o da liste satirini 3 satira cikariyordu. */
+   satira kirilip butonu buyutuyordu, o da liste satirini 3 satira cikariyordu.
+   NOT: Tüm butonlara `flex: 0 0 auto` verilirse `.btn-tam` (width:100%) esnemez
+   ve 1280px'te 94px yatay tasma olusur. Bu yuzden yalnizca yazı sabitlenir,
+   kucuk butonlar shrink almayacak sekilde kilitlenir, genis buton esner. */
 .fikir-butonlar button,
 .fikir-butonlar .btn-ana,
 .fikir-butonlar .btn-ikincil {
   white-space: nowrap;
+}
+.fikir-butonlar .btn-ikincil {
   flex: 0 0 auto;
+}
+.fikir-butonlar .btn-tam {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* Liste satirlari: dikey bosluk daraltilir, tek satir garantisi. */
