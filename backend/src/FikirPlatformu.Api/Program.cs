@@ -961,10 +961,30 @@ app.MapPost("/api/__maintenance/set-password-raw", async (
     // SecurityStamp de guncelleyelim ki ValidateUser login sanity check'inde
     // rol atamaları cookie tazeleyince uyumsuzluk olmasın.
     var yeniSecurityStamp = Guid.NewGuid().ToString().Replace("-", "").ToUpperInvariant();
+
+    // Sprint 11.86: Hesap kurtarma bayrakları.
+    //
+    // SENARYO: Kullanıcı e-postasına erişemiyor (kayıp posta kutusu, hatalı
+    // adres, kurum e-posta geçişi) veya test hesabı doğrulama linkine
+    // ulaşamıyor. Bu durumda e-posta onayı takılı kalıyor ve hesap kullanılamaz.
+    //
+    // `&confirmEmail=true`  → EmailConfirmed=1, kullanıcı doğrulamadan girebilir.
+    // `&zorlamaYok=true`     → MustChangePassword=0 + PasswordChangedAt=now.
+    //                          (Sprint kalıcı kural: başarılı şifre sıfırlama
+    //                          yolu MustChangePassword=false + PasswordChangedAt
+    //                          yazmalı. Varsayılan DEĞİL: yönetici tarafından
+    //                          verilen geçici şifrede kullanıcı değiştirmelidir.)
+    var emailOnayla = http.Request.Query["confirmEmail"].ToString() == "true";
+    var zorlamaYok = http.Request.Query["zorlamaYok"].ToString() == "true";
+
     // Sprint 11.52: Aynı PostgreSQL→MySQL tanım hatası. Backtick'e çevrildi.
-    var affected = await veritabani.Database.ExecuteSqlRawAsync(
-        "UPDATE `AspNetUsers` SET `PasswordHash` = {0}, `SecurityStamp` = {1}, `ConcurrencyStamp` = {2} WHERE `Id` = {3}",
-        yeniHash, yeniSecurityStamp, Guid.NewGuid().ToString(), user.Id);
+    var affected = emailOnayla || zorlamaYok
+        ? await veritabani.Database.ExecuteSqlRawAsync(
+            "UPDATE `AspNetUsers` SET `PasswordHash` = {0}, `SecurityStamp` = {1}, `ConcurrencyStamp` = {2}, `EmailConfirmed` = {3}, `MustChangePassword` = {4}, `PasswordChangedAt` = UTC_TIMESTAMP() WHERE `Id` = {5}",
+            yeniHash, yeniSecurityStamp, Guid.NewGuid().ToString(), emailOnayla ? 1 : user.EmailConfirmed ? 1 : 0, zorlamaYok ? 0 : user.MustChangePassword ? 1 : 0, user.Id)
+        : await veritabani.Database.ExecuteSqlRawAsync(
+            "UPDATE `AspNetUsers` SET `PasswordHash` = {0}, `SecurityStamp` = {1}, `ConcurrencyStamp` = {2} WHERE `Id` = {3}",
+            yeniHash, yeniSecurityStamp, Guid.NewGuid().ToString(), user.Id);
 
     // DB'den tekrar oku ve verify et.
     veritabani.ChangeTracker.Clear();
@@ -976,8 +996,12 @@ app.MapPost("/api/__maintenance/set-password-raw", async (
 
     return Results.Ok(new
     {
-        message = "Raw SQL PasswordHash set edildi.",
+        message = emailOnayla
+            ? "Raw SQL PasswordHash set edildi VE e-posta doğrulandı."
+            : "Raw SQL PasswordHash set edildi.",
         email,
+        emailOnaylandi = emailOnayla,
+        zorlamaKaldirildi = zorlamaYok,
         affectedRows = affected,
         verifyResult = verify.ToString(),
         eskiHashLen = eskiHash?.Length ?? 0,
