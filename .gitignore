@@ -48,3 +48,9 @@ node_modules/
 .cortexkit/
 prepared-media/
 yonetici-ekle-*.png
+
+# Playwright / ekran goruntusu artiklari (olcum araci, teslim paketine girmez)
+.playwright-cli/
+*.playwright-cli*
+page-*.png
+screenshot-*.png
