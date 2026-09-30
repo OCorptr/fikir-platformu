@@ -74,6 +74,8 @@ export default function FikirPage() {
   // form
   const [kategoriler, setKategoriler] = useState<CategoryRef[]>([]);
   const [taslaklar, setTaslaklar] = useState<StudentIdeaDto[]>([]);
+  const gonderilenler = taslaklar.filter((t) => t.status !== "Draft");
+  const yalnTaslaklar = taslaklar.filter((t) => t.status === "Draft");
   const [aktifTaslakId, setAktifTaslakId] = useState<string | null>(null);
   const [kategoriId, setKategoriId] = useState<number | "">("");
   const [fikir, setFikir] = useState("");
@@ -480,38 +482,46 @@ export default function FikirPage() {
             </div>
           </form>
 
-          {taslaklar.length > 0 && (
+          {gonderilenler.length > 0 && (
             <div className="taslak-listesi">
-              <div className="bolum-basligi turkuaz">Taslaklarım & Geçmiş Fikirlerim</div>
+              <div className="bolum-basligi turkuaz">Gönderilmiş Fikirlerim</div>
               <ul>
-                {taslaklar.map((t) => (
-                  <li
-                    key={t.id}
-                    className={
-                      t.status === "Draft" ? "taslak-oge" : "fikir-oge tiklanabilir"
-                    }
-                  >
+                {gonderilenler.map((t) => (
+                  <li key={t.id} className="fikir-oge tiklanabilir">
                     <div className="taslak-satir">
                       <span className={`durum taslak-durum taslak-durum--${t.status}`}>{durumEtiketi(t.status)}</span>
-                      <span className="taslak-icerik" title={t.content}>
-                        {t.content}
+                      <span className="taslak-icerik" title={t.content}>{t.content}</span>
+                      <button
+                        type="button"
+                        className="taslak-durum-gor"
+                        onClick={() => detaySec(t)}
+                        title={`${t.content} — durumunu gör`}
+                        aria-label={`${t.content} fikrinin durumunu gör`}
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
+                        <span>Durumu</span>
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {yalnTaslaklar.length > 0 && (
+            <div className="taslak-listesi">
+              <div className="bolum-basligi turuncu">Taslaklarım</div>
+              <ul>
+                {yalnTaslaklar.map((t) => (
+                  <li key={t.id} className="taslak-oge">
+                    <div className="taslak-satir">
+                      <span className="taslak-icerik" title={t.content}>{t.content}</span>
+                      <span className="taslak-tarih">
+                        {new Date(t.createdAt).toLocaleDateString("tr-TR")}
                       </span>
                       <div className="taslak-sag">
-                        {t.status === "Draft" ? (
-                          <>
-                            <button type="button" className="taslak-islem tehlikeli" onClick={() => handleTaslakSil(t.id)}>Sil</button>
-                            <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>Düzenle</button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            className="taslak-durum-gor"
-                            onClick={() => detaySec(t)}
-                          >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z"/><circle cx="12" cy="12" r="2.6"/></svg>
-                            Durumu
-                          </button>
-                        )}
+                        <button type="button" className="taslak-islem tehlikeli" onClick={() => handleTaslakSil(t.id)}>Sil</button>
+                        <button type="button" className="taslak-islem" onClick={() => taslakSec(t)}>Düzenle</button>
                       </div>
                     </div>
                   </li>
@@ -548,7 +558,9 @@ function durumEtiketi(durum: StudentIdeaDto["status"]): string {
     case "Submitted": return "Gönderildi";
     case "InEvaluation": return "Değerlendirmede";
     case "EvaluationCompleted": return "Değerlendirildi";
-    case "Locked": return "Kilitli";
+    // "Locked" = döneme seçilmiş, yani planlama aşamasına geçmiş. Öğrenciye
+    // iç durum adı ("Kilitli") gösterilmez; anlamı olan aşama adı yazılır.
+    case "Locked": return "Planlandı";
     case "Planned": return "Planlandı";
     case "ImplementationInProgress": return "Uygulamada";
     case "ImplementationCompleted": return "Uygulandı";

@@ -14,7 +14,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
-import { mfaCancel, mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
+import { logout, mfaCancel, mfaGetMethod, mfaLoginVerify, mfaSendEmailOtp } from "../services/auth";
 
 /* Deployment test (Sprint 10.7) */
 
@@ -131,14 +131,27 @@ export function MfaLoginPage() {
     setCooldown(0);
   }
 
-  // 'Çıkış - Ana Sayfa' — MFA akışını iptal et, PreMfa cookie'yi temizle, ana sayfaya dön.
+  // 'Çıkış - Ana Sayfa' — MFA akışını iptal et, PreMfa cookie'yi temizle,
+  // VARSAKİ PANEL OTURUMUNU DA kapat ve ana sayfaya dön.
+  //
+  // S11.91 (Onur): "Çıkış butonu sadece anasayfaya yönlendiriyor, logout olmuyor."
+  // Kök neden: burada sadece mfaCancel() çağrılıyordu. O yalnızca PreMfa
+  // cookie'sini siler; kullanıcının zaten açık olan il/bakanlık/öğrenci oturumu
+  // hayatta kalıyor ve anasayfada hâlâ girişli görünüyordu.
   async function handleCikis() {
     setCalisiyor(true);
     try {
-      // Backend best-effort çağrı: başarısız olsa bile ana sayfaya git (cookie kendi expire olur).
+      // 1) Yarım kalan MFA oturumunu iptal et.
       await mfaCancel();
     } catch {
       // Sessizce yut — kullanıcı zaten çıkmak istiyor, hata gösterme.
+    }
+    try {
+      // 2) Açık olan TÜM panel oturumlarını kapat (role parametresi yok
+      //    → backend üç scheme'in cookie'sini de siler).
+      await logout();
+    } catch {
+      // Sunucu hata verse bile ana sayfaya git.
     } finally {
       navigate("/", { replace: true });
       setCalisiyor(false);

@@ -13,7 +13,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ApiHttpError, backendApiUrl } from "../services/api";
-import { mfaSetupBaslat, mfaVerifyKod, mfaGetMethod, mfaCancel, type MfaMethod } from "../services/auth";
+import { logout, mfaSetupBaslat, mfaVerifyKod, mfaGetMethod, mfaCancel, type MfaMethod } from "../services/auth";
 import type { MfaSetupResponse } from "../services/auth";
 
 type Adim = "secim" | "kurulum" | "dogrulama" | "tamamlandi";
@@ -88,13 +88,24 @@ export function MfaSetupPage() {
     }
   }
 
-  // 'Çıkış - Ana Sayfa' — MFA akışını iptal et, PreMfa cookie temizle, ana sayfaya dön.
+  // 'Çıkış - Ana Sayfa' — MFA akışını iptal et, PreMfa cookie temizle,
+  // VARSAKİ PANEL OTURUMUNU DA kapat ve ana sayfaya dön.
+  //
+  // S11.91 (Onur): mfaCancel() yalnızca PreMfa cookie'sini siler. Burada
+  // logout() de çağrılmadığı için kullanıcının açık olan il/bakanlık/öğrenci
+  // oturumu yaşamaya devam ediyor, yani "çıkış" sadece anasayfaya yönlendiriyordu.
   async function handleCikis() {
     setCalisiyor(true);
     try {
       await mfaCancel();
     } catch {
-      // Best-effort — başarısız olsa bile ana sayfaya git (cookie kendi expire olur).
+      // Best-effort — başarısız olsa bile ana sayfaya git.
+    }
+    try {
+      // Role parametresi yok → backend üç scheme'in cookie'sini de siler.
+      await logout();
+    } catch {
+      // Sunucu hata verse bile ana sayfaya git.
     } finally {
       navigate("/", { replace: true });
       setCalisiyor(false);
