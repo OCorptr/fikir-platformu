@@ -40,72 +40,60 @@ services:
 
   # ---------------- FRONTEND (Vite / Static Site) ----------------
   #
-  # Sprint 11.86: `type: web` + `runtime: static` -> Render ozel baslik
-  # tanimini YOK sayiyor. Canli sayfada CSP ve X-Frame-Options olmadigi
-  # Playwright ile olculdu. Static Site ozelligi yalnizca `type: static`
-  # ile kullanilabiliyor; boylece asagidaki `headers` blogu uygulanir.
-  - type: static
+  # Render Blueprint söz dizimi: Static Site = `type: web` + `runtime: static`.
+  # Özel yanıt başlıkları `headers` bloğuyla tanımlanır; her giriş
+  # { path, name, value } üçlüsüdür (iç içe `headers:` dizisi DEĞİL).
+  # Kaynak: https://render.com/docs/static-site-headers
+  #
+  # ⚠️  MEVCUT SERVİS İÇİN GEÇERLİ DEĞİLDİR
+  # Blueprint yalnızca servis OLUŞTURULURKEN okunur; var olan servisin
+  # dashboard ayarını değiştirmez. fikir-platformu-web için başlıklar
+  # Dashboard → Static Site → "Headers" alanına elle girilmelidir.
+  - type: web
+    runtime: static
     name: fikir-platformu-web
     rootDir: frontend
     branch: main
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     autoDeploy: true
-    # SPA fallback
+    # SPA fallback — tüm rotalar index.html'e düşer
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
     headers:
-      - path: /index.html
-        headers:
-          - name: Cache-Control
-            value: no-cache, no-store, must-revalidate
-          - name: Content-Security-Policy
-            value: >-
-              default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval';
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              font-src 'self' https://fonts.gstatic.com data:;
-              img-src 'self' data: blob:;
-              connect-src 'self' https://fikir-platformu.onrender.com;
-              frame-ancestors 'none';
-              base-uri 'self';
-              form-action 'self'
-          - name: X-Frame-Options
-            value: DENY
-          - name: X-Content-Type-Options
-            value: nosniff
-          - name: Referrer-Policy
-            value: strict-origin-when-cross-origin
-          - name: Permissions-Policy
-            value: geolocation=(), microphone=(), camera=(), payment=()
-          - name: Strict-Transport-Security
-            value: max-age=31536000; includeSubDomains; preload
-      - path: /assets
-        headers:
-          - name: Cache-Control
-            value: public, max-age=31536000, immutable
       - path: /*
-        headers:
-          - name: Content-Security-Policy
-            value: >-
-              default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval';
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              font-src 'self' https://fonts.gstatic.com data:;
-              img-src 'self' data: blob:;
-              connect-src 'self' https://fikir-platformu.onrender.com;
-              frame-ancestors 'none';
-              base-uri 'self';
-              form-action 'self'
-          - name: X-Frame-Options
-            value: DENY
-          - name: X-Content-Type-Options
-            value: nosniff
-          - name: Referrer-Policy
-            value: strict-origin-when-cross-origin
-          - name: Permissions-Policy
-            value: geolocation=(), microphone=(), camera=(), payment=()
-          - name: Strict-Transport-Security
-            value: max-age=31536000; includeSubDomains; preload
+        name: Content-Security-Policy
+        value: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval';
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com data:;
+          img-src 'self' data: blob:;
+          connect-src 'self' https://fikir-platformu.onrender.com;
+          frame-ancestors 'none';
+          base-uri 'self';
+          form-action 'self'
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), microphone=(), camera=(), payment=()
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains; preload
+      # Hash'li varlıklar immutable, HTML her seferinde yenilenir
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate

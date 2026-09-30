@@ -63,60 +63,45 @@ services:
     # ile olculdu). Yeni olusan Render servisinde bu blok dogrudan uygulanir.
     # MEVCUT servis (fikir-platformu-web) bu blogu dashboard'dan alacaktir —
     # Blueprint push'u var olan servisi degistirmez.
+    #
+    # Blueprint soz dizimi: her giris { path, name, value } ucclusudur.
+    # Ic ice `headers:` dizisi Render tarafindan reddedilir.
+    # Kaynak: https://render.com/docs/static-site-headers
+    # SPA fallback her sayfayi /index.html'e donusturdugu icin guvenlik
+    # basliklari /* yolunda gecerli olmak zorunda (/index.html degil).
     headers:
-      - path: /index.html
-        headers:
-          - name: Cache-Control
-            value: no-cache, no-store, must-revalidate
-          - name: Content-Security-Policy
-            value: >-
-              default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval';
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              font-src 'self' https://fonts.gstatic.com data:;
-              img-src 'self' data: blob:;
-              connect-src 'self' https://fikir-platformu.onrender.com;
-              frame-ancestors 'none';
-              base-uri 'self';
-              form-action 'self'
-          - name: X-Frame-Options
-            value: DENY
-          - name: X-Content-Type-Options
-            value: nosniff
-          - name: Referrer-Policy
-            value: strict-origin-when-cross-origin
-          - name: Permissions-Policy
-            value: geolocation=(), microphone=(), camera=(), payment=()
-          - name: Strict-Transport-Security
-            value: max-age=31536000; includeSubDomains; preload
-      - path: /assets
-        headers:
-          - name: Cache-Control
-            value: public, max-age=31536000, immutable
-      # SPA fallback ile sunulan HER sayfa /index.html'e donustugu icin
-      # guvenlik basliklari tum yollarda gecerli olmali.
       - path: /*
-        headers:
-          - name: Content-Security-Policy
-            value: >-
-              default-src 'self';
-              script-src 'self' 'unsafe-inline' 'unsafe-eval';
-              style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              font-src 'self' https://fonts.gstatic.com data:;
-              img-src 'self' data: blob:;
-              connect-src 'self' https://fikir-platformu.onrender.com;
-              frame-ancestors 'none';
-              base-uri 'self';
-              form-action 'self'
-          - name: X-Frame-Options
-            value: DENY
-          - name: X-Content-Type-Options
-            value: nosniff
-          - name: Referrer-Policy
-            value: strict-origin-when-cross-origin
-          - name: Permissions-Policy
-            value: geolocation=(), microphone=(), camera=(), payment=()
-          - name: Strict-Transport-Security
-            value: max-age=31536000; includeSubDomains; preload
+        name: Content-Security-Policy
+        value: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval';
+          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+          font-src 'self' https://fonts.gstatic.com data:;
+          img-src 'self' data: blob:;
+          connect-src 'self' https://fikir-platformu.onrender.com;
+          frame-ancestors 'none';
+          base-uri 'self';
+          form-action 'self'
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), microphone=(), camera=(), payment=()
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains; preload
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /index.html
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
     # Sikistirma (Brotli) — Vite urettigi text/js/css Render CDN tarafindan
     # otomatik sikistirilir, ek config gereksiz
