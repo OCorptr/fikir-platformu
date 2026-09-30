@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { YetkiliGirisModal } from "../components/YetkiliGirisModal";
+import { me } from "../services/auth";
+import { fullPageNav } from "../components/YetkiliPanelSecim";
+import { sessionForContext } from "../types";
 
 const kazananlar = [
   {
@@ -53,6 +56,43 @@ export function HomePage() {
   const [yetkiliGirisAcik, setYetkiliGirisAcik] = useState(
     () => typeof window !== "undefined" && window.location.pathname === "/giris",
   );
+
+  // Onur (S11.87): "Fikrini Yaz & Paylaş" butonuna tıklayınca doğrudan
+  // Yetkili Giriş'e tıkladığımda çıkan yönlendirme popup'ı çıksın... sen gitmişsen
+  // saçma sapan /fikir sayfasına yönlendirip o sayfada yazıyorsun buna gerek yok."
+  //
+  // SEBEP: CTA düz `<a href="/fikir">` idi ve HomePage oturumdan habersizdi.
+  // 11.86'da /fikir yöneticiye kapatılınca, yönetici CTA'ya tıklayınca önce
+  // /fikir'e gidiyor, orada aynı modalı görüyordu — gereksiz tam sayfa
+  // yönlendirmesi. Artık yönetici oturumu varsa sayfa değişmeden modal açılır.
+  //
+  // province yetkiyi taşır: il yöneticisi ve değerlendiricisi de "yönetici"dir.
+  const [yetkiliOturum, setYetkiliOturum] = useState(false);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    me(controller.signal)
+      .then((cevap) => {
+        setYetkiliOturum(
+          Boolean(
+            sessionForContext(cevap, "province") ?? sessionForContext(cevap, "ministry"),
+          ),
+        );
+      })
+      // Oturum okunamazsa CTA eskisi gibi /fikir'e gitsin — tahmin etmeyelim.
+      .catch(() => setYetkiliOturum(false));
+    return () => controller.abort();
+  }, [yetkiliGirisAcik]);
+
+  // CTA davranışı: yönetici → panel seçimi modalı, diğer herkes → /fikir.
+  function ctaTiklandi() {
+    if (yetkiliOturum) {
+      setYetkiliGirisAcik(true);
+      return;
+    }
+    fullPageNav("/fikir");
+  }
+
   const n = kazananlar.length;
 
   useEffect(() => {
@@ -139,11 +179,11 @@ export function HomePage() {
             ))}
           </div>
 
-          <a className="cta-fikir" href="/fikir">
+          <button type="button" className="cta-fikir" onClick={ctaTiklandi}>
             <span className="cta-ikon">✏️</span>
             <span className="cta-metin">Fikrini Yaz &amp; Paylaş</span>
             <svg className="cta-ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12h14" /><path d="M13 6l6 6-6 6" /></svg>
-          </a>
+          </button>
         </div>
 
         {lightboxAcik && (

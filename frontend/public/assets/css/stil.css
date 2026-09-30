@@ -884,6 +884,10 @@ html.koyu-mod .ay-fikir-giris { color: #C9D6E8; }
   box-shadow: 0 0.7rem 1.8rem rgba(216, 89, 12, 0.45), inset 0 -0.3rem 0 rgba(0, 0, 0, 0.18);
   animation: ctaNefes 1.8s ease-in-out infinite;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  /* Onur (S11.87): CTA artık <button> (yönetici oturumunda modal açıyor,
+     diğerlerinde /fikir'e gidiyor). Tarayıcının varsayılan buton kenarlığı
+     ve sistem fontu eski <a> görünümünü bozuyordu. */
+  border: 0; font: inherit; cursor: pointer;
 }
 .cta-fikir:hover {
   transform: scale(1.09) rotate(-1deg);
