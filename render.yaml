@@ -6,8 +6,13 @@
 #   2. fikir-platformu-web   — React/Vite frontend (Static Site + /api proxy)
 #
 # Deploy sonrası Render otomatik hostname atar (örn: fikir-platformu-api.onrender.com).
-# Cross-origin cookie auth için Static Site proxy tercih edildi — _redirects dosyası
-# frontend/public/ altında (Vite build sırasında dist/ içine kopyalanır).
+# Cross-origin cookie auth: frontend, API'ye KENDİ origininden doğrudan istek
+# atar (services/api.ts → backendApiUrl()). Proxy YOKTUR — ne `_redirects`
+# ne de nginx /api kuralı (S11.88'de burada böyle bir yorum vardı, dosya da
+# mevcut değildi). Çalışan mekanizma CORS'tur: API tarafında
+# `Cors__AllowedOrigins` frontend origin'ini LİSTELEMELİDİR. Sprint 11.52'de
+# gömülü Render origin fallback'i kaldırıldı; liste boşsa CORS middleware
+# hiç kurulmaz ve tarayıcı tüm istekleri reddeder.
 #
 # Env variable'lar Dashboard'dan ayarlanmalı (sync: false = manual):
 #   - api → ConnectionStrings__MySql (TiDB Cloud connection string)
