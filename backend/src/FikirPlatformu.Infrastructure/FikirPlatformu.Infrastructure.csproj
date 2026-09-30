@@ -8,5 +8,13 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="9.0.0" />
     <PackageReference Include="Otp.NET" Version="1.4.1" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.EntityFrameworkCore" Version="9.0.0" />
+    <!--
+      DataProtection → Cryptography.Pkcs → Cryptography.Xml 9.0.0 zinciri, 7 "high" duyurulmus
+      acik getiriyordu (CVE-2026-47304 guvenlik ozelligi atlatma, CVE-2026-50527 kaynak tuketimi vb.).
+      Proje net10.0 hedefledigi icin yamalı surum 10.0.10'a sabitleniyor; boylece
+      teslim paketinde acikli paket kalmiyor. Uygulama XML sifrelemeyi (EncryptedXml)
+      kullanmiyor, ancak denetimde "bagimlilik ağacinda acik" maddesi olarak raporlanirdi.
+    -->
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="10.0.10" />
   </ItemGroup>
 </Project>
