@@ -53,8 +53,9 @@
 | 2 | HSTS başlığı hiç gönderilmiyordu | Tarayıcı HTTPS zorunluluğunu öğrenemiyordu | ✅ Düzeltildi — canlıda doğrulandı |
 | 3 | Kullanıcı arayüzü sayfasında CSP ve `X-Frame-Options` yoktu | Clickjacking ve XSS yüzeyi | ✅ Düzeltildi (nginx yapılandırması) |
 | 4 | Başlangıç SQL'i var olmayan bir kolonu güncelliyordu | Her bakanlık yetkilisi girişte parola değiştirmeye zorlanıyordu | ✅ Düzeltildi |
+| 5 | `System.Security.Cryptography.Xml` 9.0.0 bağımlılık ağacındaydı — 7 "yüksek" önemli açık (CVE-2026-47304 güvenlik özelliği atlama, CVE-2026-50527 kaynak tüketimi) | Denetimde "bağımlılık ağacında açık" maddesi olarak raporlanırdı | ✅ 10.0.10'a sabitlendi |
 
-Dört açığın dördü de **teslim öncesinde kapatıldı** ve düzeltmeler regresyon testleriyle test setine eklendi (51 test).
+Beş açığın beşi de **teslim öncesinde kapatıldı**; 1, 4 ve 5 için regresyon testi eklendi (51 test).
 
 ---
 
