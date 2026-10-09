@@ -34,16 +34,23 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
         // düşüyordu → "GenericArguments[1], 'System.ReadOnlySpan`1[...]'
         // violates the constraint of type parameter 'TRet'" hatası, yani
         // /il-panel 500 veriyordu. Açık `||` zincirine çevrilince sorun kalktı.
-        var durumFiltresi = asama == InboxAsama.Kararli
-            ? (System.Linq.Expressions.Expression<Func<Idea, bool>>)(f =>
+        System.Linq.Expressions.Expression<Func<Idea, bool>> durumFiltresi;
+        if (asama == InboxAsama.Kararli)
+        {
+            durumFiltresi = f =>
                 f.Status == IdeaSubmissionStatus.EvaluationCompleted
                 || f.Status == IdeaSubmissionStatus.Locked
                 || f.Status == IdeaSubmissionStatus.Planned
                 || f.Status == IdeaSubmissionStatus.ImplementationInProgress
                 || f.Status == IdeaSubmissionStatus.ImplementationCompleted
-                || f.Status == IdeaSubmissionStatus.ImplementationFailed)
-            : f => f.Status == IdeaSubmissionStatus.Submitted
+                || f.Status == IdeaSubmissionStatus.ImplementationFailed;
+        }
+        else
+        {
+            durumFiltresi = f =>
+                f.Status == IdeaSubmissionStatus.Submitted
                 || f.Status == IdeaSubmissionStatus.InEvaluation;
+        }
 
         var raw = await (
             from fikir in db.Ideas.AsNoTracking()
