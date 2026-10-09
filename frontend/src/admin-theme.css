@@ -93,11 +93,11 @@ html.koyu-mod .adm-grup-ok { border-color: var(--yt-cizgi); }
 html.koyu-mod .adm-tablo-satir td:last-child,
 html.koyu-mod .adm-tablo th:last-child { color: var(--yt-soluk); }
 
-/* `.adm-btn-ana` beyaz yazı + teal zemin → 2.07 kontrast (WCAG AA için 4.5
-   gerekir). Koyu modda vurgu rengi parlaklaştığı için yazı KOYULAŞTIRILIR:
-   koyu yazı + parlak teal çok daha yüksek kontrast verir. */
+/* `.adm-btn-ana` / `.adm-cip-aktif` parlak turkuaz zeminde beyaz yazı yalnızca
+   2.07 kontrast veriyordu (WCAG AA gereği 4.5). Onur: "içindeki yazı beyaz olmasın,
+   Tümü yazısındaki gibi koyu mavimsi olsun." → zemin turkuaz, yazı koyu lacivert. */
 html.koyu-mod .adm-btn-ana,
-html.koyu-mod .adm-btn-ana:hover:not(:disabled) { color: #06232B; }
+html.koyu-mod .adm-btn-ana:hover:not(:disabled) { color: #062A32; }
 
 body.sayfa-admin {
   font-family: "Nunito", "Baloo 2", sans-serif;
@@ -453,13 +453,13 @@ body.sayfa-admin {
 .adm-btn-ana {
   background: var(--yt-vurgu);
   border-color: var(--yt-vurgu);
-  color: #fff;
+  color: #062A32;
 }
 
 .adm-btn-ana:hover:not(:disabled) {
   background: #178a8e;
   border-color: #178a8e;
-  color: #fff;
+  color: #062A32;
 }
 
 .adm-btn-tehlike {
@@ -688,11 +688,11 @@ summary.adm-grup-baslik:hover .adm-grup-ad {
 .adm-cip-aktif {
   background: var(--yt-vurgu);
   border-color: var(--yt-vurgu);
-  color: #fff;
+  color: #062A32;
 }
 
 .adm-cip-aktif:hover {
-  color: #fff;
+  color: #062A32;
   border-color: var(--yt-vurgu);
 }
 
