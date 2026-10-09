@@ -952,17 +952,27 @@ html.koyu-mod .cta-fikir {
   display: flex; flex-direction: column; justify-content: center;
   transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
-#af-sol {
+#af-sol, #af-sag {
+  /* Onur: "bembeyaz, daha güzel bir şey yapabilir miyiz; ortadan fazla
+     ilgi çekmemeliler." → orta kart altın/sıcak, yan kartlar soğuk ve sakin.
+     Düz beyaz yerine çok açık mavi-gri gradyan + yumuşak çerçeve. */
+  background: linear-gradient(165deg, #FAFCFE 0%, #E9F1F8 100%);
+  border: 0.14rem solid #D8E5F0;
+  box-shadow: 0 0.5rem 1.3rem rgba(30, 60, 120, 0.09);
   transform: perspective(1100px) rotateY(22deg) rotate(-1.2deg) scale(0.93);
   transform-origin: 100% 50%;
-  opacity: 0.7;
+  opacity: 0.82;
   overflow: hidden;
 }
 #af-sag {
+  background: linear-gradient(165deg, #FAFCFE 0%, #E9F1F8 100%);
   transform: perspective(1100px) rotateY(-22deg) rotate(1.2deg) scale(0.93);
   transform-origin: 0% 50%;
-  opacity: 0.7;
-  overflow: hidden;
+}
+html.koyu-mod #af-sol, html.koyu-mod #af-sag {
+  background: linear-gradient(165deg, #22314A 0%, #1B2840 100%);
+  border-color: #2E4364;
+  opacity: 0.86;
 }
 .af-orta {
   width: 22rem; z-index: 2;
