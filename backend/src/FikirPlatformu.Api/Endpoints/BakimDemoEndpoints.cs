@@ -106,6 +106,29 @@ public static class BakimDemoEndpoints
                 }
             }
 
+            // Sprint 11.92: `mod=demoriza` → demo öğrencilerine yayım iznı tamamlar
+            // (yayım kapısı açılsın diye; gerçek öğrencilere dokunmaz).
+            if (http.Request.Query["mod"].ToString() == "demoriza")
+            {
+                try
+                {
+                    var r = await DemoVeriServisi.DemoYayimRizasi(servisler, cancellationToken);
+                    return Results.Ok(r);
+                }
+                catch (Exception ex)
+                {
+                    var kok = ex;
+                    while (kok.InnerException is not null) kok = kok.InnerException;
+                    return Results.Json(new
+                    {
+                        calistirildi = false,
+                        hataTipi = ex.GetType().Name,
+                        mesaj = ex.Message,
+                        kokMesaj = kok.Message,
+                    }, statusCode: 500);
+                }
+            }
+
             try
             {
                 if (sifreModu)

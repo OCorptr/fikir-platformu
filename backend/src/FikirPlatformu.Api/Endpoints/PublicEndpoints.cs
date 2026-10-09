@@ -83,8 +83,10 @@ public static class PublicEndpoints
                     .Select(f => f.Id)
                     .ToListAsync(cancellationToken);
 
+            // TÜM kazananlar döner (seçim bilgisi bozulmaz); yayım kartı yalnızca
+            // rıza verilmişse eklenir. Aksi hâlde "kazanan seçildi ama gösterilmiyor"
+            // durumunda sayfa "değerlendirme sürüyor" deyip yanlış bilgi verirdi.
             var kazananlar = await db.PeriodWinners.AsNoTracking()
-                .Where(w => yayimliFikirIdler.Contains(w.IdeaId))
                 .GroupBy(w => w.PeriodId)
                 .Select(g => g.First())
                 .ToDictionaryAsync(w => w.PeriodId, cancellationToken);
@@ -92,11 +94,35 @@ public static class PublicEndpoints
             var fikirIds = kazananlar.Values.Select(w => w.IdeaId).Distinct().ToList();
             var kartlar = await KazananKartlariniYukle(db, fikirIds, cancellationToken);
 
+            // Yayım izni olmayan fikirlerin kartı gösterilmez.
+            var yayimliKartIdler = new HashSet<Guid>();
+            if (kartlar.Count > 0)
+            {
+                var profilIds = await db.Ideas.AsNoTracking()
+                    .Where(f => kartlar.ContainsKey(f.Id))
+                    .Select(f => f.StudentId)
+                    .ToListAsync(cancellationToken);
+                var rizaVerenProfiller = await db.StudentProfiles.AsNoTracking()
+                    .Where(p => rizaVerenler.Contains(p.ApplicationUserId) && profilIds.Contains(p.Id))
+                    .Select(p => p.Id)
+                    .ToListAsync(cancellationToken);
+                if (rizaVerenProfiller.Count > 0)
+                {
+                    var rizaVerenFikirler = await db.Ideas.AsNoTracking()
+                        .Where(f => rizaVerenProfiller.Contains(f.StudentId))
+                        .Select(f => f.Id)
+                        .ToListAsync(cancellationToken);
+                    yayimliKartIdler = rizaVerenFikirler.ToHashSet();
+                }
+            }
+
             var kayitlar = donemler.Select(d =>
             {
-                var kazananKart = kazananlar.TryGetValue(d.Id, out var k) && kartlar.TryGetValue(k.IdeaId, out var kart)
-                    ? kart
-                    : (object?)null;
+                var kazananKart = kazananlar.TryGetValue(d.Id, out var k)
+                    && yayimliKartIdler.Contains(k.IdeaId)
+                    && kartlar.TryGetValue(k.IdeaId, out var kart)
+                        ? kart
+                        : (object?)null;
                 return new
                 {
                     id = d.Id,
@@ -105,6 +131,8 @@ public static class PublicEndpoints
                     bitis = d.EndAt,
                     durum = d.Status.ToString(),
                     kazanan = kazananKart,
+                    // Kazanan seçilmiş AMA yayım izni yok → kullanıcıya "yok" deme.
+                    kazananSecildi = kazananlar.ContainsKey(d.Id),
                     secimTarihi = kazananlar.TryGetValue(d.Id, out var k2) ? k2.SelectedAt : (DateTimeOffset?)null,
                 };
             }).ToList();

@@ -703,7 +703,51 @@ public static class DemoVeriServisi
         }
     }
 
-    /// <summary>Tam olarak <see cref="Idea.MaxContentLength"/> karakterlik gerçekçi fikir metni.</summary>
+    /// <summary>
+    /// Sprint 11.92 — Mevcut demo öğrencilerinin YAYIM rızasını tamamlar.
+    ///
+    /// <para><b>Neden gerekti:</b> Yayım kapısı (KVKK) yalnızca kayıt formundan
+    /// yayım izni vermiş öğrencilerin fikirlerini ana sayfada gösteriyor. Demo
+    /// hesapları bakım ucuyla açıldığı için o kayıt hiç yok — ana sayfa "değerlendirme
+    /// sürüyor" diyordu, oysa kazanan seçilmişti.</para>
+    ///
+    /// <para>Gerçek öğrencilere DOKUNMAZ; sadece `demo.` önekli hesaplar.</para>
+    /// </summary>
+    public static async Task<object> DemoYayimRizasi(
+        IServiceProvider servisler,
+        CancellationToken cancellationToken)
+    {
+        using var kapsam = servisler.CreateScope();
+        var db = kapsam.ServiceProvider.GetRequiredService<FikirPlatformuDbContext>();
+
+        var demoKullanicilar = await db.Users.AsNoTracking()
+            .Where(u => (u.Email ?? "").StartsWith(KullaniciOneki))
+            .Select(u => u.Id)
+            .ToListAsync(cancellationToken);
+        if (demoKullanicilar.Count == 0) return new { calistirildi = false, sebep = "Demo hesap yok." };
+
+        var eklendi = 0;
+        foreach (var id in demoKullanicilar)
+        {
+            var varMi = await db.Database.SqlQueryRaw<int>(
+                    "SELECT COUNT(*) FROM kvkk_rizalari " +
+                    "WHERE user_id = {0} AND tur = 'yayim' AND iptal_at IS NULL",
+                    cancellationToken, id)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (varMi > 0) continue;
+
+            await db.Database.ExecuteSqlRawAsync(
+                "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
+                "VALUES ({0}, {1}, 'yayim', '2026-09-10', {2}, 'demo-seed', 'demo-seed')",
+                cancellationToken, Guid.NewGuid().ToString(), id, DateTimeOffset.UtcNow.UtcDateTime);
+            eklendi++;
+        }
+
+        return new { calistirildi = true, demoHesap = demoKullanicilar.Count, rizaEklenen = eklendi };
+    }
+
+    /// <summary>
+    /// Sprint 11.92 — Tam olarak <see cref="Idea.MaxContentLength"/> karakterlik gerçekçi fikir metni.</summary>
     private static string UzunFikirMetni()
     {
         var cumleler = new List<string>
