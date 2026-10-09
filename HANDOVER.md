@@ -4,52 +4,57 @@
 
 ---
 
-## 🔴🔴 CANLI ORTAM HATASI — ÇÖZÜLMEDİ, YENİ OTURUM BUNU ÖNCE OKUSUN
+## ✅ CANLI ORTAM HATASI — 9 Eki 2026 14:45'TE ÇÖZÜLDÜ (Sprint 11.92)
 
-**Belirti:** Tüm e-posta gönderimi 500 hatası veriyor.
+**Kök neden (doğrulandı):** Google OAuth consent screen **"Testing"** durumunda. Bu
+durumda Google, `gmail.send` scope'u istenen uygulamalara **7 gün geçerli** refresh
+token veriyor (istisna scope listesi = `userinfo.email` / `userinfo.profile` / `openid`
+— `gmail.send` kapsam dışı). Token süresi dolmuş → `GmailApiEmailSender` token
+endpoint'inde `invalid_grant` alıyor → `InvalidOperationException` → try/catch
+olmayan `SendAsync` → genel 500.
 
-```
-POST /api/auth/mfa/send-email-otp   → 500 "İşlem sırasında beklenmeyen bir hata oluştu."
-POST /api/auth/register             → 500 (doğrulama e-postası gönderilemiyor)
-```
+**Çözüm:** `/api/auth/gmail-oauth/start` handshake'i tekrar çalıştırıldı (`prompt=consent`
+kodda tanımlı olduğu için yeni token üretildi, `gmail_refresh_tokens` Id=1'e şifreli yazıldı).
+E-posta gönderimi aynı gün çalışır duruma geldi.
 
-Kullanıcıya görünen: *"Kod gönderiliyor…"* → *"Kodu tekrar gönder"* → *"İşlem sırasında beklenmeyen bir hata oluştu."*
+**⏰ Bu sorun kendini tekrarlar:** token **~16 Ekim 2026**'da tekrar dolacak.
 
-**Teşhis (9 Eki 2026):** `Mail__Type=gmail` → `GmailApiEmailSender`. `GetAccessTokenAsync` veya `SendAsync` fırlatıyor, `MfaEndpoints` `SendAsync`'ı **try/catch ile sarmalamıyor** → ham `InvalidOperationException` ASP.NET'in genel 500 maskesine düşüyor. Gerçek neden logda (`[GMAIL]` satırları), yanıtta **görünmüyor**.
-
-**Doğrulanmış olanlar:**
-- `Mail:Gmail:ClientId` **VAR** — `/api/auth/gmail-oauth/start` 302 ile Google'a yönlendiriyor (client_id `243209544707-…apps.googleusercontent.com`)
-- Hata **göndericiye özgü değil** — kayıt ucu da aynı 500'ü veriyor, yani `IEmailSender` katmanı bozuk
-- `Mail__Gmail__SenderAddress` ayarlanmamış olabilir (`GmailApiEmailSender.cs:69` erken fırlatır)
-
-**Muhtemel patlama noktaları** (`GmailApiEmailSender.cs`):
-
-| Satır | Koşul |
-|---|---|
-| 69 | `Mail__Gmail__SenderAddress` boş |
-| 123 | `ClientId`/`ClientSecret` eksik |
-| 135 | Refresh token yok (DB `gmail_refresh_tokens` Id=1 boş **veya** env eksik) |
-| 158 | Refresh token reddedildi (geçersiz/expire) |
-
-**Sonraki adım:** Render loglarında `[GMAIL]` **ve** `[MAIL]` satırlarını bul → hangi koşul tutuyor.
-
-> 🟡 **Sprint 11.92 — iki düzeltme yapıldı, kök neden HÂLÂ bulunmadı.**
+> 🔧 **Acil çözüm (her seferinde):** tarayıcıya yapıştır →
+> `https://fikir-platformu.onrender.com/api/auth/gmail-oauth/start?returnTo=/admin/oauth`
+> → giriş → İzin ver. **Giriş gerekmez** (endpoint anonim) — bu, "MFA e-postası
+> çalışmıyor → giriş yapamıyorum → handshake sayfasına giremiyorum" tavuk-yumurta
+> döngüsünü kırar. `/admin/oauth` sayfası sistem yöneticisi oturumu istediği için
+> bu yol **zorunlu**. Dönüşte 404/boş sayfa normaldir (token yazımı redirect'ten önce olur).
 >
-> 1. **Ekran kilitlenmesi düzeltildi.** `MfaLoginPage.tsx`'te gönderim durumu
->    TÜRETİLİYORDU (`emailModu && !emailGonderildi`) ve `emailGonderildi` yalnızca
->    başarıda `true` oluyordu → 500 sonrası buton "Kod gönderiliyor…" metninde
->    donuyor, kod alanı kalıcı pasifleşiyordu. Artık gerçek state, `finally`'de
->    sıfırlanıyor; başarısızlıkta ana buton "Kodu tekrar gönder"e dönüşüyor.
-> 2. **Genel 500 kaldırıldı.** `Endpoints/EpostaGonderimGuvenli.cs` — tüm
->    `SendAsync` çağrıları (MFA kurulum, MFA giriş OTP, kayıt doğrulama, şifre
->    sıfırlama) try/catch ile sarıldı. Artık **502 + Türkçe mesaj +
->    `errorCode: MAIL_SEND_FAILED`** dönüyor, sunucu loguna `[MAIL]` + istisna
->    yazılıyor, `auth_events`'e başarısızlık kaydı giriyor (denetim izi).
+> 🛠 **Kalıcı çözüm (yapılmalı):** Google Cloud Console → OAuth consent screen →
+> **Publish App**. Testing → In production olunca token 6 ay geçerli olur.
+> `gmail.send` *sensitive* scope olduğu için Google "doğrulanmamış" uyarısı gösterir —
+> ama uygulamayı yalnızca **sistem gönderici hesabı** (tek kullanıcı) yetkilendiriyor,
+> öğrenciler consent ekranını hiç görmüyor. CASA gerekmiyor (restricted değil).
 >
-> Yani sonraki denemede hata **hangi koşulun tuttuğunu** logda gösterecek.
-> Teşhis için gerekli tek şey: Render logunda `[MAIL]` / `[GMAIL]` satırı.
+> 📋 **Teslim için asıl cevap:** Gmail'i bırak → AWS SES veya kurum SMTP'i
+> (Sprint 12 backlog'unda zaten var). Token/OAuth bağımlılığı, quota, gönderen adres
+> kurumun kendi domain'i olur.
 
-**Etkilenen akışlar:** parola sıfırlama, kayıt doğrulama, MFA e-posta kodu. **TOTP MFA etkilenmez** (e-posta kullanmaz).
+<details>
+<summary>Teşhis süreci (Sprint 11.92'de yapılan iki düzeltme)</summary>
+
+1. **Ekran kilitlenmesi düzeltildi.** `MfaLoginPage.tsx`'te gönderim durumu
+   TÜRETİLİYORDU (`emailModu && !emailGonderildi`) ve `emailGonderildi` yalnızca
+   başarıda `true` oluyordu → 500 sonrası buton "Kod gönderiliyor…" metninde
+   donuyor, kod alanı kalıcı pasifleşiyordu. Artık gerçek state, `finally`'de
+   sıfırlanıyor; başarısızlıkta ana buton "Kodu tekrar gönder"e dönüşüyor.
+2. **Genel 500 kaldırıldı.** `Endpoints/EpostaGonderimGuvenli.cs` — tüm
+   `SendAsync` çağrıları (MFA kurulum, MFA giriş OTP, kayıt doğrulama, şifre
+   sıfırlama) try/catch ile sarıldı. Artık **502 + Türkçe mesaj +
+   `errorCode: MAIL_SEND_FAILED`** dönüyor, sunucu loguna `[MAIL]` + istisna
+   yazılıyor, `auth_events`'e başarısızlık kaydı giriyor (denetim izi).
+   `/forgot-password` bilerek 200 dönmeye devam eder — 502 dönseydi "bu e-posta
+   kayıtlı" bilgisi sızar (kullanıcı sayımama, YG test #8).
+
+</details>
+
+**Etkilenen akışlar:** parola sıfırlama, kayıt doğrulama, MFA e-posta kodu. **TOTP MFA etkilenmez** (e-posta kullanmaz) — TOTP tanımlıysa giriş her zaman açıktı.
 
 ---
 

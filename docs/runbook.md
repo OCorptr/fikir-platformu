@@ -7,6 +7,45 @@
 
 ## 🚨 Acil müdahale
 
+### E-posta gönderilemiyor (MFA OTP, kayıt doğrulama, şifre sıfırlama)
+
+**En sık neden:** Google OAuth consent screen **"Testing"** durumunda olduğu için
+refresh token **7 gün** sonra expire oluyor (`gmail.send` sensitive scope; Testing
+modundaki tek istisna `userinfo.email/profile/openid` scope'larıdır).
+
+**Belirti:** Ekran "Doğrulama kodu gönderilemedi" der, HTTP `502`,
+`errorCode: MAIL_SEND_FAILED`. Sunucu logunda `[GMAIL] Token yenileme hatası 400:
+invalid_grant` ve `[MAIL] Gönderim başarısız` satırları görünür.
+
+**🔑 Çözüm — giriş yapmadan, doğrudan bu URL'yi aç:**
+
+```
+https://fikir-platformu.onrender.com/api/auth/gmail-oauth/start?returnTo=/admin/oauth
+```
+
+→ `fikir.platformu.iletisim@gmail.com` ile Google girişi → **İzin ver**.
+
+> ⚠️ **Neden `/admin/oauth` sayfası değil?** O sayfa sistem yöneticisi oturumu
+> istiyor; oturum da MFA istiyor; MFA e-postası da bozuk → tavuk-yumurta
+> döngüsü. `/api/auth/gmail-oauth/start` **anonimdir** (state cookie CSRF koruması
+> sağlıyor), döngüyü kırar. Geri dönüşte 404/boş sayfa normaldir — token yazımı
+> redirect'ten önce gerçekleşir.
+>
+> ⚠️ `window.open` ile **yeni sekmede** açma. 3rd-party cookie engeli state
+> cookie'sini düşürür. Aynı sekmede (`window.location.href`) olmalı.
+
+**Doğrulama:**
+```bash
+curl "https://fikir-platformu.onrender.com/api/auth/__debug/mail-sender?token=$Bakim_Anahtari"
+# dbRefreshTokenVar: true olmalı, dbTokenUpdatedAt bugünün tarihi
+```
+
+**Yeniden ne zaman olacak?** Token 9 Eki 2026'da yenilendi → **~16 Eki 2026**.
+Kalıcı çözüm: Google Cloud Console → OAuth consent screen → **Publish App**
+(In production → token 6 ay geçerli). `gmail.send` sensitive olduğu için doğrulama
+uyarısı çıkar ama uygulamayı yalnızca sistem gönderici hesabı yetkilendiriyor.
+Teslim için asıl çözüm: AWS SES / kurum SMTP'i (Gmail bağımlılığını kaldırır).
+
 ### Backend down / 503
 
 ```bash
