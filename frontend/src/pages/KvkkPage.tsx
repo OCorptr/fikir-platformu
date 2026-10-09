@@ -119,7 +119,8 @@ export function KvkkPage() {
         <h2>2. Açık Rıza Metni — Fikrinizin Yayımlanması</h2>
         <p>
           Bu bölüm <b>1. bölümden tamamen ayrıdır</b> ve yalnızca bir konuyu
-          kapsar: fikrinizin internet ortamında yayımlanması.
+          kapsar: fikrinizin internet ortamında yayımlanması. Bu onay
+          <b>platforma üye olmanın ön koşuludur.</b>
         </p>
 
         <h3>Yayımlama nedir?</h3>
@@ -145,19 +146,19 @@ export function KvkkPage() {
           olma” ilkesi).
         </p>
 
-        <h3>Onayı vermezseniz ne olur?</h3>
+        <h3>Onaylamazsan ne olur?</h3>
         <p>
-          <b>Hiçbir şey değişmez.</b> Fikriniz yazılır, ilinizdeki
-          değerlendiriciler tarafından değerlendirilir ve bakanlığa gönderilir.
-          Tek farkı: <b>ana sayfada yayımlanmaz.</b> Yayımlamak, fikrinizin
-          değerlendirilmesi için <b>şart değildir</b>.
+          <b>Üye olamazsın.</b> Fikrinin değerlendirilmesi ve herkese açık
+          paylaşılması bu platformun birlikte çalışma biçiminin parçasıdır.
+          Platforma yalnızca yayımlama iznini vererek üye olabilirsin.
         </p>
 
         <h3>Onayı geri çekebilir miyim?</h3>
         <p>
-          <b>Evet, istediğin zaman.</b> Onayı geri çektiğiniz andan itibaren
-          bilgileriniz ana sayfadan kaldırılır. Fikrinizin değerlendirme süreci
-          devam eder.
+          <b>Evet, istediğin zaman.</b> Onayı geri çektiğinde bilgilerin ana
+          sayfadan kaldırılır. Bu durumda hesabın ve değerlendirmelerin devam eder,
+          yalnızca kamuya açık gösterim kapanır. Geri çekme talebinizi
+          <b>[veri sorumlusu iletişim bilgisi]</b> üzerinden iletebilirsiniz.
         </p>
 
         <h3>Onay ne kadar süre geçerli?</h3>

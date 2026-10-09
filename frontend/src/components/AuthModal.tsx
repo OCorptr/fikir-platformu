@@ -263,6 +263,12 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
       setHata("Devam etmek için Aydınlatma Metni'ni okuduğunu onaylaman gerekir.");
       return;
     }
+    // Onur (9 Eki 2026): "Kabul isteğe bağlı olamaz, kabul etmezse üye olmayacak
+    // zaten." → Yayım izni üyeliğin ön koşuludur.
+    if (!yayimRizasi) {
+      setHata("Platforma üye olmak için fikrinin yayımlanmasına izin vermen gerekiyor.");
+      return;
+    }
     setCalisiyor(true);
     setHata(null);
     try {
@@ -566,17 +572,16 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   type="checkbox"
                   checked={yayimRizasi}
                   onChange={(e) => setYayimRizasi(e.target.checked)}
+                  required
                 />
                 <span>
-                  <b>İsteğe bağlı:</b> Bakanlığın her dönem seçtiği{" "}
-                  <b>Ayın Fikri</b> olarak ilan edilen fikirlerde adım
-                  maskelenmiş biçimde (<i>örn. “Elif Y.”</i>) ve yazdığım fikir
-                  metnim ana sayfada yayımlansın.{" "}
+                  <b>Zorunlu:</b> Bakanlığın her dönem seçtiği <b>Ayın Fikri</b>{" "}
+                  olarak ilan edilen fikirlerde adım maskelenmiş biçimde (<i>örn. “Elif Y.”</i>)
+                  ve yazdığım fikir metnim ana sayfada yayımlansın. Onaylamazsan bu
+                  platforma üye olamazsın.{" "}
                   <a href="/kvkk#acik-riza" target="_blank" rel="noreferrer">
                     Ayrıntılı açık rıza metni
                   </a>
-                  . İstemezsen fikrin yine değerlendirilir, yalnızca ana sayfada
-                  görünmez. Bu onayı istediğin zaman geri çekebilirsin.
                 </span>
               </label>
             </fieldset>

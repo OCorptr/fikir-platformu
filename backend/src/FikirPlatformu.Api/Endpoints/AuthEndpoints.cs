@@ -65,6 +65,15 @@ public static class AuthEndpoints
                 });
             }
 
+            // Onur (9 Eki 2026): yayım izni isteğe bağlı DEĞİL — üyeliğin ön koşulu.
+            if (!istek.YayimRizasi)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["yayimRizasi"] = ["Platforma üye olmak için fikrinin yayımlanmasına izin vermen gerekiyor."]
+                });
+            }
+
             var kullanici = new ApplicationUser
             {
                 UserName = istek.Email,
@@ -112,20 +121,18 @@ public static class AuthEndpoints
                 KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
                 http.Request.Headers.UserAgent.ToString() ?? "");
 
-            if (istek.YayimRizasi)
-            {
-                veritabani.Database.ExecuteSqlRaw(
-                    "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
-                    "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
-                    Guid.NewGuid().ToString(),
-                    kullanici.Id,
-                    "yayim",
-                    istek.AydinlatmaVersiyonu,
-                    simdi.UtcDateTime,
-                    KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
-                    http.Request.Headers.UserAgent.ToString() ?? "");
-            }
-
+            // Yayım izni artık ZORUNLU (kayıt yukarıda reddediliyor), bu yüzden
+            // kaydı her zaman yazıyoruz.
+            veritabani.Database.ExecuteSqlRaw(
+                "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
+                "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+                Guid.NewGuid().ToString(),
+                kullanici.Id,
+                "yayim",
+                istek.AydinlatmaVersiyonu,
+                simdi.UtcDateTime,
+                KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                http.Request.Headers.UserAgent.ToString() ?? "");
             await veritabani.SaveChangesAsync(http.RequestAborted);
 
             var dogrulamaBelirteci = await kullaniciYoneticisi.GenerateEmailConfirmationTokenAsync(kullanici);
@@ -1314,7 +1321,9 @@ grup.MapPost("/logout", async (
         //   YayimRizasi       → internet ortamında yayımlamaya yönelik AYRI, opsiyonel
         //                      ve geri alınabilir açık rıza.
         [Required] bool AydinlatmaOkundu = false,
-        bool YayimRizasi = false,
+        // Onur (9 Eki 2026): "Kabul isteğe bağlı olamaz, kabul etmezse üye
+        // olmayacak zaten." → Yayım izni üyeliğin ön koşuludur.
+        [Required] bool YayimRizasi = false,
         [StringLength(20)] string AydinlatmaVersiyonu = "2026-09-10");
 
     public sealed record GirisIstegi(
