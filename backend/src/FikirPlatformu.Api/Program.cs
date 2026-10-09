@@ -559,6 +559,36 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "[STARTUP] implementation_reports.related_project kolonu eklenemedi.");
     }
 
+    // Sprint 11.92 — KVKK rıza/aydınlatma defteri.
+    // Kanun 10. md. uyarınca aydınlatmanın yapıldığının ve rızanın alındığının
+    // İSPATI veri sorumlunun yükümlülüğündür; bu yüzden kayıt (zaman damgası +
+    // metin versiyonu + rıza türü + iptal) ayrı tabloda tutulur.
+    // EF migration bu ortamda üretilemediği için idempotent raw SQL ile oluşturulur.
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(
+            "CREATE TABLE IF NOT EXISTS `kvkk_rizalari` (" +
+            "`id` CHAR(36) NOT NULL," +
+            "`user_id` CHAR(36) NOT NULL," +
+            // aydinlatma = yalnızca bilgilendirme kaydı (onay değil)
+            // yayim     = internet ortamında yayımlamaya yönelik açık rıza
+            "`tur` VARCHAR(20) NOT NULL," +
+            "`metin_versiyonu` VARCHAR(20) NOT NULL," +
+            "`verildi_at` DATETIME(6) NOT NULL," +
+            "`iptal_at` DATETIME(6) NULL," +
+            "`ip_adresi` VARCHAR(45) NULL," +
+            "`user_agent` VARCHAR(450) NULL," +
+            "PRIMARY KEY (`id`)," +
+            "KEY `ix_kvkk_rizalari_user` (`user_id`)," +
+            "KEY `ix_kvkk_rizalari_tur` (`tur`, `iptal_at`)" +
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "[STARTUP] kvkk_rizalari tablosu oluşturulamadı.");
+    }
+
     // Sprint 11.60 / YG-17: PasswordChangedAt başlangıç değerlemesi.
     // Eski kayıtlarda bu alan NULL'dır. NULL, "ne zaman değiştirildiği
     // bilinmiyor" demektir ve politikada en kötü senaryo (zorunlu değişim)

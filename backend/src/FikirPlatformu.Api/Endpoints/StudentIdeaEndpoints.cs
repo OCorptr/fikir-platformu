@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using FikirPlatformu.Application.Abstractions;
 using FikirPlatformu.Application.Ideas;
 using FikirPlatformu.Domain.Ideas;
@@ -16,6 +17,9 @@ public static class StudentIdeaEndpoints
         var group = app.MapGroup("/api/student/ideas")
             .RequireAuthorization("StudentOnly")
             .WithTags("Öğrenci Fikirleri");
+
+        // Sprint 11.92 — KVKK yayım rızası uçları.
+        MapYayimRizasiEndpoints(group);
 
         group.MapGet("/", async (
             UserManager<ApplicationUser> userManager,
@@ -368,4 +372,83 @@ public static class StudentIdeaEndpoints
     public sealed record SaveDraftRequest(
         [Range(1, int.MaxValue)] int CategoryId,
         [Required, StringLength(2000, MinimumLength = 10)] string Content);
+
+    // ===== Sprint 11.92 — KVKK yayım rızası =====
+    public sealed record YayimRisasiIstegi([Required] bool Onay);
+
+    /// <summary>
+    /// Yayım açık rızasını ver / geri çek.
+    /// Kanun 3. madde gereği rıza HER ZAMAN geri alınabilir. Geri çekildiğinde
+    /// fikir değerlendirme akışında kalır, yalnızca ana sayfada yayımlanmaz
+    /// (2026/1301 sayılı kamu kurumu paylaşım kararı: amaçla bağlantılı,
+    /// sınırlı ve ölçülü olma ilkesi).
+    /// </summary>
+    private static void MapYayimRizasiEndpoints(RouteGroupBuilder grup)
+    {
+        grup.MapPost("/yayim-risasi", async (
+            YayimRisasiIstegi istek,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var simdi = DateTimeOffset.UtcNow;
+            var ip = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString());
+            var ua = http.Request.Headers.UserAgent.ToString() ?? "";
+
+            if (istek.Onay)
+            {
+                // Daha önce iptal edilmişse YENİDEN onay: iptal kaydı kapatılır.
+                await db.Database.ExecuteSqlRawAsync(
+                    "UPDATE kvkk_rizalari SET iptal_at = NULL WHERE user_id = {0} AND tur = 'yayim'",
+                    cancellationToken, userId);
+
+                var varMi = await db.Database.SqlQueryRaw<int>(
+                        "SELECT COUNT(*) FROM kvkk_rizalari WHERE user_id = {0} AND tur = 'yayim'",
+                        cancellationToken, userId)
+                    .FirstOrDefaultAsync(cancellationToken);
+                if (varMi == 0)
+                {
+                    await db.Database.ExecuteSqlRawAsync(
+                        "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
+                        "VALUES ({0}, {1}, 'yayim', '2026-09-10', {2}, {3}, {4})",
+                        cancellationToken, Guid.NewGuid().ToString(), userId, simdi.UtcDateTime, ip, ua);
+                }
+            }
+            else
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "UPDATE kvkk_rizalari SET iptal_at = {0} " +
+                    "WHERE user_id = {1} AND tur = 'yayim' AND iptal_at IS NULL",
+                    cancellationToken, simdi.UtcDateTime, userId);
+            }
+
+            return Results.Ok(new
+            {
+                yayimRizasiVerildi = istek.Onay,
+                mesaj = istek.Onay
+                    ? "Yayımlama izniniz alındı. Adınız maskeli olarak (örn. \"Elif Y.\") ana sayfada görünebilir."
+                    : "Yayımlama izniniz geri çekildi. Fikriniz değerlendirmeye devam eder, ancak ana sayfada görünmez.",
+            });
+        });
+
+        grup.MapGet("/yayim-risasi", async (
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var varMi = await db.Database.SqlQueryRaw<int>(
+                    "SELECT COUNT(*) FROM kvkk_rizalari " +
+                    "WHERE user_id = {0} AND tur = 'yayim' AND iptal_at IS NULL",
+                    cancellationToken, userId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return Results.Ok(new { yayimRizasiVar = varMi > 0 });
+        });
+    }
 }

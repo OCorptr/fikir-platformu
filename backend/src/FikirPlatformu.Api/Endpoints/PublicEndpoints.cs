@@ -56,7 +56,37 @@ public static class PublicEndpoints
                 });
             }
 
+            // ===== Sprint 11.92 — YAYIM AÇIK RIZASI KAPISI =====
+            // KVKK Kurul 01.07.2026 tarihli 2026/1301 sayılı kararı: internet
+            // ortamında paylaşılan kişisel veri gerçerli bir işleme şartına
+            // dayanmalı ve "amaçla bağlantılı, sınırlı ve ölçülü" olmalıdır.
+            // Kayıt sırasında YAYIM açık rızası VERİLMEMİŞ öğrencinin fikri
+            // ana sayfada yayımlanmaz — fikir yine değerlendirilir, sadece kamuya
+            // açık kartta görünmez.
+            var rizaVerenler = (await db.Database
+                .SqlQueryRaw<string>(
+                    "SELECT DISTINCT user_id FROM kvkk_rizalari " +
+                    "WHERE tur = 'yayim' AND iptal_at IS NULL")
+                .ToListAsync(cancellationToken))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            // Önce rıza vermiş öğrenciler → profilleri → fikirleri.
+            // (Idea.StudentId bir PROFİL id'sidir; PeriodWinner.IdeaId ise FİKİR id'si.)
+            var yayimliProfilIdler = await db.StudentProfiles.AsNoTracking()
+                .Where(p => rizaVerenler.Contains(p.ApplicationUserId))
+                .Select(p => p.Id)
+                .ToListAsync(cancellationToken);
+            var yayimliFikirIdler = yayimliProfilIdler.Count == 0
+                ? new List<Guid>()
+                : await db.Ideas.AsNoTracking()
+                    .Where(f => yayimliProfilIdler.Contains(f.StudentId))
+                    .Select(f => f.Id)
+                    .ToListAsync(cancellationToken);
+
             var kazananlar = await db.PeriodWinners.AsNoTracking()
+                .Where(w => yayimliFikirIdler.Contains(w.IdeaId))
+                .GroupBy(w => w.PeriodId)
+                .Select(g => g.First())
                 .ToDictionaryAsync(w => w.PeriodId, cancellationToken);
 
             var fikirIds = kazananlar.Values.Select(w => w.IdeaId).Distinct().ToList();
@@ -101,8 +131,7 @@ public static class PublicEndpoints
         return app;
     }
 
-    private static async Task<Dictionary<Guid, KazananKart>> KazananKartlariniYukle(
-        FikirPlatformuDbContext db,
+    private static async Task<Dictionary<Guid, KazananKart>> KazananKartlariniYukle(        FikirPlatformuDbContext db,
         IReadOnlyList<Guid> fikirIds,
         CancellationToken cancellationToken)
     {

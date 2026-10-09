@@ -54,6 +54,17 @@ public static class AuthEndpoints
                 });
             }
 
+            // ===== Sprint 11.92 — KVKK: aydınlatma zorunlu, yayım rızası opsiyonel. =====
+            // Kayıt, aydınlatma metni OKUNMADAN yapılamaz (KVKK md.10 — aydınlatma
+            // yükümlülüğü onaya bağlı değildir; yalnızca bilgilendirme yapılır).
+            if (!istek.AydinlatmaOkundu)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["aydinlatmaOkundu"] = ["Devam etmek için Aydınlatma Metni'ni okuduğunu onaylaman gerekir."]
+                });
+            }
+
             var kullanici = new ApplicationUser
             {
                 UserName = istek.Email,
@@ -84,6 +95,37 @@ public static class AuthEndpoints
                 CreatedAt = simdi,
                 UpdatedAt = simdi
             });
+
+            // ===== Sprint 11.92 — KVKK kayıt defteri (ispat yükü veri sorumludadır) =====
+            // Kanun 10. madde uyarınca aydınlatmanın yapıldığını ve rızanın
+            // alındığını İSPAT etmek veri sorumlunun yükümlülüğündür. Kayıt anı,
+            // metin versiyonu, rıza türü ve iptal bilgisi burada tutulur.
+            // `aydinlatma` türü yalnızca bilgilendirme kaydıdır; onay DEĞİLDİR.
+            veritabani.Database.ExecuteSqlRaw(
+                "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
+                "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+                Guid.NewGuid().ToString(),
+                kullanici.Id,
+                "aydinlatma",
+                istek.AydinlatmaVersiyonu,
+                simdi.UtcDateTime,
+                KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                http.Request.Headers.UserAgent.ToString() ?? "");
+
+            if (istek.YayimRizasi)
+            {
+                veritabani.Database.ExecuteSqlRaw(
+                    "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
+                    "VALUES ({0}, {1}, {2}, {3}, {4}, {5}, {6})",
+                    Guid.NewGuid().ToString(),
+                    kullanici.Id,
+                    "yayim",
+                    istek.AydinlatmaVersiyonu,
+                    simdi.UtcDateTime,
+                    KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                    http.Request.Headers.UserAgent.ToString() ?? "");
+            }
+
             await veritabani.SaveChangesAsync(http.RequestAborted);
 
             var dogrulamaBelirteci = await kullaniciYoneticisi.GenerateEmailConfirmationTokenAsync(kullanici);
@@ -1263,7 +1305,17 @@ grup.MapPost("/logout", async (
         [StringLength(40)] string? StudentNumber = null,
         // CAPTCHA (YEĞİTEK gereksinim #2)
         [Required, StringLength(64)] string CaptchaId = "",
-        [Required, StringLength(16)] string CaptchaAnswer = "");
+        [Required, StringLength(16)] string CaptchaAnswer = "",
+        // ===== Sprint 11.92 — KVKK =====
+        // KVKK Kurul 18.02.2026 tarihli 2026/347 sayılı İlke Kararı gereği
+        // aydınlatma ile açık rıza AYRI ayrı alınmalı, iç içe geçmemeli.
+        //   AydinlatmaOkundu → yalnızca "metni okudum" geri bildirimi (onay DEĞİL),
+        //                      kaydın ön koşuludur.
+        //   YayimRizasi       → internet ortamında yayımlamaya yönelik AYRI, opsiyonel
+        //                      ve geri alınabilir açık rıza.
+        [Required] bool AydinlatmaOkundu = false,
+        bool YayimRizasi = false,
+        [StringLength(20)] string AydinlatmaVersiyonu = "2026-09-10");
 
     public sealed record GirisIstegi(
         [Required, EmailAddress, StringLength(256)] string Email,
