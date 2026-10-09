@@ -65,23 +65,12 @@ public static class PublicEndpoints
             // açık kartta görünmez.
             var rizaVerenler = (await db.Database
                 .SqlQueryRaw<string>(
-                    "SELECT DISTINCT user_id FROM kvkk_rizalari " +
+                    // ⚠️ EF skaler sorguyu `s.value` diye sarar; kolon adı `value`
+                    // OLMALI (aksi hâlde "Unknown column 's.value'").
+                    "SELECT DISTINCT user_id AS value FROM kvkk_rizalari " +
                     "WHERE tur = 'yayim' AND iptal_at IS NULL")
                 .ToListAsync(cancellationToken))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            // Önce rıza vermiş öğrenciler → profilleri → fikirleri.
-            // (Idea.StudentId bir PROFİL id'sidir; PeriodWinner.IdeaId ise FİKİR id'si.)
-            var yayimliProfilIdler = await db.StudentProfiles.AsNoTracking()
-                .Where(p => rizaVerenler.Contains(p.ApplicationUserId))
-                .Select(p => p.Id)
-                .ToListAsync(cancellationToken);
-            var yayimliFikirIdler = yayimliProfilIdler.Count == 0
-                ? new List<Guid>()
-                : await db.Ideas.AsNoTracking()
-                    .Where(f => yayimliProfilIdler.Contains(f.StudentId))
-                    .Select(f => f.Id)
-                    .ToListAsync(cancellationToken);
 
             // TÜM kazananlar döner (seçim bilgisi bozulmaz); yayım kartı yalnızca
             // rıza verilmişse eklenir. Aksi hâlde "kazanan seçildi ama gösterilmiyor"
@@ -96,23 +85,29 @@ public static class PublicEndpoints
 
             // Yayım izni olmayan fikirlerin kartı gösterilmez.
             var yayimliKartIdler = new HashSet<Guid>();
-            if (kartlar.Count > 0)
+            if (kartlar.Count > 0 && rizaVerenler.Count > 0)
             {
-                var profilIds = await db.Ideas.AsNoTracking()
-                    .Where(f => kartlar.ContainsKey(f.Id))
+                // ⚠️ `kartlar.ContainsKey(...)` EF'e ÇEVRİLEMEZ (runtime hatası) —
+                // anahtarları listeye alıp Contains kullanıyoruz.
+                var kartIdleri = kartlar.Keys.ToList();
+                var profilIdler = await db.Ideas.AsNoTracking()
+                    .Where(f => kartIdleri.Contains(f.Id))
                     .Select(f => f.StudentId)
                     .ToListAsync(cancellationToken);
-                var rizaVerenProfiller = await db.StudentProfiles.AsNoTracking()
-                    .Where(p => rizaVerenler.Contains(p.ApplicationUserId) && profilIds.Contains(p.Id))
-                    .Select(p => p.Id)
-                    .ToListAsync(cancellationToken);
-                if (rizaVerenProfiller.Count > 0)
+                if (profilIdler.Count > 0)
                 {
-                    var rizaVerenFikirler = await db.Ideas.AsNoTracking()
-                        .Where(f => rizaVerenProfiller.Contains(f.StudentId))
-                        .Select(f => f.Id)
+                    var rizaVerenProfiller = await db.StudentProfiles.AsNoTracking()
+                        .Where(p => rizaVerenler.Contains(p.ApplicationUserId) && profilIdler.Contains(p.Id))
+                        .Select(p => p.Id)
                         .ToListAsync(cancellationToken);
-                    yayimliKartIdler = rizaVerenFikirler.ToHashSet();
+                    if (rizaVerenProfiller.Count > 0)
+                    {
+                        yayimliKartIdler = (await db.Ideas.AsNoTracking()
+                            .Where(f => rizaVerenProfiller.Contains(f.StudentId))
+                            .Select(f => f.Id)
+                            .ToListAsync(cancellationToken))
+                            .ToHashSet();
+                    }
                 }
             }
 
