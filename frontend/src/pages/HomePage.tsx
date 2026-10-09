@@ -89,9 +89,14 @@ export function HomePage() {
 
   useEffect(() => {
     if (!veriVar) return;
+    // Sprint 11.92: büyütme (lightbox) açıkken otomatik geçiş DURMALI.
+    // Onur: "ortadaki karta tıklıyorum açılır açılmaz kart değişiyor,
+    // neye tıkladıysak o açılmalı." — 6 saniyede bir dönen tur, tıklanan
+    // kartı lightbox içinde başka bir kartla değiştiriyordu.
+    if (lightboxAcik) return;
     const zaman = setInterval(() => setAktif((d) => (d + 1) % n), 6000);
     return () => clearInterval(zaman);
-  }, [veriVar, n]);
+  }, [veriVar, n, lightboxAcik]);
 
   useEffect(() => {
     if (aktif >= n) setAktif(0);
