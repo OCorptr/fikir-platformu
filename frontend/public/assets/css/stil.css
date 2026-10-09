@@ -1088,11 +1088,11 @@ html.animasyon-durdur .af-sahne.kaydir .af-kart { animation: none; }
   height: auto; max-height: 78vh; overflow-y: auto;
   align-items: center; text-align: center;
   /* ⚠️ `.af-lightbox` position:fixed;inset:0 → şerit EKRANIN 1.1rem ÜSTÜNDE
-     konumlanıyor ve kesiliyordu. Kartı referans noktası yapıp şeridi
-     kartın İÇİNDE, üst boşluğunda gösteriyoruz. */
+     konumlanıp kesiliyordu. Kartı referans noktası yaptık; şerit artık
+     ana sayfadaki gibi kartın ÜSTÜNDE durur (Onur: "iç kısımda değil,
+     ana sayfada ayarladığımız gibi"). */
   position: relative;
 }
-.af-lightbox .af-kurdele { top: 0.6rem; }
 .af-lightbox .af-soz {
   -webkit-line-clamp: unset; display: block; overflow: visible;
 }
