@@ -1,0 +1,63 @@
+# Gitleaks kuralları — projeye özel genişletme.
+#
+# Neden bu dosya var?
+# Varsayılan gitleaks kuralları API anahtarı/JWT/AWS anahtarı gibi BİÇİMİ BELLİ
+# sırları arar. YEĞİTEK dokümanlarındaki düz metin Türkçe parolalar
+# (kurulum parolası, test öğrenci şifresi) bu kalıplara girmez.
+#
+# 9 Eki 2026'da 421 commit tarandı, gitleaks "no leaks found" dedi — oysa
+# docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md içinde gerçek kurulum parolası duruyordu.
+#
+# Kullanım:
+#   gitleaks detect --source . --config .gitleaks.toml
+#   gitleaks protect --staged --config .gitleaks.toml   (commit öncesi)
+
+title = "Fikir Platformu — proje kuralları"
+
+[extend]
+useDefault = true
+
+# ---------------------------------------------------------------------------
+# 1) Markdown/doküman içinde düz metin parola.
+#    Gerçek parola imzası: en az 8 karakter + büyük harf + küçük harf + rakam.
+#    Böylece `parolaHash`, `sifre degiskeni` gibi KOD TANIMLAYICILARI yakalanmaz.
+# ---------------------------------------------------------------------------
+[[rules]]
+id = "dokuman-duz-metin-parola"
+description = "Markdown dokümanda düz metin parola (KVKK/Kırmızı çizgi: parola hiçbir dosyaya yazılmaz)"
+# Yalnızca dokümanlar: kod/CSS/migration tanımlayıcılarıyla gürültü yapıyordu.
+regex = '''(?i)(?:parola|şifre|sifre|password)\s*[:：]\s*\**\s*[:：]?\s*`?([A-Za-z0-9!@#$%^&*._+-]{8,})`?'''
+keywords = ["parol", "sifre", "şifre", "password"]
+path = '''(?i)\.(md|markdown|txt)$'''
+entropy = 2.8
+
+# ---------------------------------------------------------------------------
+# 2) Test/demo hesabı parolası: e-posta + parola ikilisi geçen bir satır.
+# ---------------------------------------------------------------------------
+[[rules]]
+id = "test-hesap-parolasi"
+description = "Test/demo hesabının parolası dokümanda açık yazıyor"
+regex = '''(?i)(?:parola|şifre|sifre|password)\s*[:：]\s*`?([A-Za-z0-9!@#$%^&*._+-]{8,})`?'''
+keywords = ["parol", "sifre", "şifre", "password"]
+path = '''(?i)\.md$'''
+entropy = 2.8
+
+# ---------------------------------------------------------------------------
+# 3) Bakım/izin anahtarının DEĞERİ koda gömülmüş.
+# ---------------------------------------------------------------------------
+[[rules]]
+id = "bakim-anahtari-gomulu-deger"
+description = "AdminMaintenance__Secret gibi bir anahtarın gerçek değeri kodda/URL'de"
+regex = '''(?i)(AdminMaintenance__Secret|maintenance[_-]?secret|bakim[_-]?anahtar)["']?\s*[:=]\s*["']([A-Za-z0-9+/=_-]{20,})["']'''
+keywords = ["secret", "anahtar"]
+
+[allowlist]
+# Değiştirilecek yer tutucular — gerçek sır değil.
+regexes = [
+  '''CHANGE_ME''',
+  '''(?i)(ornek|örnek|example|placeholder|xxxx+|\.\.\.)''',
+]
+paths = [
+  '''(^|/)\.gitleaks\.toml$''',
+  '''(^|/)node_modules/''',
+]
