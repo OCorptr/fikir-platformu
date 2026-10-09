@@ -117,13 +117,15 @@ public static class PublicEndpoints
             where fikirIds.Contains(f.Id)
             join k in db.IdeaCategories.AsNoTracking() on f.CategoryId equals k.Id
             join il in db.Provinces.AsNoTracking() on f.ProvinceId equals il.Id
-            select new { f.Id, f.StudentId, f.CategoryId, Kategori = k.Name, Il = il.Name, f.Content })
+            join sp in db.StudentProfiles.AsNoTracking() on f.StudentId equals sp.Id
+            select new { f.Id, KullaniciId = sp.ApplicationUserId, f.CategoryId, Kategori = k.Name, Il = il.Name, f.Content })
             .ToListAsync(cancellationToken);
         if (satirlar.Count == 0) return sonuc;
 
-        // Öğrenci adı için AYRI sorgu: `Idea.StudentId` Guid, `ApplicationUser.Id`
-        // string — LINQ join `(string)f.StudentId` SQL'e çevrilemiyor.
-        var ogrenciIdleri = satirlar.Select(s => s.StudentId.ToString()).Distinct().ToList();
+        // Öğrenci adı için AYRI sorgu. ⚠️ `Idea.StudentId` bir **StudentProfile.Id**
+        //'dir (FK: ideas.student_id → student_profiles.id), ApplicationUser.Id
+        // DEĞİL — önce profile, sonra profile.ApplicationUserId ile kullanıcıya gidilir.
+        var ogrenciIdleri = satirlar.Select(s => s.KullaniciId).Distinct().ToList();
         var ogrenciler = await db.Users.AsNoTracking()
             .Where(u => ogrenciIdleri.Contains(u.Id))
             .Select(u => new { u.Id, u.FirstName, u.LastName })
@@ -131,7 +133,7 @@ public static class PublicEndpoints
 
         foreach (var satir in satirlar)
         {
-            if (!ogrenciler.TryGetValue(satir.StudentId.ToString(), out var ogrenci)) continue;
+            if (!ogrenciler.TryGetValue(satir.KullaniciId, out var ogrenci)) continue;
             sonuc[satir.Id] = new KazananKart(
                 satir.Id,
                 satir.CategoryId,
