@@ -53,17 +53,39 @@ export function anasayfaDonemleri(cevap: AyinFikirleriCevabi): DonemKaydi[] {
   return kazananDonemler(cevap).slice(0, ANASAYFA_KAZANAN_SAYISI);
 }
 
-/** Dönem etiketini "2026 IV. Donem" gibi kullanmak için güvenli gösterim. */
+const AY_ADLARI = [
+  "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
+  "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık",
+];
+
+/**
+ * Dönemi "Ekim - Aralık 2026" biçiminde gösterir (Onur, 9 Eki 2026).
+ *
+ * ⚠️ **Bitiş tarihi DAHİL DEĞİLDİR.** 2026 IV. dönem `2027-01-01`'de bitiyor;
+ * yani son ay Aralık 2026'dır, "Aralık 2027" DEĞİL. Önceki hâlde yıl ay
+ * geri alınınca bile 2027'de kalıyordu → "Ekim 2026 - Aralık 2027" çıkıyordu.
+ */
 export function donemAralik(kayit: DonemKaydi): string {
-  const b = new Date(kayit.baslangic);
-  const s = new Date(kayit.bitis);
-  const ayAdlari = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran",
-    "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
-  const bas = `${ayAdlari[b.getUTCMonth()]} ${b.getUTCFullYear()}`;
-  // Bitis bitiş ayının ilk günü ise (ör. 2027-01-01) önceki ay gösterilir.
-  const bitisAy = s.getUTCDate() === 1 ? s.getUTCMonth() - 1 : s.getUTCMonth();
-  const bitisYil = s.getUTCDate() === 1 ? s.getUTCFullYear() : s.getUTCFullYear();
-  return `${bas} – ${ayAdlari[(bitisAy + 12) % 12]} ${bitisYil}`;
+  const bas = new Date(kayit.baslangic);
+  const son = new Date(kayit.bitis);
+
+  const basAy = bas.getUTCMonth();
+  const basYil = bas.getUTCFullYear();
+
+  let sonAy = son.getUTCMonth();
+  let sonYil = son.getUTCFullYear();
+  if (son.getUTCDate() === 1) {
+    // Son ay bir önceki ay → Ocak'a düşerse yıl da bir geri gider.
+    sonAy -= 1;
+    if (sonAy < 0) {
+      sonAy += 12;
+      sonYil -= 1;
+    }
+  }
+
+  // Yıl sınırlarını aşan dönemde iki yıl yazılır; normal dönemde tek.
+  const yil = basYil === sonYil ? ` ${sonYil}` : ` ${basYil} – ${sonYil}`;
+  return `${AY_ADLARI[basAy]} - ${AY_ADLARI[sonAy]}${yil}`;
 }
 
 /**
