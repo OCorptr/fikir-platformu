@@ -33,8 +33,6 @@ export function HomePage() {
   const [veri, setVeri] = useState<AyinFikirleriCevabi | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [veriHatasi, setVeriHatasi] = useState<string | null>(null);
-  // Fare/klavye vitrin üzerindeyken otomatik geçiş dursun (WCAG 2.2.2).
-  const [duraklat, setDuraklat] = useState(false);
 
   // Sprint 11.55: `/giris` rotası ana sayfayı giriş modalı AÇIK halde gösterir.
   // Önceden bu rota tanımsızdı ve 404 dönüyordu.
@@ -91,13 +89,9 @@ export function HomePage() {
 
   useEffect(() => {
     if (!veriVar) return;
-    // Sprint 11.92: `prefers-reduced-motion` açıksa otomatik geçiş hiç başlamaz.
-    if (typeof window !== "undefined" &&
-        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
-    if (duraklat) return;
     const zaman = setInterval(() => setAktif((d) => (d + 1) % n), 6000);
     return () => clearInterval(zaman);
-  }, [veriVar, n, duraklat]);
+  }, [veriVar, n]);
 
   useEffect(() => {
     if (aktif >= n) setAktif(0);
@@ -146,62 +140,24 @@ export function HomePage() {
 
           {veriVar ? (
             <>
-              <div
-                className="af-sahne"
-                // Sprint 11.92: WCAG 2.2.2 — otomatik geçiş, fare/klavye
-                // ilgisi varken durmalı (okunurken kart değişmesin).
-                onMouseEnter={() => setDuraklat(true)}
-                onMouseLeave={() => setDuraklat(false)}
-                onFocusCapture={() => setDuraklat(true)}
-                onBlurCapture={() => setDuraklat(false)}
-              >
-                {/* Sprint 11.92: kartlar ayrı bir ızgarada — kenarlardaki yumuşak
-                    maske (edge fade) okları etkilemesin diye oklar dışarıda. */}
-                <div className="af-izgara">
-                  <div
-                    className="af-kart af-kenar-kart"
-                    id="af-sol"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => sol && setAktif(onekiler.findIndex((k) => k.id === sol.id))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        if (sol) setAktif(onekiler.findIndex((k) => k.id === sol.id));
-                      }
-                    }}
-                    title="Bu dönemin fikrini göster"
-                  >
-                    {kartIcerigi(sol, false)}
-                  </div>
+              <div className="af-sahne">
+                <div className="af-kart af-kenar-kart" id="af-sol">
+                  {kartIcerigi(sol, false)}
+                </div>
 
-                  <div
-                    className="af-kart af-orta"
-                    id="af-orta"
-                    style={{ cursor: "pointer" }}
-                    onClick={() => setLightboxAcik(true)}
-                    title="Büyütmek için tıkla"
-                  >
-                    <div className="af-kurdele">{kurdele(orta)}</div>
-                    {kartIcerigi(orta, true)}
-                  </div>
+                <div
+                  className="af-kart af-orta"
+                  id="af-orta"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setLightboxAcik(true)}
+                  title="Büyütmek için tıkla"
+                >
+                  <div className="af-kurdele">{kurdele(orta)}</div>
+                  {kartIcerigi(orta, true)}
+                </div>
 
-                  <div
-                    className="af-kart af-kenar-kart"
-                    id="af-sag"
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => sag && setAktif(onekiler.findIndex((k) => k.id === sag.id))}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        if (sag) setAktif(onekiler.findIndex((k) => k.id === sag.id));
-                      }
-                    }}
-                    title="Bu dönemin fikrini göster"
-                  >
-                    {kartIcerigi(sag, false)}
-                  </div>
+                <div className="af-kart af-kenar-kart" id="af-sag">
+                  {kartIcerigi(sag, false)}
                 </div>
 
                 <button

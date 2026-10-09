@@ -920,28 +920,14 @@ html.koyu-mod .cta-fikir {
 }
 .af-baslik .af-cizgi { width: 3.4rem; height: 0.22rem; border-radius: 1rem; background: var(--sari); }
 /* ============================================================
-   Sprint 11.92 — Kenar kart okunabilirliği
-   ------------------------------------------------------------
-   Onur: "sadece ortadaki kart okunabilir, sol ve sağı göz yormucak…
-          insanlar ortaya geldiğinde görsünler, görsellik olarak kötü olmamalı."
-
-   ARAŞTIRMA SONUCU — blur KULLANILMADI, çünkü:
-   • Blur metin kontrastını (WCAG 1.4.3 → gövde metni 4.5:1) düşürür,
-     yani yan kartlar "görünür ama okunamaz" hale gelir — istenen bu değil.
-   • Erişilebilirlik rehberlerinin standart deseni (BFIT Karussell):
-     "merkez içerik vurgulanır, yan içerikler daha küçük veya soluk gösterilir."
-   • Kenarlarda yumuşak maske (edge fade) ise "premium/editorial" his veren
-     standart bir karusel tekniği.
-
-   Uygulanan: küçültme (0.86) + doygunluk düşürme (gri ton) + solukluk + maske.
-   Kontrast kasıtlı olarak okunabilir seviyede tutuldu.
+   Sprint 11.92 — Kenar kartlar: SADECE BLUR
+   Onur: sol/sağ kartlar göz yormasın, ortadaki okunsun.
+   Önceki denemede küçültme + gri ton + kenar maske + tıklama
+   katmanı yapılmıştı, "çok kötü oldu ve her şeyi bozdu" diye
+   geri alındı. Şimdi sadece istenen blur uygulanıyor; kartların
+   ölçüsü, 3D eğimi ve yerleşimi ESKİ HALİYLE aynı.
    ============================================================ */
-.af-sahne { position: relative; padding: 0.5rem 1.4rem 0.2rem; display: flex; align-items: stretch; justify-content: center; }
-.af-izgara {
-  display: flex; align-items: stretch; justify-content: center; gap: 1.4rem;
-  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 15%, #000 85%, transparent 100%);
-  mask-image: linear-gradient(90deg, transparent 0, #000 15%, #000 85%, transparent 100%);
-}
+.af-sahne { position: relative; padding: 0.5rem 1.4rem 0.2rem; display: flex; align-items: stretch; justify-content: center; gap: 1.4rem; }
 .af-kart {
   background: #fff; border-radius: 1.5rem; text-align: center;
   padding: 1.2rem 1rem 1.1rem; width: 19rem;
@@ -949,18 +935,17 @@ html.koyu-mod .cta-fikir {
   display: flex; flex-direction: column; justify-content: center;
   transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
 }
-#af-sol, #af-sag {
-  transform: perspective(1100px) rotateY(20deg) scale(0.86);
+#af-sol {
+  transform: perspective(1100px) rotateY(22deg) rotate(-1.2deg) scale(0.93);
   transform-origin: 100% 50%;
-  opacity: 0.5; filter: saturate(0.45);
-  box-shadow: 0 0.4rem 1rem rgba(30, 60, 120, 0.08);
-  cursor: pointer;
+  opacity: 0.96;
+  filter: blur(2.2px);
 }
-#af-sag { transform: perspective(1100px) rotateY(-20deg) scale(0.86); transform-origin: 0% 50%; }
-/* Üzerine gelince biraz canlanır — "bakılabilir ama okunur" ipucu. */
-#af-sol:hover, #af-sag:hover { opacity: 0.72; filter: saturate(0.7); }
-#af-sol:focus-visible, #af-sag:focus-visible {
-  outline: 0.16rem solid var(--sari); outline-offset: 0.15rem; opacity: 0.8;
+#af-sag {
+  transform: perspective(1100px) rotateY(-22deg) rotate(1.2deg) scale(0.93);
+  transform-origin: 0% 50%;
+  opacity: 0.96;
+  filter: blur(2.2px);
 }
 .af-orta {
   width: 22rem; z-index: 2;
@@ -1220,8 +1205,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
 
   /* vitrin: yalnizca orta kart + oklar (kenar kartlari tasmasin) */
   .af-kenar-kart { display: none; }
-  .af-izgara { gap: 0; width: 100%; -webkit-mask-image: none; mask-image: none; }
-  .af-sahne { padding: 0.6rem 0.4rem 0.2rem; }
+  .af-sahne { gap: 0; padding: 0.6rem 0.4rem 0.2rem; }
   .af-orta { width: 100%; max-width: min(30rem, calc(100vw - 4.5rem)); }
   .af-kurdele { font-size: 0.95rem; padding: 0.4rem 1.1rem; }
   .af-ok { width: 2.7rem; height: 2.7rem; }
