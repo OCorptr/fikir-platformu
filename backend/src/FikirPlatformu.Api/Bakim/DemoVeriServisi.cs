@@ -139,18 +139,20 @@ public static class DemoVeriServisi
         var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var rm = sp.GetRequiredService<RoleManager<IdentityRole>>();
 
-        // Hata olursa hangi ADIM'da olduğumuzu bilelim (mesaj sızdırmadan).
-        var adim = "başlatma";
+        // Hata olursa hangi ADIM'da olduğumuzu bilelim. NOT: `string` değeri
+        // metot çağrısında KOPIALANIR; atama içeride dış değişkeni güncellemez.
+        // Bu yüzden referans tipi bir kutu (AdimKutusu) kullanıyoruz.
+        var adim = new AdimKutusu("başlatma");
         try
         {
             return await UretIc(adim);
         }
         catch (Exception ex)
         {
-            throw new DemoSeedAdimException(adim, ex);
+            throw new DemoSeedAdimException(adim.Deger, ex);
         }
 
-        async Task<object> UretIc(string adim)
+        async Task<object> UretIc(AdimKutusu adim)
         {
         var mevcutDemo = await db.Users.AnyAsync(u => (u.Email ?? "").StartsWith(KullaniciOneki), cancellationToken);
 
@@ -168,11 +170,11 @@ public static class DemoVeriServisi
 
         if (temizle)
         {
-            adim = "demo verilerini temizleme";
+            adim.Deger = "demo verilerini temizleme";
             await DemoVeriTemizle(db, um, cancellationToken);
         }
 
-        adim = "rolleri oluşturma";
+        adim.Deger = "rolleri oluşturma";
         // ---- Roller (yoksa oluştur) ----
         foreach (var rol in new[] { "Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin" })
         {
@@ -198,7 +200,7 @@ public static class DemoVeriServisi
         // ---- Demo parolası: kodda YOK, her çalıştırmada rastgele üretilir ----
         var sifre = RastgeleSifreUret();
 
-        adim = "öğrenci hesaplarını oluşturma";
+        adim.Deger = "öğrenci hesaplarını oluşturma";
         // ---- Öğrenciler ----
         var ogrenciler = new List<ApplicationUser>();
         for (var i = 0; i < OgrenciSayisi; i++)
@@ -222,7 +224,7 @@ public static class DemoVeriServisi
             ogrenciler.Add(ogrenci);
         }
 
-        adim = "değerlendirici ve il yöneticisi hesaplarını oluşturma";
+        adim.Deger = "değerlendirici ve il yöneticisi hesaplarını oluşturma";
         // ---- Değerlendiriciler (her ile 1 değerlendirici + 1 yönetici) ----
         var degerlendiriciler = new Dictionary<int, List<ApplicationUser>>();
         for (var i = 0; i < iller.Count; i++)
@@ -249,10 +251,10 @@ public static class DemoVeriServisi
         var bakanlik = await KullaniciOlustur(
             um, $"{KullaniciOneki}bakanlik@demo.local", sifre, "Bakanlık Temsilcisi");
         await um.AddToRoleAsync(bakanlik, "MinistryOfficial");
-        adim = "veritabanına kaydetme";
+        adim.Deger = "veritabanına kaydetme";
         await db.SaveChangesAsync(cancellationToken);
 
-        adim = "fikir, değerlendirme ve kazanan üretme";
+        adim.Deger = "fikir, değerlendirme ve kazanan üretme";
         // ---- Fikirler: her dönem × her kategori ----
         var fikirSayisi = 0;
         var adaySayisi = 0;
@@ -347,7 +349,7 @@ public static class DemoVeriServisi
             }
         }
 
-        adim = "veritabanına kaydetme";
+        adim.Deger = "veritabanına kaydetme";
         await db.SaveChangesAsync(cancellationToken);
 
         return new
@@ -368,8 +370,17 @@ public static class DemoVeriServisi
     }
 
     /// <summary>
+    /// Adım etiketini taşır. Referans tipi olmasının sebebi: `string` değişkeni
+    /// metot çağrısında kopyalanır, içeride atama yapılınca dışarıdaki güncellenmez —
+    /// bu yüzden hata "başlatma" adımında görünüyordu.
+    /// </summary>
+    private sealed class AdimKutusu(string baslangic)
+    {
+        public string Deger { get; set; } = baslangic;
+    }
+
+    /// <summary>
     /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
-    /// Mesaj/veri içermez — yalnızca adım etiketi ve iç istisna.
     /// </summary>
     public sealed class DemoSeedAdimException(string adim, Exception icHata)
         : Exception($"[DEMO] Adım '{adim}' başarısız: {icHata.GetType().Name}", icHata)

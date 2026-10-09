@@ -41,19 +41,21 @@ public static class BakimDemoEndpoints
             }
             catch (DemoVeriServisi.DemoSeedAdimException ex)
             {
-                // Adım + iç hata tipi: teşhis için yeterli, veri/şifre sızdırmaz.
                 log.LogError(ex.InnerException, "[DEMO] Hata — adım={Adim}", ex.Adim);
                 return Results.Json(new
                 {
                     calistirildi = false,
                     hataAdimi = ex.Adim,
-                    hataTipi = ex.InnerException?.GetType().Name,
-                    message = "Demo veri üretilemedi. Ayrıntı için sunucu loglarına bakın.",
+                    hataTipi = KokHata(ex)?.GetType().Name,
+                    // Bu uc BAKIM ucu: `AdminMaintenance__Secret` olmadan 403 döner,
+                    // yani yalnızca kurum yetkilisi görebilir. Teşhis için iç hata
+                    // metni döner; bağlantı dizesi/parola kalıpları temizlenir.
+                    hataMesaji = Temizle(KokHata(ex)?.Message),
+                    message = "Demo veri üretilemedi.",
                 }, statusCode: 500);
             }
             catch (Exception ex)
             {
-                // İstisna metni istemciye SIZMAZ (YEĞİTEK madde 41) — sadece log.
                 log.LogError(ex, "[DEMO] Demo veri üretimi başarısız.");
                 return Results.Json(
                     new { message = "Demo veri üretilemedi. Ayrıntı için sunucu loglarına bakın." },
@@ -62,5 +64,31 @@ public static class BakimDemoEndpoints
         });
 
         return app;
+    }
+
+    /// <summary>En içteki istisna — asıl neden orada genellikle.</summary>
+    private static Exception? KokHata(Exception? hata)
+    {
+        while (hata?.InnerException is not null) hata = hata.InnerException;
+        return hata;
+    }
+
+    /// <summary>
+    /// Bakım ucunun hata metninden bağlantı dizesi/parola kalıplarını siler.
+    /// YEĞİTEK madde 41: gizli değer yanıtta görünmez.
+    /// </summary>
+    private static string? Temizle(string? mesaj)
+    {
+        if (string.IsNullOrWhiteSpace(mesaj)) return null;
+        var s = mesaj;
+        foreach (var desen in new[]
+                 {
+                     @"(?i)(password|pwd|user\s+id|server|host|port|database)\s*=\s*[^;\s]+",
+                     @"(?i)Server=[^;]+;",
+                 })
+        {
+            s = System.Text.RegularExpressions.Regex.Replace(s, desen, "[gizlendi]");
+        }
+        return s.Length <= 400 ? s : s[..400] + "…";
     }
 }
