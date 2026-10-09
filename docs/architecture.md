@@ -126,18 +126,27 @@ POST /api/auth/login             → PreMfa cookie (HttpOnly)
   │ response: { mfaRequired:true, context:'ministry'|'province'|... }
   │
   ▼
-GET  /api/auth/mfa/method        → { method:'Totp'|'Email', needsGmailOAuth:bool }
+GET  /api/auth/mfa/method        → { method:'Totp'|'Email' }
   │
-  ├──► Totp: User enters 6-digit code
+  ├──► Totp: User enters 6-digit authenticator code
   │    POST /api/auth/mfa/verify → 200 + cookie
   │
   └──► Email:
-       ├── if needsGmailOAuth: window.location = /api/auth/gmail-oauth/start?returnTo=/mfa-login
-       │                        (OAuth callback → DB upsert encrypted refresh token → returnTo'ya redirect)
-       └── else:
-            POST /api/auth/mfa/send-email-otp → mail gönderilir
-            POST /api/auth/mfa/verify → 200 + cookie
+       POST /api/auth/mfa/send-email-otp → kod, kullanıcının KENDİ e-posta
+                                         adresine gider (MfaEndpoints.cs:193)
+       POST /api/auth/mfa/verify → 200 + cookie
 ```
+
+> **Sprint 11.66/11.73 notu — bu akışta Google OAuth YOKTUR.**
+> Önceden `needsGmailOAuth` bayrağı vardı; e-posta seçilince tarayıcı
+> `/api/auth/gmail-oauth/start`'a yönlendiriliyordu. Gmail, Sprint 11.51'de
+> kişi başına OAuth modelinden **tek uygulama göndericisi**ne geçirilince
+> bu dal anlamsızlaştı ve kaldırıldı.
+>
+> **Sonuç:** OTP, kullanıcının kayıtlı adresine gönderilir — alan adı ne
+> olursa olsun. `*@meb.gov.tr` hesaplarında e-posta MFA'sı **çalışır**,
+> Google Cloud projesi veya test kullanıcısı gerekmez. TOTP seçeneği
+> ise hiç e-posta kullanmaz.
 
 ### 2. OAuth Handshake (Sistem Sabit Gmail)
 
