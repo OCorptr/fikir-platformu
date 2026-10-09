@@ -124,7 +124,36 @@ kısımları düzelt" ve test için 4 dönemlik kazanan + her tema için fikir �
 `GET /api/public/ayin-fikirleri` artık `{ aktifDonem, donemler[] }` döner; her dönem
 kaydı `{ id, etiket, baslangic, bitis, durum, kazanan, secimTarihi }`.
 
-### Demo veri üreteci (çalıştırılmayı bekliyor)
+### İl onayı artık ADAY HAVUZU sayfasında
+
+**Onur talebi (9 Eki 2026):** "İl AR-GE sayfasında puanlama yaptıktan sonra sağ altta
+**İl Onayı ver** çıkmasın" → "O onayı **Aday Havuzu sayfasında** yapcaz."
+
+| Değişiklik | Dosya |
+|---|---|
+| "✅ İl Onayı Ver" butonu **kaldırıldı**; yerine bilgi metni: *"Değerlendirme tamamlandı. İl onayı Aday Havuzu sayfasından verilir."* | `ApplicationDetailPage.tsx` |
+| `onayla()` fonksiyonu, `onayCalisiyor` state'i, `approveIdea` import'u silindi | aynı |
+| **"✅ İl Onayı Ver"** butonu + onay sonrası liste tazeleme eklendi | `CandidatesPage.tsx` |
+
+> ⚠️ Detay sayfası onayın **tek yolu**ydı; aday havuzunda onay aksiyonu yoktu.
+> Buton kaldırılırsa hiçbir fikir `Locked` olmaz → bakanlık aday havuzu boş kalır →
+> dönem kazananı seçilemez. Bu yüzden onay, aday havuzuna **taşındı**.
+
+Aday havuzu zaten `EvaluationCompleted` durumundakileri filtrelediği için
+(`CandidatesQueryService`) onay butonu her zaman geçerli bir işlem çağırır.
+
+### Demo veri üreteci — çalıştırma sırasında çıkan 2 hata
+
+| Hata | Kök neden | Düzeltme |
+|---|---|---|
+| `temizle=true` hiçbir işe yaramıyor, 1 öğrencilik yarım veri kilitli kalıyordu | Erken dönüş `if (mevcutDemo)` **temizleme kontrolünden önce** geliyordu | `if (mevcutDemo && !temizle)` |
+| Hata her seferinde `"başlatma"` adımında raporlanıyordu | `adim` bir `string` — metot çağrısında **kopyalanıyor**, içeride atama dışarıyı güncellemiyor | `AdimKutusu` (referans tipi) eklendi |
+
+Ayrıca bakım ucu artık **temizlenmiş** iç hata mesajını döndürüyor (bağlantı dizesi /
+parola kalıpları `[gizlendi]`'e çevrilir) — 500'ün sebebini tahmin etmeye gerek kalmıyor.
+Bu uc `AdminMaintenance__Secret` olmadan 403 döner, yani yalnızca kurum yetkilisi görür.
+
+
 
 `POST /api/__maintenance/demo-seed?token=<AdminMaintenance__Secret>` →
 `Bakim/DemoVeriServisi.cs`. Mevcut 4 dönemin (2026 I–IV) **her biri için 10 kategoriden

@@ -175,10 +175,18 @@ public static class DemoVeriServisi
         }
 
         adim.Deger = "rolleri oluşturma";
-        // ---- Roller (yoksa oluştur) ----
-        foreach (var rol in new[] { "Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin" })
+        // ---- Roller (yoksa oluştur) + kimliklerini topla ----
+        // Identity 9'da kullanıcı→rol bağı RoleId ile kurulur (RoleName değil).
+        var rolIds = new Dictionary<string, string>();
+        foreach (var rolAdi in new[] { "Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin" })
         {
-            if (!await rm.RoleExistsAsync(rol)) await rm.CreateAsync(new IdentityRole(rol));
+            var rol = await rm.FindByNameAsync(rolAdi);
+            if (rol is null)
+            {
+                await rm.CreateAsync(new IdentityRole(rolAdi));
+                rol = await rm.FindByNameAsync(rolAdi);
+            }
+            if (rol is not null) rolIds[rolAdi] = rol.Id;
         }
 
         var kategoriler = await db.IdeaCategories.AsNoTracking().Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(cancellationToken);
@@ -200,15 +208,48 @@ public static class DemoVeriServisi
         // ---- Demo parolası: kodda YOK, her çalıştırmada rastgele üretilir ----
         var sifre = RastgeleSifreUret();
 
+        // Sprint 11.92: Render'ın istek zaman aşımı (100 sn) seed'i kesiyordu —
+        // 263 kullanıcıyı UserManager.CreateAsync ile tek tek oluşturmak
+        // (her biri PBKDF2 + uzak DB turu) dakikalar sürüyordu.
+        // Çözüm: parola hash'ini BİR kez hesapla, hepsinde paylaş; kullanıcı ve
+        // roller toplu eklensin. 263 PBKDF2 → 1, 500+ INSERT → 2.
+        var parolaHash = HashParola(sifre);
+        var roller = new List<IdentityUserRole<string>>();
+        var yeniKullanicilar = new List<ApplicationUser>();
+
+        ApplicationUser KullaniciEkle(string email, string adSoyad, string rol)
+        {
+            var parcalar = adSoyad.Split(' ', 2);
+            var kullanici = new ApplicationUser
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserName = email,
+                Email = email,
+                FirstName = parcalar[0],
+                LastName = parcalar.Length > 1 ? parcalar[1] : "-",
+                EmailConfirmed = true,
+                PasswordHash = parolaHash,
+                SecurityStamp = Guid.NewGuid().ToString(),
+                LockoutEnabled = true,
+            };
+            yeniKullanicilar.Add(kullanici);
+            roller.Add(new IdentityUserRole<string> { UserId = kullanici.Id, RoleId = rolIds[rol] });
+            return kullanici;
+        }
+
         adim.Deger = "öğrenci hesaplarını oluşturma";
         // ---- Öğrenciler ----
         var ogrenciler = new List<ApplicationUser>();
+        var kullanilanIlIds = new List<int>();
         for (var i = 0; i < OgrenciSayisi; i++)
         {
             var il = iller[i % iller.Count];
-            var email = $"{KullaniciOneki}ogrenci{i + 1:00}@demo.local";
-            var ogrenci = await KullaniciOlustur(
-                um, email, sifre, $"{Adlar[i % Adlar.Length]} {Soyadlar[(i * 7) % Soyadlar.Length]}");
+            if (!kullanilanIlIds.Contains(il.Id)) kullanilanIlIds.Add(il.Id);
+
+            var ogrenci = KullaniciEkle(
+                $"{KullaniciOneki}ogrenci{i + 1:00}@demo.local",
+                $"{Adlar[i % Adlar.Length]} {Soyadlar[(i * 7) % Soyadlar.Length]}",
+                "Student");
 
             db.StudentProfiles.Add(new StudentProfile
             {
@@ -225,33 +266,33 @@ public static class DemoVeriServisi
         }
 
         adim.Deger = "değerlendirici ve il yöneticisi hesaplarını oluşturma";
-        // ---- Değerlendiriciler (her ile 1 değerlendirici + 1 yönetici) ----
+        // ---- Değerlendiriciler: YALNIZCA fikir yazan öğrencilerin illeri için.
+        // (Önceden 81 il × 3 kişi = 243 hesap üretiliyordu; büyük kısmı kullanılmıyordu.)
         var degerlendiriciler = new Dictionary<int, List<ApplicationUser>>();
-        for (var i = 0; i < iller.Count; i++)
+        var sira = 0;
+        foreach (var ilId in kullanilanIlIds)
         {
-            var il = iller[i];
             var liste = new List<ApplicationUser>();
             for (var r = 1; r <= DegerlendiriciSayisi; r++)
             {
-                var email = $"{KullaniciOneki}degerlendirici{il.Id:000}-{r}@demo.local";
-                var u = await KullaniciOlustur(
-                    um, email, sifre, $"Değerlendirici {(i + 1):00}-{r}");
-                await um.AddToRoleAsync(u, "ProvinceEvaluator");
-                liste.Add(u);
+                liste.Add(KullaniciEkle(
+                    $"{KullaniciOneki}degerlendirici{ilId:000}-{r}@demo.local",
+                    $"Değerlendirici {++sira:000}-{r}", "ProvinceEvaluator"));
             }
-            var yonetici = await KullaniciOlustur(
-                um, $"{KullaniciOneki}yonetici{il.Id:000}@demo.local", sifre, $"İl Yöneticisi {(i + 1):00}");
-            await um.AddToRoleAsync(yonetici, "ProvinceManager");
+            var yonetici = KullaniciEkle(
+                $"{KullaniciOneki}yonetici{ilId:000}@demo.local",
+                $"İl Yöneticisi {ilId:000}", "ProvinceManager");
             db.ProvinceUserAssignments.Add(ProvinceUserAssignment.Create(
-                yonetici.Id, il.Id, "ProvinceManager", "demo-seed", DateTimeOffset.UtcNow));
-            degerlendiriciler[il.Id] = liste;
+                yonetici.Id, ilId, "ProvinceManager", "demo-seed", DateTimeOffset.UtcNow));
+            degerlendiriciler[ilId] = liste;
         }
 
         // ---- Bakanlık yetkilisi (kazanan seçimi denetim kaydı için) ----
-        var bakanlik = await KullaniciOlustur(
-            um, $"{KullaniciOneki}bakanlik@demo.local", sifre, "Bakanlık Temsilcisi");
-        await um.AddToRoleAsync(bakanlik, "MinistryOfficial");
-        adim.Deger = "veritabanına kaydetme";
+        var bakanlik = KullaniciEkle($"{KullaniciOneki}bakanlik@demo.local", "Bakanlık Temsilcisi", "MinistryOfficial");
+
+        adim.Deger = "kullanıcıları tek seferde yazma";
+        db.Users.AddRange(yeniKullanicilar);
+        db.UserRoles.AddRange(roller);
         await db.SaveChangesAsync(cancellationToken);
 
         adim.Deger = "fikir, değerlendirme ve kazanan üretme";
@@ -388,26 +429,15 @@ public static class DemoVeriServisi
         public string Adim { get; } = adim;
     }
 
-    private static async Task<ApplicationUser> KullaniciOlustur(
-        UserManager<ApplicationUser> um, string email, string sifre, string adSoyad)
+    /// <summary>
+    /// Demo parolasının hash'ini BİR kez hesaplar; tüm demo hesapları aynı
+    /// hash'i paylaşır. (PBKDF2'yi kullanıcı başına çalıştırmak seed'i dakikalara
+    /// uzatıyordu ve Render'ın 100 sn istek zaman aşımına takılıyordu.)
+    /// </summary>
+    private static string HashParola(string sifre)
     {
-        var parcalar = adSoyad.Split(' ', 2);
-        var kullanici = new ApplicationUser
-        {
-            UserName = email,
-            Email = email,
-            FirstName = parcalar[0],
-            LastName = parcalar.Length > 1 ? parcalar[1] : "-",
-            EmailConfirmed = true,
-        };
-        var sonuc = await um.CreateAsync(kullanici, sifre);
-        if (!sonuc.Succeeded)
-        {
-            throw new InvalidOperationException(
-                $"{email} oluşturulamadı: {string.Join(", ", sonuc.Errors.Select(e => e.Description))}");
-        }
-        await um.AddToRoleAsync(kullanici, "Student");
-        return kullanici;
+        var hasher = new PasswordHasher<ApplicationUser>();
+        return hasher.HashPassword(new ApplicationUser(), sifre);
     }
 
     /// <summary>Demo verisini siler (puan, seçim, kazanan, fikir, profil, kullanıcı sırasıyla).</summary>
