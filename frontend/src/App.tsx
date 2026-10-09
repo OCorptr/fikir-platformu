@@ -6,6 +6,7 @@ import { UstBar } from "./components/UstBar";
 import FikirPage from "./pages/FikirPage";
 import { SayfaBulunamadi, SunucuHatasi } from "./pages/HataSayfalari";
 import { HomePage } from "./pages/HomePage";
+import { KvkkPage } from "./pages/KvkkPage";
 import { ProvinceInboxPage } from "./pages/ProvinceInboxPage";
 import { ApplicationDetailPage } from "./pages/ApplicationDetailPage";
 import { CandidatesPage } from "./pages/CandidatesPage";
@@ -81,6 +82,8 @@ export default function App() {
           element={<SifreDegistirPage zorunlu={false} />}
         />
         <Route path="/" element={<HomePage />} />
+    {/* Sprint 11.92 — KVKK metinleri (giriş gerektirmez). */}
+    <Route path="/kvkk" element={<KvkkPage />} />
         {/* Sprint 11.55: bu rota tanımsızdı ve 404 dönüyordu. AdminAuthGuard ve
             şifre sıfırlama ekranları buraya yönlendiriyor. Ana sayfa giriş
             modalı açık halde render edilir. */}

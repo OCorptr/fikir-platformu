@@ -43,7 +43,7 @@ export const ASAMALAR: Asama[] = [
     sira: 3,
     baslik: "Komisyon İncelemesi",
     aciklama:
-      "Değerlendirme tamamlandı. Fikir, bakanlık komisyonu tarafından inceleniyor.",
+      "Ön değerlendirme bitti. Şimdi bakanlık komisyonu fikrini inceliyor.",
   },
   {
     sira: 4,
@@ -129,7 +129,9 @@ export function durumOzeti(durum: FikirDurumu): string {
     case "ImplementationCompleted":
       return "Fikriniz hayata geçirildi. Teşekkürler!";
     case "ImplementationFailed":
-      return "Fikrinizin uygulanması tamamlanamadı.";
+      // Sprint 11.92: "Başarısız" çocuğa suçluluk yükü bindiriyordu ve 5. adım
+    // açıklaması "uygulanıyor veya uygulandı" diyerek bunu çürütüyordu.
+    return "Bu fikir için uygulama yapılmadı. Fikrin kayıtta ve değerlendirmede kaldı.";
     case "Deleted":
       return "Bu fikir silinmiş.";
   }

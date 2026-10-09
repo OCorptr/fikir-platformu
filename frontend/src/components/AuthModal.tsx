@@ -10,6 +10,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { contextFromPath, login, register, logout, me, type LoginContext } from "../services/auth";
 import { getProvinces } from "../services/references";
+import { sifreKuralHatasi } from "../services/sifreKurallari";
 import { sessionForContext } from "../types";
 import type { ProvinceRef } from "../types";
 import { CaptchaField } from "./CaptchaField";
@@ -59,6 +60,11 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   const [kayitSifre, setKayitSifre] = useState("");
   const [kayitCaptchaId, setKayitCaptchaId] = useState("");
   const [kayitCaptchaCevap, setKayitCaptchaCevap] = useState("");
+  // ===== Sprint 11.92 — KVKK =====
+  // Aydınlatma "okudum" geri bildirimi (onay DEĞİL — KVKK 2026/347 kararı).
+  const [aydinlatmaOkundu, setAydinlatmaOkundu] = useState(false);
+  // Yayımlamaya yönelik AYRI, opsiyonel ve geri alınabilir açık rıza.
+  const [yayimRizasi, setYayimRizasi] = useState(false);
 
   const [hata, setHata] = useState<string | null>(null);
   const [calisiyor, setCalisiyor] = useState(false);
@@ -240,8 +246,21 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
       setHata("İl seçimi zorunludur.");
       return;
     }
-    if (!kayitEposta.trim() || !kayitSifre || kayitSifre.length < 5) {
-      setHata("E-posta zorunlu; şifre en az 5 karakter olmalı.");
+    if (!kayitEposta.trim() || !kayitSifre) {
+      setHata("E-posta ve şifre zorunludur.");
+      return;
+    }
+    // Sprint 11.92: gerçek parola kuralı (YEĞİTEK madde 16) — 8+ karakter,
+    // büyük/küçük harf, rakam ve özel karakter. Önceden "en az 5" deniyordu.
+    const sifreHatasi = sifreKuralHatasi(kayitSifre);
+    if (sifreHatasi) {
+      setHata(sifreHatasi);
+      return;
+    }
+    // KVKK: aydınlatma metni OKUNMADAN kayıt yapılamaz (KVKK md.10 — aydınlatma
+    // yükümlülüğü onaya bağlı değildir, yalnızca bilgilendirme yapılır).
+    if (!aydinlatmaOkundu) {
+      setHata("Devam etmek için Aydınlatma Metni'ni okuduğunu onaylaman gerekir.");
       return;
     }
     setCalisiyor(true);
@@ -258,6 +277,9 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
         studentNumber: kayitOkulNo.trim() ? kayitOkulNo.trim() : null,
         captchaId: kayitCaptchaId,
         captchaAnswer: kayitCaptchaCevap,
+        // ===== KVKK (Sprint 11.92) =====
+        aydinlatmaOkundu,
+        yayimRizasi,
       });
       setMod("dogrulamaBekleniyor");
     } catch (e) {
@@ -499,19 +521,65 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                 />
               </div>
               <div className="alan">
-                <span>Şifre <span className="not">(en az 5 karakter)</span></span>
+                <span>Şifre</span>
                 <input
                   className="tema-input"
                   type="password"
                   autoComplete="new-password"
                   required
-                  minLength={5}
+                  minLength={8}
                   value={kayitSifre}
                   onChange={(e) => setKayitSifre(e.target.value)}
-                  placeholder="•••••"
                 />
+                <small className="not" style={{ display: "block" }}>
+                  En az 8 karakter; büyük harf, küçük harf, rakam ve özel karakter içermeli.
+                </small>
               </div>
             </div>
+
+            {/* ===== Sprint 11.92 — KVKK =====
+                İki AYRI beyan. KVKK Kurul 18.02.2026 tarihli 2026/347 sayılı
+                İlke Kararı: aydınlatma ile açık rıza iç içe geçmemeli, ayrı
+                başlıklarda ve iki ayrı beyanla alınmalı. Aydınlatmadan ONAY
+                veya RIZA istenmez — yalnızca okunduğuna dair geri bildirim. */}
+            <fieldset className="kvkk-blok">
+              <legend>Kişisel verilerin işlenmesi</legend>
+
+              <label className="kvkk-satir">
+                <input
+                  type="checkbox"
+                  checked={aydinlatmaOkundu}
+                  onChange={(e) => setAydinlatmaOkundu(e.target.checked)}
+                  required
+                />
+                <span>
+                  <a href="/kvkk" target="_blank" rel="noreferrer">
+                    <b>Aydınlatma Metni</b>
+                  </a>{" "}
+                  başlığında anlatılan bilgileri okudum. Bu bir onay değil, sadece
+                  bilgilendirmedir.
+                </span>
+              </label>
+
+              <label className="kvkk-satir">
+                <input
+                  type="checkbox"
+                  checked={yayimRizasi}
+                  onChange={(e) => setYayimRizasi(e.target.checked)}
+                />
+                <span>
+                  <b>İsteğe bağlı:</b> Bakanlığın her dönem seçtiği{" "}
+                  <b>Ayın Fikri</b> olarak ilan edilen fikirlerde adım
+                  maskelenmiş biçimde (<i>örn. “Elif Y.”</i>) ve yazdığım fikir
+                  metnim ana sayfada yayımlansın.{" "}
+                  <a href="/kvkk#acik-riza" target="_blank" rel="noreferrer">
+                    Ayrıntılı açık rıza metni
+                  </a>
+                  . İstemezsen fikrin yine değerlendirilir, yalnızca ana sayfada
+                  görünmez. Bu onayı istediğin zaman geri çekebilirsin.
+                </span>
+              </label>
+            </fieldset>
 
             <CaptchaField
               id="kayit-captcha"

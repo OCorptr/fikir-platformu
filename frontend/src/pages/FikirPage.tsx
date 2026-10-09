@@ -65,9 +65,15 @@ export default function FikirPage() {
   // AuthModal sekmesi (giris / kayit / dogrulamaBekleniyor) - maskot balonu buna gore guncellenir
   const [authMod, setAuthMod] = useState<"giris" | "kayit" | "dogrulamaBekleniyor">("giris");
   function balonYazisi(m: "giris" | "kayit" | "dogrulamaBekleniyor") {
-    if (m === "giris") return <>Merhaba! Fikrini yazmadan önce <b>hesabınla giriş yap</b> ya da yeni bir hesap oluştur. Sıra sende! 🖐</>;
-    if (m === "kayit") return <>Yeni misin? <b>Hesap oluştur</b>, e-postanı doğrula, sonra fikrini yaz. Birkaş saniye sürer! 🚀</>;
-    return <>E-posta kutunu kontrol et! 🎉 Doğrulama bağlantısına tıkladıktan sonra <b>giriş yapabilirsin</b>.</>;
+    // Sprint 11.92 (araştırmaya dayalı düzeltmeler):
+    //  · "hesabınla giriş yap" / "hesap oluştur" → butonlarla AYNI terimler
+    //    ("Giriş Yap" / "Kayıt Ol"). Çocuk "hesap oluştur" deyip butonu arıyordu.
+    //  · "Birkaç saniye sürer!" KALDIRILDI: e-posta doğrulaması saniyeler değil
+    //    dakikalar sürer ve kullanıcının kontrolünde değildir → yanlış gelecek vaadi.
+    //  · Spam'a düşme ihtimaline karşı çıkış yolu verildi.
+    if (m === "giris") return <>Merhaba! Fikrini yazmadan önce <b>Giriş Yap</b> ya da <b>Kayıt Ol</b>. Sıra sende! 🖐</>;
+    if (m === "kayit") return <>Yeni misin? <b>Kayıt Ol</b>, e-postanı doğrula, sonra fikrini yaz. E-posta gelince geri dönebilirsin. 🚀</>;
+    return <>E-posta kutunu kontrol et! 🎉 Spam'a düşmüş olabilir. Gelenmezse <b>Geri al</b> klasörüne de bak.</>;
   }
 
 
@@ -418,7 +424,7 @@ export default function FikirPage() {
 
           {mesaj && (
             <div className="status-banner status-banner--success" role="status">
-              <span className="status-banner__icon">âœ“</span>
+              <span className="status-banner__icon">✓</span>
               <span>{mesaj}</span>
             </div>
           )}
@@ -439,7 +445,7 @@ export default function FikirPage() {
                 ))}
               </select>
 
-          <div className="bolum-basligi turuncu">3 · Fikrim</div>
+          <div className="bolum-basligi turuncu">2 · Fikrim</div>
           <div className="alan">
             <span>Fikrin ({fikir.length}/{MAX_KARAKTER})</span>
               <textarea
@@ -557,16 +563,19 @@ function durumEtiketi(durum: StudentIdeaDto["status"]): string {
     case "Draft": return "Taslak";
     case "Submitted": return "Gönderildi";
     case "InEvaluation": return "Değerlendirmede";
-    case "EvaluationCompleted": return "Değerlendirildi";
+    case "EvaluationCompleted": return "Komisyonda";
     // "Locked" = döneme seçilmiş, yani planlama aşamasına geçmiş. Öğrenciye
     // iç durum adı ("Kilitli") gösterilmez; anlamı olan aşama adı yazılır.
-    case "Locked": return "Planlandı";
+    // Sprint 11.92: Locked = "il onayı verildi, dönem adayı oldu"; Planned = "bakanlık adayı seçildi".
+    case "Locked": return "İl onayı alındı";
     case "Planned": return "Planlandı";
-    case "ImplementationInProgress": return "Uygulamada";
     case "ImplementationCompleted": return "Uygulandı";
-    case "ImplementationFailed": return "Başarısız";
+    case "ImplementationFailed": return "Uygulanmadı";
     case "Deleted": return "Silindi";
   }
+  // Sprint 11.92: "ImplementationInProgress" dalı satır indeksli düzenleme
+  // sırasında düşmüştü; aşırı yüklemeden dönmemesi için default döndürüyoruz.
+  return "Uygulamada";
 }
 
 function mesajCikar(e: unknown): string {

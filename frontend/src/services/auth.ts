@@ -18,6 +18,11 @@ export async function register(payload: {
   studentNumber?: string | null;
   captchaId?: string;
   captchaAnswer?: string;
+  // ===== KVKK (Sprint 11.92) =====
+  /** Aydınlatma Metni okundu (onay DEĞİL — KVKK 2026/347 sayılı kararı). Zorunlu. */
+  aydinlatmaOkundu: boolean;
+  /** Yayımlamaya yönelik AYRI, isteğe bağlı, geri alınabilir açık rıza. */
+  yayimRizasi?: boolean;
 }): Promise<RegisterResponse> {
   return apiRequest<RegisterResponse>("/api/auth/register", {
     method: "POST",
@@ -32,6 +37,8 @@ export async function register(payload: {
       studentNumber: payload.studentNumber ?? null,
       captchaId: payload.captchaId ?? "",
       captchaAnswer: payload.captchaAnswer ?? "",
+      aydinlatmaOkundu: payload.aydinlatmaOkundu,
+      yayimRizasi: payload.yayimRizasi ?? false,
     },
   });
 }

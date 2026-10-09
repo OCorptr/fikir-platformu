@@ -942,7 +942,66 @@ html.koyu-mod .cta-fikir {
 }
 .af-baslik .af-cizgi { width: 3.4rem; height: 0.22rem; border-radius: 1rem; background: var(--sari); }
 /* ============================================================
+   Sprint 11.92 — KVKK kayıt bloğu
+   ------------------------------------------------------------
+   İki AYRI beyan (KVKK Kurul 2026/347 sayılı kararı): aydınlatma
+   "okudum" geri bildirimi + ayrı, opsiyonel yayım açık rızası.
+   ============================================================ */
+.kvkk-blok {
+  border: 0.14rem solid #D8E3EE; border-radius: 1rem;
+  background: #F7FAFD; padding: 0.9rem 1rem; margin: 0 0 1rem;
+  text-align: left;
+}
+.kvkk-blok legend {
+  font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 0.95rem;
+  color: var(--lacivert); padding: 0 0.4rem;
+}
+.kvkk-satir {
+  display: flex; gap: 0.6rem; align-items: flex-start;
+  font-size: 0.88rem; line-height: 1.45; color: #33475F;
+  padding: 0.45rem 0; cursor: pointer;
+}
+.kvkk-satir + .kvkk-satir { border-top: 0.1rem solid #E3EBF3; }
+.kvkk-satir input[type="checkbox"] { margin-top: 0.25rem; flex: 0 0 auto; }
+.kvkk-satir a { color: var(--mavi); font-weight: 700; }
+
+/* KVKK metin sayfası */
+.kvkk-sayfa {
+  max-width: 52rem; margin: 0 auto; padding: 2rem 1.2rem 4rem;
+  font-family: 'Nunito', sans-serif; color: #27354A; line-height: 1.6;
+}
+.kvkk-ust h1 { font-family: 'Baloo 2', sans-serif; color: var(--lacivert); font-size: 2rem; }
+.kvkk-ust .kvkk-alt { margin: 0.6rem 0 1.2rem; color: #5B6B7E; }
+.kvkk-bolum {
+  background: #FBFDFF; border: 0.14rem solid #E1EAF3; border-radius: 1.1rem;
+  padding: 1.3rem 1.4rem; margin-bottom: 1.4rem;
+}
+.kvkk-bolum h2 { font-family: 'Baloo 2', sans-serif; color: var(--lacivert); font-size: 1.35rem; margin-bottom: 0.6rem; }
+.kvkk-bolum h3 { font-size: 1.02rem; color: #1E4F86; margin: 1rem 0 0.35rem; }
+.kvkk-bolum ul { padding-left: 1.2rem; }
+.kvkk-bolum li { margin-bottom: 0.3rem; }
+/* Açık rıza metni kutu içinde ayrışsın — ikisi "iç içe geçmiş" olmasın. */
+.kvkk-riza { border-color: #F0D9A6; background: #FFFCF3; }
+.kvkk-riza h2 { color: #8A5B00; }
+.kvkk-not { display: block; font-size: 0.85rem; color: #6B7C90; font-style: italic; margin-top: 0.3rem; }
+.kvkk-alt-not { text-align: center; color: #7A8CA0; font-size: 0.85rem; margin-top: 1.5rem; }
+
+html.koyu-mod .kvkk-bolum,
+html.koyu-mod .kvkk-sayfa { background: #1B2C49; border-color: #2E4364; color: #D5E2F0; }
+html.koyu-mod .kvkk-blok { background: #1B2C49; border-color: #2E4364; }
+html.koyu-mod .kvkk-satir { color: #C6D6E8; }
+html.koyu-mod .kvkk-satir + .kvkk-satir { border-color: #2E4364; }
+html.koyu-mod .kvkk-bolum h2,
+html.koyu-mod .kvkk-ust h1,
+html.koyu-mod .kvkk-blok legend { color: #DCE7F5; }
+html.koyu-mod .kvkk-bolum h3 { color: #9CC3EA; }
+html.koyu-mod .kvkk-riza { background: #2A2415; border-color: #6B5A2E; }
+html.koyu-mod .kvkk-riza h2 { color: #F6C453; }
+html.koyu-mod .kvkk-not { color: #9FB4CC; }
+
+/* ============================================================
    Sprint 11.92 — Kenar kart görünümü.
+   ------------------------------------------------------------
    Onur: "blur yapma, gözlerim bozuldu. Kişinin adı ve soyadı …
           Elif Y. yerine E. Y. olsun, fikir kısmı da öyle —
           sadece sol ve sağda iken."
