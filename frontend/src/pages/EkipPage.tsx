@@ -2,7 +2,7 @@
 // Sprint 6 §42 #3: her manager sadece kendi iline atama yapabilir; atanan kişi
 // yeni görevli atayamaz (sadece değerlendirir).
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useState } from "react";
 import { AdminLayout } from "../components/AdminLayout";
 import {
   createEvaluatorOnProvince,
@@ -11,8 +11,8 @@ import {
 } from "../services/province";
 import { me } from "../services/auth";
 import { ApiHttpError } from "../services/api";
-import { sessionForContext, type MeSession, type ProvinceRef } from "../types";
-import { getProvinces } from "../services/references";
+import { sessionForContext, type MeSession } from "../types";
+import { UserCreateModal } from "./admin/UserCreateModal";
 
 interface AtamaSatir {
   id: string;
@@ -27,16 +27,12 @@ export function EkipPage() {
   const [ekip, setEkip] = useState<AtamaSatir[]>([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [ad, setAd] = useState("");
-  const [soyad, setSoyad] = useState("");
-  const [calisiyor, setCalisiyor] = useState(false);
+  // Sprint 11.92: değerlendirici ekleme artık admin panelindeki AYNI modal.
+  const [ekleAcik, setEkleAcik] = useState(false);
   // Onur (S11.74): sistem yoneticisi "tum iller" kapsaminda oldugu icin
-  // degerlendirici atanacagi ili kendisi secer. Il yoneticisinde secim yok,
-  // kendi ili kullanilir (null gonderilir).
-  const [hedefIl, setHedefIl] = useState<number | undefined>(undefined);
-  const [iller, setIller] = useState<ProvinceRef[]>([]);
+  // Onur (S11.74): sistem yönetici "tüm iller" kapsamında olduğu için
+  // değerlendirici atanacağı ili kendisi seçer — seçim modalın içinde.
+  // İl yöneticisinde seçim yok, kendi ili kullanılır (undefined gönderilir).
 
   // /me → manager rolü kontrolü
   useEffect(() => {
@@ -70,48 +66,8 @@ export function EkipPage() {
   const managerMi = sistemAdminMi || (ben?.roles.includes("ProvinceManager") ?? false);
   const ilSecmeli = sistemAdminMi;
 
-  // Sistem yoneticisi il listesini doldurur (il aracisi sunucudan gelir).
-  useEffect(() => {
-    if (!ilSecmeli) return;
-    const controller = new AbortController();
-    getProvinces(controller.signal)
-      .then((l) => setIller(l as ProvinceRef[]))
-      .catch(() => undefined);
-    return () => controller.abort();
-  }, [ilSecmeli]);
-
-  async function ataOlayi(e: FormEvent) {
-    e.preventDefault();
-    if (!email.trim() || !password || !ad.trim() || !soyad.trim()) {
-      setHata("E-posta, şifre, ad ve soyad zorunludur.");
-      return;
-    }
-    if (ilSecmeli && !hedefIl) {
-      setHata("Değerlendirici atanacak ili seçin.");
-      return;
-    }
-    if (password.length < 5) {
-      setHata("Şifre en az 5 karakter olmalı.");
-      return;
-    }
-    setCalisiyor(true);
-    setHata(null);
-    try {
-      await createEvaluatorOnProvince({
-        email: email.trim(),
-        password,
-        firstName: ad.trim(),
-        lastName: soyad.trim(),
-        provinceId: hedefIl,
-      });
-      setEmail(""); setPassword(""); setAd(""); setSoyad("");
-      await ekipYukle();
-    } catch (err) {
-      setHata(err instanceof ApiHttpError ? err.message : "Atama başarısız.");
-    } finally {
-      setCalisiyor(false);
-    }
-  }
+  // Sistem yöneticisi "tüm iller" kapsamında olduğu için il seçimi modalın
+  // içinde yapılıyor (Sprint 11.92) — burada ayrı il listesi yüklenmiyor.
 
   async function kaldirOlayi(id: string) {
     if (!confirm("Bu değerlendirici atamasını kaldırmak istediğine emin misin?")) return;
@@ -140,50 +96,24 @@ export function EkipPage() {
 
         {managerMi ? (
           <>
-            <form onSubmit={ataOlayi} className="ekip-ekle-form">
-              {/* Onur (S11.74): sistem yöneticisi tüm illeri gördüğü için
-                  atamanın yapılacağı ili seçmesi gerekiyor. */}
-              {ilSecmeli && (
-                <label>
-                  <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>İl</span>
-                  <select
-                    className="arama-kutu"
-                    value={hedefIl ?? ""}
-                    onChange={(e) => setHedefIl(e.target.value ? Number(e.target.value) : undefined)}
-                    required
-                  >
-                    <option value="">İl seçin…</option>
-                    {iller.map((i) => (
-                      <option key={i.id} value={i.id}>
-                        {i.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>Ad</span>
-                <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} />
-              </label>
-              <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>Soyad</span>
-                <input className="arama-kutu" value={soyad} onChange={(e) => setSoyad(e.target.value)} />
-              </label>
-              <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>E-posta</span>
-                <input className="arama-kutu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </label>
-              <label>
-                {/* Sprint 11.92: "en az 5" YANLIŞTI — YEĞİTEK madde 16'ya göre
-                    parola 8+ karakter ve 5 sınıf (büyük/küçük/rakam/özel) içermeli.
-                    Yanlış bilgi kullanıcıyı kısa şifreye yönlendiriyordu. */}
-                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>Şifre</span>
-                <input className="arama-kutu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </label>
-              <button type="submit" className="btn-ana" disabled={calisiyor}>
-                {calisiyor ? "Oluşturuluyor…" : "➕ Ekle"}
-              </button>
-            </form>
+            {/* Sprint 11.92 (Onur): "İl AR-GE'deki değerlendirici atama arayüzü
+                kötü, sistem yöneticisinin admin/users'daki gibi olmalı, farklı
+                olmamalı." → Elle yazılmış form kaldırıldı; AYNI UserCreateModal
+                (yan çekmece, otomatik şifre, alan doğrulama, panoya kopyalama)
+                kullanılıyor. Tek fark: POST hedefi — sistem yöneticisi admin
+                ucunu, il yöneticisi kendi il ucunu çağırıyor (`olustur`). */}
+            <div className="bolum-satir-baslik">
+              <div className="bolum-basligi turkuaz">👥 Atanmış Değerlendiriciler ({ekip.length})</div>
+              <div className="bolum-satir-butonlar">
+                <button
+                  type="button"
+                  className="btn-ana btn-kucul"
+                  onClick={() => setEkleAcik(true)}
+                >
+                  ➕ Değerlendirici Ekle
+                </button>
+              </div>
+            </div>
             <p className="tablo-notu" style={{ marginBottom: "0.8rem" }}>
               Eklenen kişiye sadece giriş bilgilerini (e-posta + şifre) iletin. Tüm il panellerine erişir, atama yapamaz.
             </p>
@@ -238,6 +168,25 @@ export function EkipPage() {
           </div>
         )}
       </section>
+
+      {/* Admin panelindeki AYNI modal (Sprint 11.92 — "farklı olmamalı"). */}
+      <UserCreateModal
+        acik={ekleAcik}
+        onClose={() => setEkleAcik(false)}
+        grupKodu="IlEvaluator"
+        basariliCallback={() => { void ekipYukle(); }}
+        olustur={async (p) => {
+          // Sistem yöneticisi tüm illeri gördüğü için ili seçer; il yöneticisi
+          // için provinceId gönderilmez, backend kendi ilini kullanır.
+          await createEvaluatorOnProvince({
+            email: p.email,
+            password: p.password,
+            firstName: p.firstName,
+            lastName: p.lastName,
+            provinceId: p.ilKodu,
+          });
+        }}
+      />
     </AdminLayout>
   );
 }

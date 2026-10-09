@@ -43,6 +43,23 @@ interface Props {
   ilKodu?: number;
   ilAdi?: string;
   basariliCallback?: () => void;
+  /**
+   * Sprint 11.92 (Onur): "İl AR-GE'deki değerlendirici atama arayüzü kötü, sistem
+   * yöneticisinin admin/users'daki gibi olmalı, farklı olmamalı." → Aynı modal
+   * İl Paneli'nde de kullanılsın.
+   *
+   * Varsayılan oluşturma yolu `/api/admin/users` (yalnızca SystemAdmin).
+   * İl yöneticisi çağıramayacağı için EkipPage kendi il ucunu (`olustur`)
+   * veriyor. Modal'ın görünümü/akışı tek kalıyor, sadece POST hedefi değişiyor.
+   */
+  olustur?: (p: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    role: AllowedRole;
+    ilKodu?: number;
+  }) => Promise<unknown>;
 }
 
 // 12-char güvenli şifre: 4 büyük harf + 4 küçük harf + 2 rakam + 2 sembol.
@@ -72,7 +89,7 @@ function guvenliSifreUret(): string {
   return tum.join("");
 }
 
-export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basariliCallback }: Props) {
+export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basariliCallback, olustur }: Props) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const ilkInputRef = useRef<HTMLInputElement>(null);
 
@@ -165,14 +182,17 @@ export function UserCreateModal({ acik, onClose, grupKodu, ilKodu, ilAdi, basari
     setGenelHata(null);
     setCalisiyor(true);
     try {
-      await createUser({
+      const veri = {
         email: email.trim(),
         password,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         role,
         ilKodu: ilSecimiGerekli && ilKoduState ? Number(ilKoduState) : undefined,
-      });
+      };
+      // Sprint 11.92: dışarıdan verilen oluşturma varsa onu kullan (il paneli).
+      if (olustur) await olustur(veri);
+      else await createUser(veri);
       setSonOlusturulan({ email, password, role });
       // Başarı toast'ı + otomatik kapatma (8 sn sonra).
       setTimeout(() => {
