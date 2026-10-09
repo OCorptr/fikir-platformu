@@ -1,42 +1,36 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { YetkiliGirisModal } from "../components/YetkiliGirisModal";
 import { me } from "../services/auth";
 import { fullPageNav } from "../components/YetkiliPanelSecim";
 import { sessionForContext } from "../types";
 import {
+  anasayfaDonemleri,
   ayinFikirleriGetir,
+  donemAralik,
+  kazananDonemler,
   kategoriEmoji,
-  kategoriEtiket,
-  type AyinFikriKart,
-  type ArsivKaydi,
-  type DonemOzet,
+  type AyinFikirleriCevabi,
+  type DonemKaydi,
 } from "../services/ayinFikirleri";
 
 /**
  * Sprint 11.92 — "Ayın Fikirleri" artık gerçek veriden geliyor.
  *
- * ÖNCE (Onur, 9 Eki 2026): "Şu anda Ekim ayına geçmişiz ama ana sayfada
- * Dönenler tamamen yanlış… sanki her ay seçmişiz gibi bir hata var."
- * KÖK NEDEN: bu bileşen hiç API çağırmıyordu — 5 sahte kayıt dosyanın içinde
- * sabit duruyordu, ay etiketleri ("Eylül", "Ağustos"…) de kod içinde yazılıydı.
+ * ÖNCE (Onur, 9 Eki 2026): "Şu anda Ekim ayına geçmişiz ama ana sayfada Dönenler
+ * tamamen yanlış… sanki her ay seçmişiz gibi bir hata var." → Bu bileşen hiç API
+ * çağırmıyordu; 5 sahte kayıt ve ay etiketleri dosyanın içinde yazılıydı.
  *
- * ŞİMDİ:
- *   adaylar  = içinde bulunulan 3 aylık dönemin kategori adayları
- *              (İl AR-GE her kategoriden 1 aday gönderir)
- *   kazanan  = bakanlığın adaylar arasından seçtiği tek fikir (👑)
- *   arşiv   = önceki dönemlerin kazananları
+ * KURAL (Onur, 9 Eki 2026): Kategori başına 1 aday BAKANLIĞA gider, bakanlık
+ * adaylar arasından 1'ini seçer. **Anasayfa adayları değil, sadece kazananı
+ * yayınlar** — aktif dönem ve geçmiş 2 dönem. Arşivde tüm dönemler listelenir.
  *
  * Veri yoksa sahte içerik gösterilmez; dürüst bir boş durum gösterilir.
  */
-
 export function HomePage() {
   const [aktif, setAktif] = useState(0);
   const [arsivAcik, setArsivAcik] = useState(false);
   const [lightboxAcik, setLightboxAcik] = useState(false);
-  const [donem, setDonem] = useState<DonemOzet | null>(null);
-  const [adaylar, setAdaylar] = useState<AyinFikriKart[]>([]);
-  const [kazananFikirId, setKazananFikirId] = useState<string | null>(null);
-  const [arsiv, setArsiv] = useState<ArsivKaydi[]>([]);
+  const [veri, setVeri] = useState<AyinFikirleriCevabi | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [veriHatasi, setVeriHatasi] = useState<string | null>(null);
 
@@ -47,13 +41,8 @@ export function HomePage() {
   );
 
   // Onur (S11.87): "Fikrini Yaz & Paylaş" butonuna tıklayınca doğrudan
-  // Yetkili Giriş'e tıkladığımda çıkan yönlendirme popup'ı çıksın... sen gitmişsen
+  // Yetkili Giriş'e tıkladığımda çıkan yönlendirme popup'ı çıksun… sen gitmişsen
   // saçma sapan /fikir sayfasına yönlendirip o sayfada yazıyorsun buna gerek yok."
-  //
-  // SEBEP: CTA düz `<a href="/fikir">` idi ve HomePage oturumdan habersizdi.
-  // 11.86'da /fikir yöneticiye kapatılınca, yönetici CTA'ya tıklayınca önce
-  // /fikir'e gidiyor, orada aynı modalı görüyordu — gereksiz tam sayfa
-  // yönlendirmesi. Artık yönetici oturumu varsa sayfa değişmeden modal açılır.
   //
   // province yetkiyi taşır: il yöneticisi ve değerlendiricisi de "yönetici"dir.
   const [yetkiliOturum, setYetkiliOturum] = useState(false);
@@ -73,16 +62,11 @@ export function HomePage() {
     return () => controller.abort();
   }, [yetkiliGirisAcik]);
 
-  // Gerçek "Ayın Fikirleri" verisi — anonim uç.
+  // Gerçek "Ayın Fikirleri" — anonim uç.
   useEffect(() => {
     const controller = new AbortController();
     ayinFikirleriGetir(controller.signal)
-      .then((cevap) => {
-        setDonem(cevap.donem);
-        setAdaylar(cevap.adaylar ?? []);
-        setKazananFikirId(cevap.kazananFikirId);
-        setArsiv(cevap.arsiv ?? []);
-      })
+      .then(setVeri)
       .catch(() => setVeriHatasi("Dönem bilgisi alınamadı."))
       .finally(() => setYukleniyor(false));
     return () => controller.abort();
@@ -97,49 +81,45 @@ export function HomePage() {
     fullPageNav("/fikir");
   }
 
-  const n = adaylar.length;
+  // Anasayfa: aktif dönem + geçmiş 2 dönemin KAZANANLARI (adaylar değil).
+  const onekiler: DonemKaydi[] = veri ? anasayfaDonemleri(veri) : [];
+  const arsiv: DonemKaydi[] = veri ? kazananDonemler(veri) : [];
+  const n = onekiler.length;
   const veriVar = n > 0;
 
   useEffect(() => {
     if (!veriVar) return;
-    const zaman = setInterval(() => setAktif((deger) => (deger + 1) % n), 6000);
+    const zaman = setInterval(() => setAktif((d) => (d + 1) % n), 6000);
     return () => clearInterval(zaman);
   }, [veriVar, n]);
 
-  // Liste değişince (yeni veri geldiğinde) indeks taşabilir.
   useEffect(() => {
     if (aktif >= n) setAktif(0);
   }, [n, aktif]);
 
-  const donemEtiketi = donem?.etiket ?? "";
+  const aktifDonemEtiketi = veri?.aktifDonem?.etiket ?? "";
 
-  const sol = veriVar ? adaylar[(aktif - 1 + n) % n] : null;
-  const orta = veriVar ? adaylar[aktif] : null;
-  const sag = veriVar ? adaylar[(aktif + 1) % n] : null;
+  const sol = veriVar ? onekiler[(aktif - 1 + n) % n] : null;
+  const orta = veriVar ? onekiler[aktif] : null;
+  const sag = veriVar ? onekiler[(aktif + 1) % n] : null;
 
-  /** Kart kurdelesi: bakanlığın seçtiği fikir 👑, diğerleri kategori rozetiyle. */
-  function kurdele(kart: AyinFikriKart | null): string {
-    if (!kart) return "";
-    return kart.fikirId === kazananFikirId
-      ? `👑 Ayın Fikri · ${donemEtiketi}`
-      : `${kategoriEtiket(kart.kategori)} · ${donemEtiketi}`;
+  /** Kart gövdesi — hem karusel hem lightbox aynı yapı. */
+  function kartIcerigi(kayit: DonemKaydi | null, buyuk: boolean) {
+    if (!kayit?.kazanan) return null;
+    const k = kayit.kazanan;
+    return (
+      <>
+        <div className={buyuk ? "af-emoji" : "af-k-emoji"}>{kategoriEmoji(k.kategori)}</div>
+        <div className={buyuk ? "af-ad" : "af-k-ad"}>{k.ogrenci}</div>
+        <div className={buyuk ? "af-okul" : "af-k-okul"}>{k.il}</div>
+        <div className={buyuk ? "af-tema" : "af-k-tema"}>{k.kategori}</div>
+        <div className={buyuk ? "af-soz" : "af-k-soz"}>&quot;{k.fikir}&quot;</div>
+      </>
+    );
   }
 
-  // Kart içeriği tek yerde — hem karusel hem lightbox aynı yapıyı kullanır.
-  const kartGovdesi = useMemo(
-    () =>
-      (kart: AyinFikriKart | null, buyuk: boolean) =>
-        !kart ? null : (
-          <>
-            <div className={buyuk ? "af-emoji" : "af-k-emoji"}>{kategoriEmoji(kart.kategori)}</div>
-            <div className={buyuk ? "af-ad" : "af-k-ad"}>{kart.ogrenci}</div>
-            <div className={buyuk ? "af-okul" : "af-k-okul"}>{kart.il}</div>
-            <div className={buyuk ? "af-tema" : "af-k-tema"}>{kart.kategori}</div>
-            <div className={buyuk ? "af-soz" : "af-k-soz"}>&quot;{kart.fikir}&quot;</div>
-          </>
-        ),
-    [],
-  );
+  const kurdele = (kayit: DonemKaydi | null) =>
+    kayit ? `👑 Ayın Fikri · ${donemAralik(kayit)}` : "";
 
   return (
     <>
@@ -154,7 +134,7 @@ export function HomePage() {
         <div className="kartlar">
           <div className="af-baslik">
             <span className="af-cizgi"></span>🏆 Ayın Fikirleri
-            {donemEtiketi ? ` · ${donemEtiketi}` : ""}
+            {aktifDonemEtiketi ? ` · ${aktifDonemEtiketi}` : ""}
             <span className="af-cizgi"></span>
           </div>
 
@@ -162,7 +142,7 @@ export function HomePage() {
             <>
               <div className="af-sahne">
                 <div className="af-kart af-kenar-kart" id="af-sol">
-                  {kartGovdesi(sol, false)}
+                  {kartIcerigi(sol, false)}
                 </div>
 
                 <div
@@ -173,18 +153,18 @@ export function HomePage() {
                   title="Büyütmek için tıkla"
                 >
                   <div className="af-kurdele">{kurdele(orta)}</div>
-                  {kartGovdesi(orta, true)}
+                  {kartIcerigi(orta, true)}
                 </div>
 
                 <div className="af-kart af-kenar-kart" id="af-sag">
-                  {kartGovdesi(sag, false)}
+                  {kartIcerigi(sag, false)}
                 </div>
 
                 <button
                   className="af-ok af-ok-sol"
                   type="button"
                   aria-label="Önceki"
-                  onClick={() => setAktif((deger) => (deger - 1 + n) % n)}
+                  onClick={() => setAktif((d) => (d - 1 + n) % n)}
                 >
                   ‹
                 </button>
@@ -192,18 +172,18 @@ export function HomePage() {
                   className="af-ok af-ok-sag"
                   type="button"
                   aria-label="Sonraki"
-                  onClick={() => setAktif((deger) => (deger + 1) % n)}
+                  onClick={() => setAktif((d) => (d + 1) % n)}
                 >
                   ›
                 </button>
               </div>
 
               <div className="af-noktalar">
-                {adaylar.map((kart) => (
+                {onekiler.map((kayit) => (
                   <i
-                    key={kart.fikirId}
-                    className={kart.fikirId === orta?.fikirId ? "aktif" : ""}
-                    onClick={() => setAktif(adaylar.findIndex((k) => k.fikirId === kart.fikirId))}
+                    key={kayit.id}
+                    className={kayit.id === orta?.id ? "aktif" : ""}
+                    onClick={() => setAktif(onekiler.findIndex((k) => k.id === kayit.id))}
                   />
                 ))}
               </div>
@@ -216,8 +196,8 @@ export function HomePage() {
                   ? "Dönem bilgisi yükleniyor…"
                   : veriHatasi
                     ? "Dönem bilgisi alınamadı. Lütfen daha sonra tekrar deneyin."
-                    : donem
-                      ? `${donem.etiket} adayları henüz değerlendirilmedi. Seçim yapıldığında burada görünecek.`
+                    : aktifDonemEtiketi
+                      ? `${aktifDonemEtiketi} için bakanlık değerlendirmesi sürüyor. Seçilen fikir burada görünecek.`
                       : "İlk dönem değerlendirmesi yakında burada görünecek."}
               </p>
             </div>
@@ -236,7 +216,7 @@ export function HomePage() {
             onClick={(olay) => {
               if (olay.target === olay.currentTarget) {
                 setLightboxAcik(false);
-                setAktif((deger) => (deger + 1) % n);
+                setAktif((d) => (d + 1) % n);
               }
             }}
           >
@@ -246,14 +226,14 @@ export function HomePage() {
               aria-label="Kapat"
               onClick={() => {
                 setLightboxAcik(false);
-                setAktif((deger) => (deger + 1) % n);
+                setAktif((d) => (d + 1) % n);
               }}
             >
               ✕
             </button>
             <div className="af-kart af-orta">
               <div className="af-kurdele">{kurdele(orta)}</div>
-              {kartGovdesi(orta, true)}
+              {kartIcerigi(orta, true)}
             </div>
           </div>
         )}
@@ -284,26 +264,20 @@ export function HomePage() {
             <div className="arsiv-icerik">
               <button className="arsiv-kapat" type="button" aria-label="Kapat" onClick={() => setArsivAcik(false)}>✕</button>
               <h2>🏆 Ayın Fikri Arşivi</h2>
-              <p className="arsiv-alt">Önceki dönemlerde seçilen kazanan fikirler</p>
+              <p className="arsiv-alt">Bakanlığın seçtiği tüm kazanan fikirler</p>
               <div className="arsiv-zaman">
                 {arsiv.length === 0 && (
-                  <p className="arsiv-bos">Henüz tamamlanmış bir dönem yok.</p>
+                  <p className="arsiv-bos">Henüz seçilmiş bir kazanan fikir yok.</p>
                 )}
                 {arsiv.map((kayit) => (
                   <div className="ay-kart" key={kayit.id}>
-                    <div className="ay-etiket">{kayit.etiket}</div>
-                    {kayit.kazanan ? (
-                      <>
-                        <div className="ay-kazanan">
-                          {kategoriEmoji(kayit.kazanan.kategori)} {kayit.kazanan.ogrenci}
-                        </div>
-                        <div className="ay-okul">{kayit.kazanan.il}</div>
-                        <div className="ay-tema">{kayit.kazanan.kategori}</div>
-                        <div className="ay-fikir-giris">&quot;{kayit.kazanan.fikir}&quot;</div>
-                      </>
-                    ) : (
-                      <div className="ay-kazanan">Bu dönem için kazanan seçilmedi.</div>
-                    )}
+                    <div className="ay-etiket">{donemAralik(kayit)}</div>
+                    <div className="ay-kazanan">
+                      {kategoriEmoji(kayit.kazanan!.kategori)} {kayit.kazanan!.ogrenci}
+                    </div>
+                    <div className="ay-okul">{kayit.kazanan!.il}</div>
+                    <div className="ay-tema">{kayit.kazanan!.kategori}</div>
+                    <div className="ay-fikir-giris">&quot;{kayit.kazanan!.fikir}&quot;</div>
                   </div>
                 ))}
               </div>

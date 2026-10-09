@@ -747,6 +747,7 @@ app.MapMinistryEndpoints();
 // Sprint 11.92: herkese açık okuma uçları (ana sayfa "Ayın Fikirleri").
 // Kimlik doğrulaması GEREKMEZ; PII maskeleme yapıldığı için yayınlanabilir.
 app.MapPublicEndpoints();
+app.MapBakimDemoEndpoints();
 
 // Bakım endpoint'i — sistem yöneticisi hesabını oluşturur/sıfırlar.
 // Hesap bilgileri `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password`

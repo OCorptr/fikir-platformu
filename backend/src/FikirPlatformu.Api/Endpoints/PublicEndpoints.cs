@@ -6,33 +6,33 @@ namespace FikirPlatformu.Api.Endpoints;
 /// <summary>
 /// Herkese açık (kimlik doğrulaması gerektirmeyen) okuma uçları.
 ///
-/// Sprint 11.92 — Ana sayfadaki "Ayın Fikirleri" karuseli tamamen sahte veriyle
-/// çalışıyordu (`HomePage.tsx` içinde 5 sabit nesne, ay etiketleri kodda yazılı).
-/// Gerçek veri modeli ise iki kademeli:
-///   1. `period_selections` — her kategoriden en fazla 1 aday (İl AR-GE → bakanlık)
-///   2. `period_winners`   — bakanlığın adaylar içinden seçtiği tek kazanan
+/// Sprint 11.92 — Ana sayfa gerçek veriye bağlandı. Önceki hâli 5 sahte kayıttı.
 ///
-/// Mevcut `/api/ministry/periods*` uçlarının hepsi `MinistryOnly`. Ana sayfa
-/// anonim olduğu için ayrı bir kamu ucu gerekiyor.
+/// <para><b>Kural (Onur, 9 Eki 2026):</b> Her kategoriden 1 aday bakanlığa gider
+/// (<c>period_selections</c>), bakanlık adaylar arasından <b>1 tanesini</b> seçer
+/// (<c>period_winners</c>). <b>Anasayfada adaylar değil, sadece kazanan yayınlanır.</b>
+/// Anasayfa aktif dönem + geçmiş 2 dönemin kazananlarını gösterir; "Ayın Fikri
+/// Arşivi" ise tüm dönemlerin kazanan listesi döner.</para>
+///
+/// <para>Mevcut <c>/api/ministry/periods*</c> uçlarının hepsi <c>MinistryOnly</c>.
+/// Ana sayfa anonim olduğu için ayrı bir kamu ucu gerekiyor.</para>
 ///
 /// ⚠️ KVKK: Bu uç PII döndürür. Öğrenci adı soyadın YALNIZCA başharfi ile
-/// maskelenir (<see cref="KisiselVeriYardimci.OgrenciAdiMaskele"/>) ve okul
-/// bilgisi modelde bulunmadığından il adı gösterilir.
+/// maskelenir (<see cref="KisiselVeriYardimci.OgrenciAdiMaskele"/>); okul bilgisi
+/// modelde bulunmadığından il adı gösterilir.
 /// </summary>
 public static class PublicEndpoints
 {
     /// <summary>Kart alanı için fikir metnini kısaltır.</summary>
     private const int OzetKarakter = 240;
 
-    private sealed record AdayKart(
-        Guid PeriodId,
+    private sealed record KazananKart(
         Guid FikirId,
         int KategoriId,
         string Kategori,
         string Il,
         string Ogrenci,
-        string Fikir,
-        DateTimeOffset SecimTarihi);
+        string Fikir);
 
     public static IEndpointRouteBuilder MapPublicEndpoints(this IEndpointRouteBuilder app)
     {
@@ -45,58 +45,50 @@ public static class PublicEndpoints
         {
             var simdi = DateTimeOffset.UtcNow;
 
-            // Son 24 dönem; dönemler 3 aylık (plan §25).
             var donemler = await db.Periods.AsNoTracking()
                 .OrderByDescending(p => p.StartAt)
-                .Take(24)
+                .Take(100)
                 .ToListAsync(cancellationToken);
 
             if (donemler.Count == 0)
             {
-                // Hiç dönem yok — sahte veri göstermek yerine dürüst boş durum.
                 return Results.Ok(new
                 {
-                    donem = (object?)null,
-                    adaylar = Array.Empty<object>(),
-                    kazananFikirId = (Guid?)null,
-                    arsiv = Array.Empty<object>(),
+                    aktifDonem = (object?)null,
+                    donemler = Array.Empty<object>(),
                 });
             }
 
-            // İçinde bulunulan dönem: StartAt <= now < EndAt. Yoksa en son dönem.
-            var aktif = donemler.FirstOrDefault(p => p.StartAt <= simdi && simdi < p.EndAt)
-                        ?? donemler[0];
-
-            var arsivDonemleri = donemler.Where(d => d.Id != aktif.Id).ToList();
-            var ilgiliDonemler = new List<Guid> { aktif.Id };
-            ilgiliDonemler.AddRange(arsivDonemleri.Select(d => d.Id));
-
-            var kartlar = await AdayKartlariniYukle(db, ilgiliDonemler, cancellationToken);
-
             var kazananlar = await db.PeriodWinners.AsNoTracking()
-                .Where(w => ilgiliDonemler.Contains(w.PeriodId))
-                .ToListAsync(cancellationToken);
+                .ToDictionaryAsync(w => w.PeriodId, cancellationToken);
 
-            var arsiv = arsivDonemleri.Select(d =>
+            var fikirIds = kazananlar.Values.Select(w => w.IdeaId).Distinct().ToList();
+            var kartlar = await KazananKartlariniYukle(db, fikirIds, cancellationToken);
+
+            var kayitlar = donemler.Select(d =>
             {
-                var kazananFikirId = kazananlar
-                    .FirstOrDefault(w => w.PeriodId == d.Id)?.IdeaId;
-                var kart = kazananFikirId is null
-                    ? null
-                    : kartlar.FirstOrDefault(k => k.PeriodId == d.Id && k.FikirId == kazananFikirId);
+                var kazananKart = kazananlar.TryGetValue(d.Id, out var k) && kartlar.TryGetValue(k.IdeaId, out var kart)
+                    ? kart
+                    : (object?)null;
                 return new
                 {
                     id = d.Id,
                     etiket = d.Label,
                     baslangic = d.StartAt,
                     bitis = d.EndAt,
-                    kazanan = kart,
+                    durum = d.Status.ToString(),
+                    kazanan = kazananKart,
+                    secimTarihi = kazananlar.TryGetValue(d.Id, out var k2) ? k2.SelectedAt : (DateTimeOffset?)null,
                 };
             }).ToList();
 
+            // İçinde bulunulan dönem: StartAt <= now < EndAt; yoksa en son dönem.
+            var aktif = donemler.FirstOrDefault(p => p.StartAt <= simdi && simdi < p.EndAt)
+                        ?? donemler[0];
+
             return Results.Ok(new
             {
-                donem = new
+                aktifDonem = new
                 {
                     id = aktif.Id,
                     etiket = aktif.Label,
@@ -104,70 +96,50 @@ public static class PublicEndpoints
                     bitis = aktif.EndAt,
                     durum = aktif.Status.ToString(),
                 },
-                adaylar = kartlar.Where(k => k.PeriodId == aktif.Id).ToList(),
-                kazananFikirId = kazananlar.FirstOrDefault(w => w.PeriodId == aktif.Id)?.IdeaId,
-                arsiv,
+                // Tüm dönemler, en yeniden eskiye. Frontend ilk 3'ü anasayfada gösterir.
+                donemler = kayitlar,
             });
         });
 
         return app;
     }
 
-    /// <summary>Verilen dönemlerin tüm kategori adaylarını kart listesi olarak yükler.</summary>
-    private static async Task<List<AdayKart>> AdayKartlariniYukle(
+    private static async Task<Dictionary<Guid, KazananKart>> KazananKartlariniYukle(
         FikirPlatformuDbContext db,
-        IReadOnlyList<Guid> periodIds,
+        IReadOnlyList<Guid> fikirIds,
         CancellationToken cancellationToken)
     {
-        var secimler = await db.PeriodSelections.AsNoTracking()
-            .Where(s => periodIds.Contains(s.PeriodId))
-            .ToListAsync(cancellationToken);
-        if (secimler.Count == 0) return [];
+        var sonuc = new Dictionary<Guid, KazananKart>();
+        if (fikirIds.Count == 0) return sonuc;
 
-        var fikirIds = secimler.Select(s => s.IdeaId).ToList();
-
-        // Öğrenci adı için AYRI sorgu: `Idea.StudentId` Guid, `ApplicationUser.Id`
-        // string — LINQ join `(string)f.StudentId` SQL'e çevrilemiyor.
-        // Bu yüzden önce fikir satırları, sonra öğrenci künyesi çekilip
-        // bellekte eşleştiriliyor.
         var satirlar = await (
             from f in db.Ideas.AsNoTracking()
             where fikirIds.Contains(f.Id)
             join k in db.IdeaCategories.AsNoTracking() on f.CategoryId equals k.Id
             join il in db.Provinces.AsNoTracking() on f.ProvinceId equals il.Id
-            select new
-            {
-                f.Id,
-                f.StudentId,
-                Kategori = k.Name,
-                Il = il.Name,
-                f.Content,
-            })
+            select new { f.Id, f.StudentId, f.CategoryId, Kategori = k.Name, Il = il.Name, f.Content })
             .ToListAsync(cancellationToken);
+        if (satirlar.Count == 0) return sonuc;
 
+        // Öğrenci adı için AYRI sorgu: `Idea.StudentId` Guid, `ApplicationUser.Id`
+        // string — LINQ join `(string)f.StudentId` SQL'e çevrilemiyor.
         var ogrenciIdleri = satirlar.Select(s => s.StudentId.ToString()).Distinct().ToList();
         var ogrenciler = await db.Users.AsNoTracking()
             .Where(u => ogrenciIdleri.Contains(u.Id))
             .Select(u => new { u.Id, u.FirstName, u.LastName })
             .ToDictionaryAsync(u => u.Id, cancellationToken);
 
-        var sonuc = new List<AdayKart>(secimler.Count);
-        foreach (var secim in secimler)
+        foreach (var satir in satirlar)
         {
-            var satir = satirlar.FirstOrDefault(s => s.Id == secim.IdeaId);
-            if (satir is null) continue;
             if (!ogrenciler.TryGetValue(satir.StudentId.ToString(), out var ogrenci)) continue;
-
-            sonuc.Add(new AdayKart(
-                secim.PeriodId,
+            sonuc[satir.Id] = new KazananKart(
                 satir.Id,
-                secim.CategoryId,
+                satir.CategoryId,
                 satir.Kategori,
                 satir.Il,
                 // PII maskeli: "Emir K." (ad + soyad başharfi).
                 KisiselVeriYardimci.OgrenciAdiMaskele(ogrenci.FirstName, ogrenci.LastName),
-                Ozetle(satir.Content),
-                secim.SelectedAt));
+                Ozetle(satir.Content));
         }
 
         return sonuc;

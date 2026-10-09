@@ -257,6 +257,14 @@ public static class ProvinceEndpoints
                 SubmitEvaluationResult.Locked => Results.ValidationProblem(new Dictionary<string, string[]> { ["ideaId"] = ["Onaylanmış fikir puanlanamaz."] }),
                 SubmitEvaluationResult.NoScores => Results.ValidationProblem(new Dictionary<string, string[]> { ["scores"] = ["En az bir kriter puanı zorunludur."] }),
                 SubmitEvaluationResult.InvalidScore => Results.ValidationProblem(new Dictionary<string, string[]> { ["scores"] = ["Puanlar 1-5 arasında olmalıdır."] }),
+                // Sprint 11.92 (Onur incelemesi): dört kriterin tamamı zorunlu —
+                // aksi halde ölçülmemiş kriterlerle fikir eşiği geçebiliyordu.
+                SubmitEvaluationResult.MissingCriteria eksik => Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["scores"] = ["Dört kriterin tamamı puanlanmalıdır (Yenilikçilik, Uygulanabilirlik, Etki, Özgünlük). Eksik: " + string.Join(", ", eksik.Eksikler)]
+                }),
+                SubmitEvaluationResult.AlreadyCompleted => Results.ValidationProblem(new Dictionary<string, string[]> { ["ideaId"] = ["Bu fikrin değerlendirmesi tamamlandı, puan verilemez."] }),
+                SubmitEvaluationResult.CommentTooLong => Results.ValidationProblem(new Dictionary<string, string[]> { ["comment"] = ["Yorum en fazla 1000 karakter olabilir."] }),
                 _ => Results.StatusCode(500),
             };
         }).RequireAuthorization("ProvinceOnly");
