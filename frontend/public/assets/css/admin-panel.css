@@ -252,6 +252,11 @@ table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
    üst üste binmesin diye dikey yığın. */
 .aday-eylemler { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.6rem; }
 .aday-eylemler > button { width: 100%; }
+/* Sprint 11.92: "Seçimi Geri Al" — geri al iyonu, düz buton gibi görünmesin. */
+.btn-iptal { color: #C0392B; border-color: #E8B4AE; background: #FDF2F1; font-weight: 700; }
+.btn-iptal:hover:not(:disabled) { border-color: #C0392B; background: #FBE3E0; }
+html.koyu-mod .btn-iptal { color: #F2A7A0; border-color: #6B3A36; background: #2C1E22; }
+html.koyu-mod .btn-iptal:hover:not(:disabled) { border-color: #F2A7A0; background: #3A272B; }
 .belge-notu {
   margin-top: 1.3rem; background: #FCF3D5; border-radius: 1rem; padding: 0.95rem 1.25rem;
   font-weight: 700; font-size: 1rem; color: #7A5C00;

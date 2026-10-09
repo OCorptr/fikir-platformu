@@ -9,6 +9,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
+  clearPeriodWinner,
   getPeriodCandidates,
   getPeriodSelected,
   listPeriods,
@@ -198,6 +199,35 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     }
   }
 
+  /**
+   * Sprint 11.92 — Kazanan seçimini geri al.
+   * "Ne olur ne olmaz yanlış tıklandı" senaryosu için.
+   * Aday seçimleri (`period_selections`) korunur, sadece kazananlık düşer.
+   */
+  async function kazananIptal(ideaId: string) {
+    const hedef = gorunum === "adaylar"
+      ? aktifDonem
+      : periods.find((p) => p.id === seciliPeriodId) ?? null;
+    if (!hedef) return;
+    if (!confirm(
+      "Dönemin fikri seçimini geri almak istiyor musun?\n\n" +
+      "Ana sayfadaki kart kalkacak. Kategori adayı seçimleri korunur, " +
+      "tekrar seçebilirsin.",
+    )) return;
+
+    setKazananCalisiyor(true);
+    setHata(null);
+    try {
+      await clearPeriodWinner(hedef.id);
+      setKazananFikirId(null);
+      await secimleriTazele(hedef.id);
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setKazananCalisiyor(false);
+    }
+  }
+
   const baslik = gorunum === "adaylar" ? "Aktif Adaylar" : "Dönemler";
   const rozetDonem = gorunum === "adaylar"
     ? aktifDonem
@@ -257,19 +287,27 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
               </button>
 
               {i.isSelected && (
-                <button
-                  type="button"
-                  className={`btn-ikincil btn-aday ${i.id === kazananFikirId ? "secildi" : ""}`}
-                  onClick={() => kazananSec(i.id)}
-                  disabled={!hedef || hedef.status !== "Open" || kazananCalisiyor}
-                  title="Bu dönemin tek kazananı — ana sayfada yayınlanır"
-                >
-                  {i.id === kazananFikirId
-                    ? "👑 Ayın Fikri Seçildi"
-                    : kazananCalisiyor
-                      ? "Seçiliyor…"
-                      : "👑 Ayın Fikri Seç"}
-                </button>
+                i.id === kazananFikirId ? (
+                  <button
+                    type="button"
+                    className="btn-ikincil btn-aday btn-iptal"
+                    onClick={() => kazananIptal(i.id)}
+                    disabled={kazananCalisiyor}
+                    title="Yanlış seçildiyse geri al"
+                  >
+                    {kazananCalisiyor ? "İptal ediliyor…" : "❌ Seçimi Geri Al"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-ikincil btn-aday"
+                    onClick={() => kazananSec(i.id)}
+                    disabled={!hedef || hedef.status !== "Open" || kazananCalisiyor}
+                    title="Bu dönemin tek kazananı — ana sayfada yayınlanır"
+                  >
+                    {kazananCalisiyor ? "Seçiliyor…" : "👑 Ayın Fikri Seç"}
+                  </button>
+                )
               )}
             </div>
           </div>

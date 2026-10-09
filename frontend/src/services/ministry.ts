@@ -62,6 +62,13 @@ export async function selectPeriodWinner(
   });
 }
 
+/** Sprint 11.92 — Dönemin fikri seçimini geri al (yanlış tıklama düzeltme). */
+export async function clearPeriodWinner(
+  periodId: string,
+): Promise<{ message: string; periodId: string; iptalEdilenFikirId: string }> {
+  return apiRequest(`/api/ministry/periods/${periodId}/kazanan`, { method: "DELETE" });
+}
+
 export async function getPeriodSelected(
   periodId: string,
   signal?: AbortSignal,

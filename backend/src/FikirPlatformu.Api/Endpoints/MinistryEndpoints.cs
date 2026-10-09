@@ -245,6 +245,49 @@ public static class MinistryEndpoints
             });
         }).RequireAuthorization("MinistryOnly");
 
+        // =============================================================
+        // Sprint 11.92 — Kazanan seçimini İPTAL ET.
+        // Yanlış tıklama ihtimaline karşı geri al: `period_winners` satırı silinir,
+        // ana sayfa kartı düşer. Aday seçimleri (`period_selections`) KORUNUR —
+        // sadece kazananlık geri alınıyor.
+        // =============================================================
+        grup.MapDelete("/periods/{id:guid}/kazanan", async (
+            Guid id,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var mevcut = await db.PeriodWinners.FirstOrDefaultAsync(w => w.PeriodId == id, cancellationToken);
+            if (mevcut is null) return Results.Ok(new { mesaj = "Bu dönem için seçilmiş bir kazanan yok." });
+
+            var geriAlinanFikirId = mevcut.IdeaId;
+            db.PeriodWinners.Remove(mevcut);
+
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Email = KisiselVeriYardimci.EmailMaskele(http.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserUpdated,
+                Success = true,
+                FailureReason = $"donem-kazanan-iptal: {geriAlinanFikirId}",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+
+            return Results.Ok(new
+            {
+                message = "Dönemin fikri seçimi geri alındı. Aday seçimleri korundu.",
+                periodId = id,
+                iptalEdilenFikirId = geriAlinanFikirId,
+            });
+        }).RequireAuthorization("MinistryOnly");
+
         // GET /api/ministry/implementations — tüm Planned+Implementation fikirler (özet ekranı, plan §30)
         grup.MapGet("/implementations", async (
             IImplementationSummaryQueryService service,
