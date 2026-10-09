@@ -931,11 +931,10 @@ html.koyu-mod .cta-fikir {
      büyüyüp küçülmez (Onur: "kart boyu küçülüyor/büyüyor,
      büyükte kalmalı her zaman").
    ============================================================ */
-/* Sprint 11.92: şerit artık kartın İÇİNDE (üst boşluk harcanmıyor).
-   Önceden `top:-1.1rem` ile kartın dışına taşıyordu; buna karşılık sahneye
-   1.5rem üst boşluk ekleniyordu ve sayfa viewport'tan taşıp kaydırma
-   çubuğu çıkarıyordu. Şimdi şerit kartın üst kenarının hemen içinde. */
-.af-sahne { position: relative; padding: 0.4rem 1.4rem 0.2rem; display: flex; align-items: stretch; justify-content: center; gap: 1.4rem; }
+/* Sprint 11.92: şerit kartın ÜSTÜNDE, kartın dışında durur (Onur: "eskiden
+   daha güzeldi, kartın en üstüne damgalanmış gibi"). Kartın içine alınan
+   deneme beğenilmedi. Boşluk yalnızca şeridin sığacağı kadar tutuldu. */
+.af-sahne { position: relative; padding: 0.6rem 1.4rem 0.2rem; display: flex; align-items: stretch; justify-content: center; gap: 1.4rem; }
 .af-kart {
   background: #fff; border-radius: 1.5rem; text-align: center;
   padding: 1.2rem 1rem 1.1rem; width: 19rem;
@@ -970,13 +969,11 @@ html.koyu-mod .cta-fikir {
   height: 17.5rem;
   background: linear-gradient(165deg, #FFF3C4 0%, #FFD34D 45%, #F6A81C 100%);
   border: 0.28rem solid #fff; border-radius: 1.8rem;
-  /* Üst boşluk şeridin altında kalsın (şerit artık kartın içinde). */
-  padding: 3.1rem 1.3rem 1.1rem;
+  padding: 2.2rem 1.3rem 1.1rem;
   box-shadow: 0 1.4rem 3.2rem rgba(196, 148, 10, 0.5), 0 0 0 0.7rem rgba(246, 168, 28, 0.18);
 }
 .af-kurdele {
-  /* Kartın İÇİNDE — dışarı taşınca sayfa yüksekliğini gereksiz yer artırıyordu. */
-  position: absolute; top: 0.45rem; left: 50%; transform: translateX(-50%) rotate(-2deg);
+  position: absolute; top: -1.1rem; left: 50%; transform: translateX(-50%) rotate(-2deg);
   background: linear-gradient(135deg, #F6B40E, #E8940A); color: #5C4300;
   font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 1.05rem; letter-spacing: 0.04em;
   padding: 0.45rem 1.4rem; border-radius: 2rem; white-space: nowrap;
@@ -1245,7 +1242,7 @@ html.imlec-sari body a, html.imlec-sari body button { cursor: url("data:image/sv
 
   /* vitrin: yalnizca orta kart + oklar (kenar kartlari tasmasin) */
   .af-kenar-kart { display: none; }
-  .af-sahne { gap: 0; padding: 0.4rem 0.4rem 0.2rem; }
+  .af-sahne { gap: 0; padding: 0.8rem 0.4rem 0.2rem; }
   .af-orta { width: 100%; max-width: min(30rem, calc(100vw - 4.5rem)); }
   .af-kurdele { font-size: 0.95rem; padding: 0.4rem 1.1rem; }
   .af-ok { width: 2.7rem; height: 2.7rem; }
