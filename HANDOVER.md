@@ -1,15 +1,49 @@
-# Handover — Fikir Platformu (HEAD: `20d1df7`)
+# Handover — Fikir Platformu (HEAD: `2aac7fe`)
 
 > **Amaç:** Yeni AI oturumu açıldığında **HANDOVER + CLAUDE.md** okuyunca sprint state ve açık işler net olsun. Mimari için `docs/architecture.md`, operasyon için `docs/runbook.md`, kurum gereksinimleri için `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md`.
 
 ---
 
+## 🔴🔴 CANLI ORTAM HATASI — ÇÖZÜLMEDİ, YENİ OTURUM BUNU ÖNCE OKUSUN
+
+**Belirti:** Tüm e-posta gönderimi 500 hatası veriyor.
+
+```
+POST /api/auth/mfa/send-email-otp   → 500 "İşlem sırasında beklenmeyen bir hata oluştu."
+POST /api/auth/register             → 500 (doğrulama e-postası gönderilemiyor)
+```
+
+Kullanıcıya görünen: *"Kod gönderiliyor…"* → *"Kodu tekrar gönder"* → *"İşlem sırasında beklenmeyen bir hata oluştu."*
+
+**Teşhis (9 Eki 2026):** `Mail__Type=gmail` → `GmailApiEmailSender`. `GetAccessTokenAsync` veya `SendAsync` fırlatıyor, `MfaEndpoints` `SendAsync`'ı **try/catch ile sarmalamıyor** → ham `InvalidOperationException` ASP.NET'in genel 500 maskesine düşüyor. Gerçek neden logda (`[GMAIL]` satırları), yanıtta **görünmüyor**.
+
+**Doğrulanmış olanlar:**
+- `Mail:Gmail:ClientId` **VAR** — `/api/auth/gmail-oauth/start` 302 ile Google'a yönlendiriyor (client_id `243209544707-…apps.googleusercontent.com`)
+- Hata **göndericiye özgü değil** — kayıt ucu da aynı 500'ü veriyor, yani `IEmailSender` katmanı bozuk
+- `Mail__Gmail__SenderAddress` ayarlanmamış olabilir (`GmailApiEmailSender.cs:69` erken fırlatır)
+
+**Muhtemel patlama noktaları** (`GmailApiEmailSender.cs`):
+
+| Satır | Koşul |
+|---|---|
+| 69 | `Mail__Gmail__SenderAddress` boş |
+| 123 | `ClientId`/`ClientSecret` eksik |
+| 135 | Refresh token yok (DB `gmail_refresh_tokens` Id=1 boş **veya** env eksik) |
+| 158 | Refresh token reddedildi (geçersiz/expire) |
+
+**Sonraki adım:** Render loglarında `[GMAIL]` satırlarını bul → hangi koşul tutuyor. Ardından **ikinci hata düzeltmesi**: `SendAsync` çağrıları `try/catch` ile sarılıp kullanıcıya anlamlı Türkçe mesaj dönmeli (örn. "E-posta gönderilemedi, sistem yöneticinize bildirin"), genel 500 değil.
+
+**Etkilenen akışlar:** parola sıfırlama, kayıt doğrulama, MFA e-posta kodu. **TOTP MFA etkilenmez** (e-posta kullanmaz).
+
+---
+
 ## 📌 HEAD
 
-- **Commit:** `20d1df7` (Sprint 11.81 — Tüm sayfalarda mobil uyumluluk)
+- **Commit:** `2aac7fe` (Sprint 11.88 — `architecture.md` bayat `needsGmailOAuth` dalı düzeltildi)
 - **Branch:** main
 - **Test:** 51/51 (xUnit), `tsc` temiz, frontend build başarılı
 - **Last deploy:** Render auto-deploy main push (~2-3 dk backend, ~1-2 dk frontend)
+- **Canlı backend damgası:** `/api/health` → `commit` alanı (en son okumada `5c1e073`; sonraki 3 commit yalnız frontend/yaml)
 
 ## 🌐 Services
 
@@ -23,9 +57,10 @@
 
 | Field | Value |
 |---|---|
-| Email | `onur35bilisim@gmail.com` |
+| Email | `fikir.platformu.iletisim@gmail.com` |
 | Roles | SystemAdmin + MinistryOfficial |
-| MFA | TOTP (Authenticator) |
+| Otobirim (seed) | `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password` env'den |
+| Öğrenci test hesabı | `test.ogrenci@yegitek.test` / `Ogrenci.Test1!` (Sprint 11.86'da açıldı, e-posta doğrulandı) |
 
 > 🔒 **Şifreler bu dosyada tutulmaz** (Sprint 11.52). Render env (`SeedSystemAdmin__Password`) veya parola kasası.
 > Şifre değiştirme sonrası MFA yeniden kurulur; parola değişimi oturumu geçersiz kılar (Sprint 11.55).
@@ -75,6 +110,10 @@ Güvenlik test raporu: `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` (YG-38)
 | 11.83 | `Captcha__Disabled` kaldırıldı — kullanılmamıştı, üretimde yanlışlıkla açılma riskiydi |
 | 11.84 | **YG-38 güvenlik test raporu.** 4 açık bulundu: açık yönlendirme (OWASP A01), HSTS yok, frontend CSP yok, bozuk başlangıç SQL'i |
 | 11.85 | DI kaydı `Build()` sonrasında kalmıştı → **deploy çöktü**. `LastLoginAt` kolonu yoktu. 4 başlangıç denetim testi + `/api/health` sürüm damgası |
+| 11.86 | `/fikir` yöneticiye kapandı (panel seçimi gösterir); Yönetici Ekle formu düzenlendi. Test öğrenci hesabı açıldı; bakım ucuna `confirmEmail` + `zorlamaYok` bayrakları (e-postasına ulaşamayan kullanıcı sonsuza kadar kilitliydi) |
+| 11.87 | "Fikrini Yaz" CTA'sı yöneticide sayfa değiştirmeden panel seçimini açıyor. `Cryptography.Xml` 10.0.10'a sabitlendi (7 high advisory) |
+| 11.88 | **Öğrenci fikir durumu ekranı.** `fikirAsamalari.ts` (10 backend durumu → 5 görsel aşama, tek kaynak) + `FikirAsamaCizgisi.tsx`. `render.yaml` kendi hatam düzeltildi (`type: static` geçersizdi, iç içe `headers:` söz dizimi yanlıştı) |
+| 11.91 | Liste tek satıra sığdı; "Gönderilmiş Fikirlerim" / "Taslaklarım" ayrımı; `Kilitli` → `Planlandı`; çıkış gönder butonunun yanına; **MFA ekranlarında çıkış gerçekten çıkış yapmıyordu** (`mfaCancel` ≠ `logout`) |
 
 ### 🔧 Auth zinciri — Sprint 11.71–11.78 özeti
 
@@ -101,13 +140,17 @@ Bu dört sprint, **aynı hatada dört kez yanlış kök neden** bulundu. Hepsi d
 | `docs/YEGITEK-GUVENLIK-GEREKSINIMLERI.md` | 41 maddelik kurum listesi ve durum |
 | `docs/YGITEK-GUVENLIK-TEST-RAPORU.md` | **YG-38 test raporu** — 25 test, 4 bulgu, 4 düzeltme (kurum formatında, kısa) |
 | `docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md` | Onur'dan teyit bekleyen bilgiler |
+| `frontend/src/services/fikirAsamalari.ts` | Backend'in 10 `IdeaStatus` değerini 5 görsel aşamaya eşleyen **tek kaynak** |
+| `frontend/src/components/FikirAsamaCizgisi.tsx` | Aşama çizgisi — gönderim sonrası ekranla **aynı** bileşen |
 
 ## 🚧 Açık işler
 
 ### 🔴 Teslimi bloklayan
 
+- **E-posta gönderimi 500 veriyor** (kayıt doğrulama + MFA kodu + parola sıfırlama) — bu dosyanın en üstündeki bölüme bak. Render logunda `[GMAIL]` satırı hangi koşulun tuttuğunu söyler. Sonra `SendAsync` çağrıları `try/catch` ile sarılmalı, genel 500 yerine anlamlı mesaj dönmeli.
 - **Alan adı, DB adresi, kurulum yolu, SMTP/OAuth değerleri** — `docs/YEGITEK-TESLIM-BEKLEYEN-BILGILER.md`. Onur'dan gerçek değerler bekleniyor. `.env.example` içindeki kurumsal değerler **tahmindir**.
 - **Bağımsız penetrasyon testi** — geliştiricinin testi bağımsız denetim sayılmaz. Kurumun kendi güvenlik ekibiyle yaptırılmalı (`docs/YGITEK-GUVENLIK-TEST-RAPORU.md` Bölüm 6).
+- **Render `/assets/*` cache yolu** — dashboard'da `/assets` yazılmış, `/assets/*` olmalı. Hash'li varlıklar şu an 5 dk cache'leniyor (1 yıl değil). `render.yaml` doğru, mevcut servis elle düzeltilmeli.
 
 ### 🟡 41 maddenin açık kalanları (3 kısmi)
 
@@ -213,6 +256,24 @@ adac877 Sprint 11.78: /me contexti rolden tahmin etmiyordu - GERCEK KOK NEDEN
 6003fc3 Sprint 11.76: rol claimleri acikca yaziliyor
 ce0629e Sprint 11.75: sistem yonetici province cookie'i gercekten yaziliyor
 39a422f Sprint 11.74: sistem yonetici il-panel'a girer ve tum illeri gorur
+2aac7fe Sprint 11.88: architecture.md bayat needsGmailOAuth dalini duzelt
+5b675e1 Sprint 11.88: render.yaml bayat _redirects yorumu duzeltildi
+faad9e7 Sprint 11.88: render.yaml type:static ve ic ice headers sozdizimi hatasi duzeltildi
+6f04e31 Sprint 11.91: btn-tam esnesin, 94px yatay tasma duzelt
+2c0ea7c Sprint 11.91: fikir listesi iki bolum, Locked etiketi duzelt, buton tek satir, MFA cikislari gercekten cikis yapiyor
+5c1e073 Sprint 11.87: YG-38 raporuna bagimlilik acigi ekle
+8ee9180 Sprint 11.87: Cryptography.Xml 10.0.10 sabitle (7 high advisory)
+f43b913 Sprint 11.86: fikir listesi tek satir, durum butonu temaya uygun, cikis gonder butonunda
+977198f Sprint 11.89: fikir listesi tek satira sigdi, Durumu butonu temalandi, cikis gonder butonu yanina tasindi
+9f7cc81 Sprint 11.86: Render Static Site tipi duzeltildi (type: static) + guvenlik basliklari eklendi
+46a31f5 Sprint 11.88: gonderilen fikir tiklanabilir, durum asamalari her an gorulebilir
+d7b728b Sprint 11.87: Fikrini Yaz CTA'si yoneticiye sayfa degistirmeden panel secimi modalini acar
+b8db4c0 Sprint 11.86: set-password-raw aracina e-posta onaylama ve zorlama kaldirma bayraklari (hesap kurtarma)
+5a761ef Sprint 11.86: /fikir yoneticiye kapali (panel secimi gosterir), Yonetici Ekle formu duzenlendi
+78794f7 Sprint 11.85: YG-38 rapor referanslari guncellendi (HANDOVER, 41 madde tablosu, SECURITY)
+8d8ee0c Sprint 11.85: YG-38 test raporu kisaltildi (500 -> 110 satir, kurum formatinda)
+08f689c Sprint 11.85: YG-38 tamamlandi (38/41), HANDOVER + AGENTS + test sayilari senkron
+5e7c16c Sprint 11.85: test raporu guncellendi - BULGU-4, canli HSTS dogrulamasi, derlenme-vs-calisma dersi
 b490646 Sprint 11.73: /fikir panel secimi ana sayfayla ayni
 b09499e Sprint 11.72: /me roles donuyor, Fikirlerim yonlendirmesi kaldirildi
 d4bf1e8 Sprint 11.71: sistem yonetici il-panel erisimi
