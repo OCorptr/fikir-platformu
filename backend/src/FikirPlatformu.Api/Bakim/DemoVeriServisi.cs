@@ -245,6 +245,13 @@ public static class DemoVeriServisi
                 Id = Guid.NewGuid().ToString(),
                 UserName = email,
                 Email = email,
+                // ⚠️ Sprint 11.92: Identity `FindByEmailAsync` NORMALİZE edilmiş
+                // e-postayı arar. `UserManager.CreateAsync` bunu doldurur;
+                // kullanıcıyı doğrudan `db.Users.Add` ile eklediğimiz için
+                // boş kalıyordu ve HİÇBİR demo hesabı giriş yapamıyordu
+                // ("E-posta veya şifre geçersiz").
+                NormalizedUserName = email.ToUpperInvariant(),
+                NormalizedEmail = email.ToUpperInvariant(),
                 FirstName = parcalar[0],
                 LastName = parcalar.Length > 1 ? parcalar[1] : "-",
                 EmailConfirmed = true,
@@ -632,11 +639,14 @@ public static class DemoVeriServisi
 
             var sifre = RastgeleSifreUret();
             var (hash, damga) = ParolaHashUret(sifre);
+            var uzunEposta = $"{KullaniciOneki}uzunfikir@demo.local";
             var ogrenci = new ApplicationUser
             {
                 Id = Guid.NewGuid().ToString(),
-                UserName = $"{KullaniciOneki}uzunfikir@demo.local",
-                Email = $"{KullaniciOneki}uzunfikir@demo.local",
+                UserName = uzunEposta,
+                Email = uzunEposta,
+                NormalizedUserName = uzunEposta.ToUpperInvariant(),
+                NormalizedEmail = uzunEposta.ToUpperInvariant(),
                 FirstName = "Zeynep",
                 LastName = "Kaya",
                 EmailConfirmed = true,
@@ -788,6 +798,8 @@ public static class DemoVeriServisi
                     Id = Guid.NewGuid().ToString(),
                     UserName = eposta,
                     Email = eposta,
+                    NormalizedUserName = eposta.ToUpperInvariant(),
+                    NormalizedEmail = eposta.ToUpperInvariant(),
                     FirstName = ad,
                     LastName = "Demo",
                     EmailConfirmed = true,
@@ -857,6 +869,13 @@ public static class DemoVeriServisi
                 k.SecurityStamp = damga;
                 k.LockoutEnd = null;
                 k.LockoutEnabled = true;
+                // FindByEmailAsync normalize edilmiş e-postayı arar; eski demo
+                // hesaplarında bu alanlar boştu → giriş imkânsızdı.
+                if (!string.IsNullOrEmpty(k.Email))
+                {
+                    k.NormalizedEmail = k.Email.ToUpperInvariant();
+                    k.NormalizedUserName = (k.UserName ?? k.Email).ToUpperInvariant();
+                }
             }
             await db.SaveChangesAsync(cancellationToken);
 
