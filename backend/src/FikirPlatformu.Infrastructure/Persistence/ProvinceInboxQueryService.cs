@@ -28,22 +28,27 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
         //             başlayınca değil BİTİNCE fikir buradan çıkar.
         //   Kararlı → puanlanmış ve sonrası; yönetici kararının verildiği yer
         //             (İl Onayı Ver / Hayata Geçir buradan yapılır).
-        var asamaDahil = asama == InboxAsama.Kararli
-            ? new[]
-            {
-                IdeaSubmissionStatus.EvaluationCompleted,
-                IdeaSubmissionStatus.Locked,
-                IdeaSubmissionStatus.Planned,
-                IdeaSubmissionStatus.ImplementationInProgress,
-                IdeaSubmissionStatus.ImplementationCompleted,
-                IdeaSubmissionStatus.ImplementationFailed,
-            }
-            : new[] { IdeaSubmissionStatus.Submitted, IdeaSubmissionStatus.InEvaluation };
+        //
+        // ⚠️ BURADA `durumlar.Contains(fikir.Status)` KULLANILAMAZ. Dizi
+        // koşulunu EF Core SQL'e çeviremiyor ve istemci tarafı değerlendirmeye
+        // düşüyordu → "GenericArguments[1], 'System.ReadOnlySpan`1[...]'
+        // violates the constraint of type parameter 'TRet'" hatası, yani
+        // /il-panel 500 veriyordu. Açık `||` zincirine çevrilince sorun kalktı.
+        var durumFiltresi = asama == InboxAsama.Kararli
+            ? (System.Linq.Expressions.Expression<Func<Idea, bool>>)(f =>
+                f.Status == IdeaSubmissionStatus.EvaluationCompleted
+                || f.Status == IdeaSubmissionStatus.Locked
+                || f.Status == IdeaSubmissionStatus.Planned
+                || f.Status == IdeaSubmissionStatus.ImplementationInProgress
+                || f.Status == IdeaSubmissionStatus.ImplementationCompleted
+                || f.Status == IdeaSubmissionStatus.ImplementationFailed)
+            : f => f.Status == IdeaSubmissionStatus.Submitted
+                || f.Status == IdeaSubmissionStatus.InEvaluation;
 
         var raw = await (
             from fikir in db.Ideas.AsNoTracking()
-            where (provinceId == null || fikir.ProvinceId == provinceId)
-                && asamaDahil.Contains(fikir.Status)
+            where durumFiltresi(fikir)
+                && (provinceId == null || fikir.ProvinceId == provinceId)
             join profil in db.StudentProfiles.AsNoTracking() on fikir.StudentId equals profil.Id
             join kullanici in db.Users.AsNoTracking() on profil.ApplicationUserId equals kullanici.Id
             join il in db.Provinces.AsNoTracking() on profil.ProvinceId equals il.Id
