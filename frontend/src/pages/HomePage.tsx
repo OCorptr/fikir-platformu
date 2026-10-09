@@ -33,6 +33,8 @@ export function HomePage() {
   const [veri, setVeri] = useState<AyinFikirleriCevabi | null>(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [veriHatasi, setVeriHatasi] = useState<string | null>(null);
+  // Sprint 11.92 — WCAG 2.2.2: otomatik kart geçisi duraklatma butonu.
+  const [duraklat, setDuraklat] = useState(false);
 
   // Sprint 11.55: `/giris` rotası ana sayfayı giriş modalı AÇIK halde gösterir.
   // Önceden bu rota tanımsızdı ve 404 dönüyordu.
@@ -89,14 +91,15 @@ export function HomePage() {
 
   useEffect(() => {
     if (!veriVar) return;
-    // Sprint 11.92: büyütme (lightbox) açıkken otomatik geçiş DURMALI.
-    // Onur: "ortadaki karta tıklıyorum açılır açılmaz kart değişiyor,
-    // neye tıkladıysak o açılmalı." — 6 saniyede bir dönen tur, tıklanan
-    // kartı lightbox içinde başka bir kartla değiştiriyordu.
-    if (lightboxAcik) return;
+    // Sprint 11.92 — büyütme (lightbox) açıkken otomatik geçiş DURMALI.
+    // Onur: "ortadaki karta tıklıyorum açılır açılmaz kart değişiyor."
+    if (lightboxAcik || duraklat) return;
+    // WCAG 2.2.2: kullanıcı "hareketi azalt" dediyse hiç başlamaz.
+    if (typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
     const zaman = setInterval(() => setAktif((d) => (d + 1) % n), 6000);
     return () => clearInterval(zaman);
-  }, [veriVar, n, lightboxAcik]);
+  }, [veriVar, n, lightboxAcik, duraklat]);
 
   useEffect(() => {
     if (aktif >= n) setAktif(0);
@@ -216,6 +219,17 @@ export function HomePage() {
                     onClick={() => setAktif(onekiler.findIndex((k) => k.id === kayit.id))}
                   />
                 ))}
+                {/* WCAG 2.2.2 — otomatik dönüşü durdur/başlat. */}
+                <button
+                  type="button"
+                  className="af-duraklat"
+                  onClick={() => setDuraklat((d) => !d)}
+                  aria-pressed={duraklat}
+                  aria-label={duraklat ? "Kartların otomatik değişmesini başlat" : "Kartların otomatik değişmesini durdur"}
+                  title={duraklat ? "Otomatik değişmeyi başlat" : "Otomatik değişmeyi durdur"}
+                >
+                  {duraklat ? "▶" : "⏸"}
+                </button>
               </div>
             </>
           ) : (

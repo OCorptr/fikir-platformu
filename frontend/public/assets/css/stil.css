@@ -999,6 +999,20 @@ html.koyu-mod .kvkk-riza { background: #2A2415; border-color: #6B5A2E; }
 html.koyu-mod .kvkk-riza h2 { color: #F6C453; }
 html.koyu-mod .kvkk-not { color: #9FB4CC; }
 
+/* Sprint 11.92 — WCAG 2.2.2 duraklat butonu. */
+.af-duraklat {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.7rem; height: 1.7rem; margin-left: 0.6rem;
+  border: 0.12rem solid #C9D8E6; border-radius: 50%;
+  background: #fff; color: #33475F; font-size: 0.8rem; line-height: 1;
+  cursor: pointer; vertical-align: middle;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.af-duraklat:hover { border-color: var(--sari); }
+.af-duraklat:focus-visible { outline: 0.16rem solid var(--sari); outline-offset: 0.1rem; }
+.af-duraklat[aria-pressed="true"] { background: var(--sari); border-color: var(--sari); color: #5C4300; }
+html.koyu-mod .af-duraklat { background: #223757; border-color: #31486B; color: #DCE7F5; }
+
 /* ============================================================
    Sprint 11.92 — Kenar kart görünümü.
    ------------------------------------------------------------

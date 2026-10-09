@@ -208,6 +208,137 @@ dönem aralığının içinde (aday havuzu sorgusunun şartı).
 
 ---
 
+## 🏠 Sprint 11.92 (9 Eki 2026) — Ana sayfa, değerlendirme, KVKK
+
+> Bu blok, günün ikinci yarısında yapılan işlerin kaydıdır. Aşağıdaki
+> "Anasayfa gerçek veriye bağlandı / demo seed" bölümlerinin devamıdır.
+
+### 1. Ana sayfa artık sahte veri göstermiyor
+
+`HomePage.tsx` içinde **5 sabit nesne** vardı, hiç API çağrısı yoktu; ay etiketleri
+("Eylül", "Ağustos"…) kodun içinde yazılıydı. Kurallar (Onur):
+
+- **Anasayfada adaylar değil, sadece bakanlığın seçtiği kazanan** yayınlanır
+- Anasayfa: **aktif dönem + geçmiş 2 dönem** (3 kart)
+- **Ayın Fikri Arşivi**: kazananı olan tüm dönemler
+- Aday → kazanan ayrımı: `POST /periods/{id}/select` (kategori adayı, bakanlık)
+  ve `POST /periods/{id}/kazanan` (TEK kazanan). **`DELETE`** ile ikisi de geri alınır
+
+`period_winners` tablosu startup'ta idempotent raw SQL ile oluşturulur.
+
+### 2. Öğrenci adı maskeleme (KVKK)
+
+`KisiselVeriYardimci.OgrenciAdiMaskele` → **"Elif Y."** (ad + soyad başharfi).
+Anasayfada **öğrenci adı, il ve fikir metni** gösterilir; **okul, sınıf ve öğrenci
+numarası gösterilmez**.
+
+### 3. Görsel düzeltmeler (tarayıcıda ölçülerek, tahminle değil)
+
+| Konu | Ne yapıldı |
+|---|---|
+| Kenar kartlar "bembeyaz" | Yumuşak mavi-gri gradyan + zayıf gölge (ortadaki altın kart baskın kalsın) |
+| Blur denendi, **gözleri bozdu** | ❌ Tamamen geri alındı. Yan kartlarda metin JS ile kısaltılıyor |
+| Kart boyu fikre göre değişiyordu | Sabit yükseklik + satır kırpması |
+| Uzun metin hiçbir yerde tam görünmüyordu | API 240 karakterde kesiyordu → kaldırıldı; ortada 4 satır + "…", **büyütmede tam metin (kaydırmalı)** |
+| Büyütmede başlık kesikti | `overflow` kaydırma kutusu içeri alındı; şerit karta göre konumlandı |
+| Tıklayınca kart değişiyordu | Otomatik geçiş büyütme açıkken duruyor |
+| **Kaydırma çubuğu** | Yok (ölçüldü: `scrollHeight == clientHeight`) |
+
+> ⚠️ **Ders:** Bu düzeltmelerin çoğu tahminle yapıldı ve 3 tur yanlış çıktı.
+> Sonrasında `chrome-devtools` ile **tarayıcıda açıp ölçerek** yapıldı.
+> Görsel değişiklikten önce ölç.
+
+### 4. Değerlendirme kriterleri — 2 GERÇEK KUSUR (Onur'un "gözden geçir" isteği)
+
+| Kusur | Sonuç | Düzeltme |
+|---|---|---|
+| `Scores.Count == 0` kontrolü — **en az 1 kriter** yeterliydi | "Etki: 5" yazan biri fikri **ölçülmemiş 3 kriterle** eşiğin üstünde sayıyordu | **4 kriterin tamamı zorunlu**; `ZorunluKriterSayisi` enum'dan türer |
+| Yalnızca `Locked` iken puanlama engelliydi | `EvaluationCompleted` iken puan değişiyor, durum değişmiyordu (ortalama ile durum tutarsız) | `AlreadyCompleted` sonucu + yorum 1000 karakter sınırı |
+
+**79→83 test.** `DegerlendirmeKriteriTestleri.cs`
+
+### 5. Koyu mod denetimi (tarayıcıda ölçüldü — WCAG 4.5:1)
+
+Bulunan ve düzeltilen:
+
+- **Dönem başlıkları**: `style={{ color: "var(--lacivert)" }}` inline stillerdi;
+  CSS koyu mod geçersiz kılmalarını yeniyordu → **anlamsal değişkenler** tanımlandı
+  (`--metin-ana/ikincil/vurgu/marka-1/2`), 10 dosyadaki inline renkler çevrildi
+- **Admin paneli**: `admin-theme.css` içinde **tek bir `koyu-mod` kuralı yoktu** —
+  koyu sayfada beyaz kartlar. Tema `--yt-*` değişkenlerine dayandığı için
+  **tek blokta** palet çevrildi
+- **`.ikon.*` / `.durum.*` rozetleri**: zemin açık kalıp yazı açığa dönüyordu →
+  **1.1 kontrast, tamamen görünmez**. Koyu mod varyantları eklendi
+- **Turkuaz butonlar**: beyaz yazı 2.07 kontrast → koyu lacivert
+- Turkuaz renkli düğmelerde yazı `#062A32` (her iki modda)
+
+### 6. İki aşamalı gelen kutusu → Raporlama
+
+**Onur:** "Puanlama yapıldığı anda Gelen Fikirler'de değil de Raporlama'da sadece
+olmalı ve Gelen Fikirler'den çıkmalı, yoksa hep dolar."
+
+| Sekme | İçerik | Karar |
+|---|---|---|
+| **Gelen Fikirler** (`asama=gelen`) | `Submitted`, `InEvaluation` | Puanlama bitince **çıkar** |
+| **Raporlama** (`asama=kararli`) | `EvaluationCompleted` ve sonrası | ✅ İl Onayı Ver · 🚀 Hayata Geçir |
+| **Aday Havuzu** | Eşiği geçenler | Salt okunur (onay butonu kaldırıldı) |
+
+> 🐛 **Bu arada bulunan hata:** Gelen kutusu sorgusu **yalnızca** ilk 3 durumu
+> alıyordu; onaylanan fikirler **listeden kayboluyordu**, "Hayata Geçir" görünmüyordu.
+> `ProvinceInboxQueryService` içinde `durumlar.Contains(...)` **EF tarafından istemci
+> tarafında değerlendiriliyordu** → `/il-panel` 500 veriyordu. Açık `||` zincirine
+> çevrilerek düzeltildi.
+
+### 7. Hayata Geçir — aday olmayan fikir
+
+**Onur:** "Bazen ayın fikri seçilmese bile o fikir hayata geçirilip arşedeki bir
+projeyle paralel bir şeyler yapılabilir."
+
+- `Idea.StartImplementation` artık **`Locked`'dan da** kabul ediyor (bakanlık adaylığı gerekmiyor)
+- `implementation_reports.related_project` kolonu (**"şu proje kapsamında"** — opsiyonel)
+- **Aday Havuzu'ndan** değil **Gelen Fikirler/Raporlama**'dan: satırda
+  **🚀 Hayata Geçir** → proje sorusu (boş bırakılabilir) → kayıt
+
+### 8. KVKK — aydınlatma ve açık rıza AYRIMI
+
+**Kaynak:** KVKK Kurul **18.02.2026 tarihli 2026/347** sayılı kararı:
+- Aydınlatma ile açık rıza **iç içe geçemez**, iki ayrı beyan olmalı
+- Aydınlatmadan **onay/riza istenmez**, yalnızca okunduğuna dair geri bildirim alınır
+- Uzun/karmaşık metin kullanılmaz
+
+Ayrıca **01.07.2026 tarihli 2026/1301** sayılı karar (kamu kurumları, internet
+paylaşımı): *"amaçla bağlantılı, sınırlı ve ölçülü olma"* → asgari veri + maskeleme;
+**aydınlatmanın ispatı veri sorumlunun yükümlülüğü** → kayıt defteri.
+
+| Yapılan | Nerede |
+|---|---|
+| Kayıtta iki ayrı beyan (zorunlu aydınlatma + opsiyonel yayım rızası) | `AuthModal` · `KayitIstegi` |
+| `/kvkk` sayfası — iki ayrı metin, sade dil, çocuk okur | `pages/KvkkPage.tsx` |
+| `kvkk_rizalari` tablosu: zaman damgası + metin versiyonu + tür + iptal + IP | startup raw SQL |
+| **Yayım kapısı**: ana sayfa yalnızca rıza vermiş öğrencinin fikrini yayımlar | `PublicEndpoints` |
+| Rıza geri çekme (KVKK md.3: rıza her zaman geri alınabilir) | `POST /api/student/ideas/yayim-rizards` + Fikir sayfası butonu |
+| Öğrenci artık "Şifre en az 5 karakter" görmüyor (yanlış bilgiydi) | `AuthModal` |
+
+> ⚠️ **Yayın öncesi:** KVKK metinlerindeki `[Kurumun resmî unvanı]`, adres ve
+> iletişim alanları kurumun gerçek bilgileriyle doldurulmalı; **hukuk birimi
+> onayı** alınmalı.
+
+### 9. Değerlendirici ataması tek yerden
+
+Onur: "İl AR-GE'deki atama arayüzü kötü, sistem yöneticisinin admin/users'taki gibi
+olmalı, **farklı olmamalı**." → `EkipPage`'teki elle yazılmış form kaldırıldı; **aynı
+`UserCreateModal`** kullanılıyor. Tek fark: POST hedefi (`/api/admin/users` ↔
+`/api/province/evaluators`) — `olustur` prop'u ile ayrıldı. Yan fayda: "en az 5
+karakter" gibi yanlış parola bilgisi de gitti.
+
+### 10. Dönem durumu artık TARİHTEN
+
+"2026 III. Dönem (Temmuz–Eylül) 🟢 Açık neden görünüyor, ekim ayındayız" →
+`Status` elle tutuluyordu. Rozet ve "aktif dönem" seçimi artık `StartAt/EndAt`'e bakıyor:
+⏳ Yaklaşıyor · 🟢 Açık · ✔ Tamamlandı
+
+---
+
 ## 📌 HEAD
 
 - **Commit:** `2aac7fe` (Sprint 11.88 — `architecture.md` bayat `needsGmailOAuth` dalı düzeltildi)

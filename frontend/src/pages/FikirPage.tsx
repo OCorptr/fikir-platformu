@@ -11,6 +11,8 @@ import {
   deleteIdea,
   getMyIdea,
   listMyIdeas,
+  getPublishConsent,
+  setPublishConsent,
   saveDraft,
   submitIdea,
   updateDraft,
@@ -77,7 +79,29 @@ export default function FikirPage() {
   }
 
 
-  // form
+  const [yayimRizasiVar, setYayimRizasiVar] = useState(false);
+  const [yayimCalisiyor, setYayimCalisiyor] = useState(false);
+  const [yayimMesaji, setYayimMesaji] = useState<string | null>(null);
+
+  /** KVKK md.3 — açık rıza her zaman geri alınabilir. */
+  async function yayimRizasiDegistir(yeniDeger: boolean) {
+    if (!yeniDeger && !confirm(
+      "Yayımlama iznini geri çekmek istediğine emin misin?\n\n" +
+      "Fikrin değerlendirmeye devam eder, ancak artık ana sayfada görünmez.",
+    )) return;
+    setYayimCalisiyor(true);
+    setYayimMesaji(null);
+    try {
+      const cevap = await setPublishConsent(yeniDeger);
+      setYayimRizasiVar(cevap.yayimRizasiVerildi);
+      setYayimMesaji(cevap.mesaj);
+    } catch (e) {
+      setYayimMesaji(mesajCikar(e));
+    } finally {
+      setYayimCalisiyor(false);
+    }
+  }
+
   const [kategoriler, setKategoriler] = useState<CategoryRef[]>([]);
   const [taslaklar, setTaslaklar] = useState<StudentIdeaDto[]>([]);
   const gonderilenler = taslaklar.filter((t) => t.status !== "Draft");
@@ -140,11 +164,15 @@ export default function FikirPage() {
     return () => controller.abort();
   }, []);
 
-  // 2) oturum açıldıktan sonra — kategoriler + taslaklar
+  // 2) oturum açıldıktan sonra — kategoriler + taslaklar + yayım rızası durumu
   useEffect(() => {
     if (!ben) return;
     const controller = new AbortController();
     setCalisiyor("taslakYukle");
+    // KVKK: yayım rızası var mı? (öğrenci kendi iznini görebilmeli)
+    getPublishConsent(controller.signal)
+      .then((c) => setYayimRizasiVar(c.yayimRizasiVar))
+      .catch(() => undefined);
     Promise.all([getCategories(controller.signal), listMyIdeas(controller.signal)])
       .then(([kategorilerCevap, taslaklarCevap]) => {
         setKategoriler(kategorilerCevap);
@@ -487,6 +515,51 @@ export default function FikirPage() {
               </button>
             </div>
           </form>
+
+          {/* ===== Sprint 11.92 — KVKK: yayımlama iznini geri çek =====
+              Kanun 3. madde: açık rıza her zaman geri alınabilir. Öğrenci iznini
+              kendisi görebilmeli ve geri çekebilmelidir. */}
+          <div className="kvkk-bolum" style={{ marginTop: "1.2rem" }}>
+            <h2 style={{ fontSize: "1.05rem" }}>Fikrimin yayımlanması</h2>
+            <p style={{ fontSize: "0.9rem", marginBottom: "0.7rem" }}>
+              Bakanlık bir dönemde <b>Ayın Fikri</b> seçerse, adın maskelenmiş
+              biçimde (<i>örn. “Elif Y.”</i>) ve fikrin ana sayfada yayımlanır.
+              Bu izni istemezsen fikrin yine değerlendirilir, yalnızca
+              yayımlanmaz.
+            </p>
+            {yayimMesaji && (
+              <div className="meta" style={{ marginBottom: "0.5rem" }} role="status">
+                {yayimMesaji}
+              </div>
+            )}
+            {yayimRizasiVar ? (
+              <>
+                <span className="durum yesil">🟢 Yayımlama iznin var</span>
+                <button
+                  type="button"
+                  className="btn-ikincil"
+                  style={{ marginLeft: "0.6rem" }}
+                  onClick={() => yayimRizasiDegistir(false)}
+                  disabled={yayimCalisiyor}
+                >
+                  {yayimCalisiyor ? "İşleniyor…" : "İznimi geri çek"}
+                </button>
+              </>
+            ) : (
+              <>
+                <span className="durum mavi">ℹ️ Yayımlama iznin yok</span>
+                <button
+                  type="button"
+                  className="btn-ikincil"
+                  style={{ marginLeft: "0.6rem" }}
+                  onClick={() => yayimRizasiDegistir(true)}
+                  disabled={yayimCalisiyor}
+                >
+                  {yayimCalisiyor ? "İşleniyor…" : "Yayımlamaya izin ver"}
+                </button>
+              </>
+            )}
+          </div>
 
           {gonderilenler.length > 0 && (
             <div className="taslak-listesi">
