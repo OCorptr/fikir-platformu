@@ -263,6 +263,13 @@ html.koyu-mod .durum.altin { background: rgba(246, 180, 14, 0.18); color: #F6C45
 .aday-tema { font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.92rem; color: #647A92; margin-top: 0.25rem; letter-spacing: 0.03em; }
 .aday-kart h3 { font-size: 1.35rem; color: var(--lacivert); margin-top: 0.3rem; }
 .aday-kart .okul { font-size: 0.88rem; font-weight: 700; color: #8AA0B5; }
+/* Sprint 11.92: Başvuru Detayı — Öğrenci / Değerlendiren blokları yan yana
+   (Onur: "alt alta değil yan yana koy, gereksizce aşağıya inmek gerekmesin"). */
+.detay-ikili {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem 1.6rem;
+  align-items: start;
+}
+@media (max-width: 720px) { .detay-ikili { grid-template-columns: 1fr; } }
 .aday-kart .fikir-alinti { font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic; font-size: 1.02rem; line-height: 1.5; color: var(--lacivert); margin: 0.75rem 0.4rem 0.85rem; }
 /* Sprint 11.92: koyu mod denetimi. `.aday-tema` açık griydi ve koyu kart
    üzerinde 2.87 kontrast veriyordu (gereken 4.5) — okunmuyordu. */

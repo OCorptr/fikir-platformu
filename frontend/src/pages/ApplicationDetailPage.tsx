@@ -37,6 +37,13 @@ import {
   type SubmitEvaluationItem,
 } from "../types";
 
+/**
+ * Sprint 11.92 (Onur): fikir metni bu karakter sayısından uzunsa detay
+ * sayfasında YARISI gösterilir — "1500 karakterlik fikir kartı sayfayı
+ * gereksiz uzattığı için" (Onur). Tam metin gizlenmez, "Devamını oku" ile açılır.
+ */
+const FIKIR_KISALTMA_ESIGI = 750;
+
 export function ApplicationDetailPage() {
   const { id = "" } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -71,6 +78,14 @@ export function ApplicationDetailPage() {
   const [yeniProje, setYeniProje] = useState("");
   // Aday olmayan (Locked) fikirde önce "Hayata Geçir" butonu, sonra form.
   const [raporFormuAcik, setRaporFormuAcik] = useState(false);
+
+  // Sprint 11.92: fikir metni uzunsa yarısı gösterilir (Onur talebi).
+  // Tam metin gizlenmez; "Devamını oku" ile açılır.
+  const [fikirTamAcik, setFikirTamAcik] = useState(false);
+  const fikirMetni = detay?.idea.content ?? "";
+  const uzunFikirMi = fikirMetni.length > FIKIR_KISALTMA_ESIGI;
+  const fikirYari = fikirMetni.slice(0, FIKIR_KISALTMA_ESIGI).trimEnd();
+  const fikirKisaGosteriliyor = uzunFikirMi && !fikirTamAcik;
   const [uygulamaCalisiyor, setUygulamaCalisiyor] = useState(false);
 
   useEffect(() => {
@@ -236,21 +251,47 @@ export function ApplicationDetailPage() {
               </div>
 
               <div className="bolum-basligi turuncu">Fikir</div>
-              <div className="detay-icerik">{detay.idea.content || <i>(boş)</i>}</div>
-
-              <div className="bolum-basligi mavi">Öğrenci</div>
-              <div className="detay-ogrenci">
-                <strong>{detay.idea.studentProfile.firstName} {detay.idea.studentProfile.lastName}</strong>
-                <div className="meta">
-                  {detay.idea.studentProfile.provinceName}
-                  {detay.idea.studentProfile.school ? ` · ${detay.idea.studentProfile.school}` : ""}
-                  {detay.idea.studentProfile.grade ? ` · ${detay.idea.studentProfile.grade}. sınıf` : ""}
-                  {detay.idea.studentProfile.studentNumber ? ` · No: ${detay.idea.studentProfile.studentNumber}` : ""}
-                </div>
+              {/* Sprint 11.92 (Onur): "Şu andaki fikir kısmı çok uzun, yarısı
+                  kadar olması yeterli." Uzun metinlerde yarısı gösterilir;
+                  tamamı gizlenmez — "Devamını oku" ile açılır. */}
+              <div className="detay-icerik">
+                {fikirKisaGosteriliyor ? (
+                  <>
+                    {fikirYari}{"… "}
+                    <button type="button" className="btn-hayalet" onClick={() => setFikirTamAcik(true)}>
+                      Devamını oku
+                    </button>
+                  </>
+                ) : (
+                  detay.idea.content || <i>(boş)</i>
+                )}
               </div>
+              {fikirTamAcik && uzunFikirMi && (
+                <button type="button" className="btn-hayalet" style={{ marginTop: "0.3rem" }} onClick={() => setFikirTamAcik(false)}>
+                  ⬆︎ Kısalt
+                </button>
+              )}
 
-              <div className="bolum-basligi turkuaz">Değerlendiren</div>
-              <div className="detay-atama">
+              {/* Sprint 11.92 (Onur): "Öğrenci ve değerlendiren kısımları az
+                  yer kaplıyor zaten, alt alta değil yan yana koy… tam sayfadan
+                  gereksizce aşağıya inmek gerekmesin." */}
+              <div className="detay-ikili">
+                <section>
+                  <div className="bolum-basligi mavi">Öğrenci</div>
+                  <div className="detay-ogrenci">
+                    <strong>{detay.idea.studentProfile.firstName} {detay.idea.studentProfile.lastName}</strong>
+                    <div className="meta">
+                      {detay.idea.studentProfile.provinceName}
+                      {detay.idea.studentProfile.school ? ` · ${detay.idea.studentProfile.school}` : ""}
+                      {detay.idea.studentProfile.grade ? ` · ${detay.idea.studentProfile.grade}. sınıf` : ""}
+                      {detay.idea.studentProfile.studentNumber ? ` · No: ${detay.idea.studentProfile.studentNumber}` : ""}
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <div className="bolum-basligi turkuaz">Değerlendiren</div>
+                  <div className="detay-atama">
                 {(() => {
                   const liste = evaluations?.evaluations ?? [];
                   if (liste.length === 0) return <span className="meta">Henüz değerlendirme yapılmamış.</span>;
@@ -265,6 +306,8 @@ export function ApplicationDetailPage() {
                     </>
                   );
                 })()}
+                  </div>
+                </section>
               </div>
 
               <div className="bolum-basligi turuncu">Değerlendirme</div>
