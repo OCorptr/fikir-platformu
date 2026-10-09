@@ -731,7 +731,19 @@ public static class DemoVeriServisi
             i++;
             ekCumle = $"Ayrıca bu uygulama {i}. dönemde de gözden geçirilecek ve gerekirse geliştirilecektir.";
         }
-        return metin[..Idea.MaxContentLength];
+
+        // Döngü sınırın BİRAZ altında bitmiş olabilir; kalanı kelime sınırında doldur.
+        if (metin.Length < Idea.MaxContentLength)
+        {
+            var kalan = Idea.MaxContentLength - metin.Length - 1;
+            var dolgu = string.Join(" ",
+                Enumerable.Repeat("Bu proje her dönem gözden geçirilip geliştirilecektir.", 60));
+            var parca = dolgu[..kalan];
+            var sonBoşluk = parca.LastIndexOf(' ');
+            metin += " " + (sonBoşluk > kalan / 2 ? parca[..sonBoşluk] : parca);
+        }
+
+        return metin;
     }
 
     /// <summary>
