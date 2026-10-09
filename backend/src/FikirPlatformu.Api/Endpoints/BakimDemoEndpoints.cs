@@ -33,9 +33,19 @@ public static class BakimDemoEndpoints
             var temizle = http.Request.Query["temizle"].ToString() == "true";
             // Sprint 11.92: `sadeceTemizle` → yalnızca siler, yeniden üretmez.
             var sadeceTemizle = http.Request.Query["sadeceTemizle"].ToString() == "true";
+            // Sprint 11.92: `mod=ogrenci` → yalnızca 10 öğrenci + fikirleri.
+            // Değerlendirici/yönetici/bakanlık hesabı AÇILMAZ.
+            var ogrenciModu = http.Request.Query["mod"].ToString() == "ogrenci";
 
             try
             {
+                if (ogrenciModu)
+                {
+                    log.LogWarning("[DEMO] Öğrenci modu başlatıldı (oncekiVeriyiSil={Sil}).", sadeceTemizle);
+                    var o = await DemoVeriServisi.OgrenciEkle(servisler, sadeceTemizle, cancellationToken);
+                    return Results.Ok(o);
+                }
+
                 log.LogWarning("[DEMO] Demo işlemi başlatıldı (temizle={Temizle}, sadeceTemizle={Sadece}).",
                     temizle, sadeceTemizle);
                 var sonuc = await DemoVeriServisi.Uret(servisler, temizle, sadeceTemizle, cancellationToken);

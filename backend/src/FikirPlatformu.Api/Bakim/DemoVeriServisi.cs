@@ -452,6 +452,148 @@ public static class DemoVeriServisi
         public string Deger { get; set; } = baslangic;
     }
 
+    /// <summary>Demo öğrenci modunda kullanıcı sayısı (Onur, 9 Eki 2026: "10 öğrenci ekle").</summary>
+    private const int OgrenciModuOgrenciSayisi = 10;
+
+    /// <summary>Her öğrencinin fikir sayısı ("her birinde birden fazla fikir").</summary>
+    private const int OgrenciModuFikirSayisi = 3;
+
+    /// <summary>
+    /// Sprint 11.92 — **ÖĞRENCİ MODU.**
+    ///
+    /// Onur'un talebi: "10 öğrenci ekle, her birinde birden fazla fikir olsun."
+    /// Değerlendirici / il yöneticisi / bakanlık hesabı AÇILMAZ — fikirler
+    /// `Submitted` durumunda bırakılır (öğrenci gönderdi, il değerlendirmesi bekliyor).
+    /// Hesaplar `demo.` önekiyle işaretlenir, aynı uçtan temizlenebilir.
+    ///
+    /// <para><b>Gerçek şema notu:</b> `ideas.student_id` → `student_profiles.id`
+    /// FK'sı olduğu için fikri olan bir hesap zorunludur. Fikir eklemek istiyorsan
+    /// sahibi de olmak zorunda — bu yüzden hesap sayısı senin belirlediğin kadar.</para>
+    /// </summary>
+    public static async Task<object> OgrenciEkle(
+        IServiceProvider servisler,
+        bool oncekiVeriyiSil,
+        CancellationToken cancellationToken)
+    {
+        using var kapsam = servisler.CreateScope();
+        var sp = kapsam.ServiceProvider;
+        var db = sp.GetRequiredService<FikirPlatformuDbContext>();
+        var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
+        var rm = sp.GetRequiredService<RoleManager<IdentityRole>>();
+
+        try
+        {
+            return await OgrenciEkleIc(db, um, rm, oncekiVeriyiSil, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            throw new DemoSeedAdimException("öğrenci ekleme", ex);
+        }
+
+        async Task<object> OgrenciEkleIc(
+            FikirPlatformuDbContext db, UserManager<ApplicationUser> um,
+            RoleManager<IdentityRole> rm, bool sil, CancellationToken ct)
+        {
+            if (sil) await DemoVeriTemizle(db, um, ct);
+
+            var mevcut = await db.Users
+                .CountAsync(u => (u.Email ?? "").StartsWith(KullaniciOneki), ct);
+            if (mevcut > 0)
+            {
+                return new
+                {
+                    calistirildi = false,
+                    sebep = "Demo hesapları zaten var. Önce `sadeceTemizle=true` çalıştır.",
+                    mevcutHesap = mevcut,
+                };
+            }
+
+            var kategoriler = await db.IdeaCategories.AsNoTracking()
+                .Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(ct);
+            var iller = await db.Provinces.AsNoTracking().OrderBy(p => p.Id).ToListAsync(ct);
+            if (kategoriler.Count == 0 || iller.Count == 0)
+            {
+                return new { calistirildi = false, sebep = "Kategori veya il yok." };
+            }
+
+            // Student rolü yoksa oluştur.
+            if (!await rm.RoleExistsAsync("Student")) await rm.CreateAsync(new IdentityRole("Student"));
+            var ogrenciRolu = await rm.FindByNameAsync("Student");
+            if (ogrenciRolu is null) return new { calistirildi = false, sebep = "Student rolü oluşturulamadı." };
+
+            var sifre = RastgeleSifreUret();
+            var hash = HashParola(sifre);
+            var roller = new List<IdentityUserRole<string>>();
+            var simdi = DateTimeOffset.UtcNow;
+
+            var profilIds = new List<Guid>();
+            for (var i = 0; i < OgrenciModuOgrenciSayisi; i++)
+            {
+                var il = iller[i % iller.Count];
+                var ogrenci = new ApplicationUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = $"{KullaniciOneki}ogrenci{i + 1:00}@demo.local",
+                    Email = $"{KullaniciOneki}ogrenci{i + 1:00}@demo.local",
+                    FirstName = Adlar[i % Adlar.Length],
+                    LastName = Soyadlar[(i * 7) % Soyadlar.Length],
+                    EmailConfirmed = true,
+                    PasswordHash = hash,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                };
+                db.Users.Add(ogrenci);
+                roller.Add(new IdentityUserRole<string> { UserId = ogrenci.Id, RoleId = ogrenciRolu.Id });
+
+                var profilId = Guid.NewGuid();
+                db.StudentProfiles.Add(new StudentProfile
+                {
+                    Id = profilId,
+                    ApplicationUserId = ogrenci.Id,
+                    ProvinceId = il.Id,
+                    School = Okullar[i % Okullar.Length],
+                    Grade = 7 + (i % 6),
+                    StudentNumber = $"2026{(i + 1):0000}",
+                    CreatedAt = simdi,
+                    UpdatedAt = simdi,
+                });
+                profilIds.Add(profilId);
+
+                // Her öğrenciye 3 fikir, 3 farklı kategori.
+                for (var k = 0; k < OgrenciModuFikirSayisi; k++)
+                {
+                    var kategori = kategoriler[(i + k) % kategoriler.Count];
+                    var sablonlar = KategoriFikirleri.TryGetValue(kategori.Name, out var s)
+                        ? s
+                        : ["Bu kategoride okulumuz için bir fikir üretelim."];
+                    // Son 60 güne yayılmış gönderim tarihleri.
+                    var gonderim = simdi.AddDays(-(5 + i * 3 + k * 11));
+
+                    var fikir = Idea.CreateDraft(
+                        profilId, il.Id, kategori.Id,
+                        sablonlar[(i + k) % sablonlar.Length], gonderim);
+                    fikir.Submit(il.Id, gonderim);
+                    db.Ideas.Add(fikir);
+                }
+            }
+
+            db.UserRoles.AddRange(roller);
+            await db.SaveChangesAsync(ct);
+
+            return new
+            {
+                calistirildi = true,
+                ogrenci = OgrenciModuOgrenciSayisi,
+                fikir = OgrenciModuOgrenciSayisi * OgrenciModuFikirSayisi,
+                kategori = kategoriler.Count,
+                il = await db.StudentProfiles.CountAsync(p => profilIds.Contains(p.Id), ct),
+                durum = "Submitted (il değerlendirmesi bekliyor)",
+                demoSifre = sifre,
+                ornekGiris = $"{KullaniciOneki}ogrenci01@demo.local",
+                not = "Yalnızca öğrenci hesapları ve fikirleri. Değerlendirici/yönetici hesabı açılmadı.",
+            };
+        }
+    }
+
     /// <summary>
     /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
     /// </summary>
