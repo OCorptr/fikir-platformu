@@ -23,9 +23,6 @@ namespace FikirPlatformu.Api.Endpoints;
 /// </summary>
 public static class PublicEndpoints
 {
-    /// <summary>Kart alanı için fikir metnini kısaltır.</summary>
-    private const int OzetKarakter = 240;
-
     private sealed record KazananKart(
         Guid FikirId,
         int KategoriId,
@@ -141,15 +138,12 @@ public static class PublicEndpoints
                 satir.Il,
                 // PII maskeli: "Emir K." (ad + soyad başharfi).
                 KisiselVeriYardimci.OgrenciAdiMaskele(ogrenci.FirstName, ogrenci.LastName),
-                Ozetle(satir.Content));
+                // ⚠️ Sprint 11.92: Önceden 240 karakterde kırpılıyordu; lightbox
+                // (büyütme) ekranı da aynı veriyi gösterdiği için TAM METİN
+                // hiçbir yerde görünmüyordu. Kırpma artık arayüzde yapılıyor.
+                satir.Content ?? "");
         }
 
         return sonuc;
-    }
-
-    private static string Ozetle(string? metin)
-    {
-        var s = (metin ?? "").Trim();
-        return s.Length <= OzetKarakter ? s : s[..OzetKarakter].TrimEnd() + "…";
     }
 }

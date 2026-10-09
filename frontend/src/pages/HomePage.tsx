@@ -103,17 +103,42 @@ export function HomePage() {
   const orta = veriVar ? onekiler[aktif] : null;
   const sag = veriVar ? onekiler[(aktif + 1) % n] : null;
 
-  /** Kart gövdesi — hem karusel hem lightbox aynı yapı. */
+  /**
+   * Adı baş harflere indirger: "Elif Y." → "E. Y."
+   * Sprint 11.92 — Onur: yan kartlarda isim eksik görünsün, ortada tam görünsün.
+   */
+  function kisaAd(ad: string): string {
+    return (ad ?? "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((parca) => (parca.length <= 1 ? parca : `${parca[0]}.`))
+      .join(" ");
+  }
+
+  /** Yan kartlarda metni kısaltır; ortadaki kartta tam metin kalır. */
+  function kisalt(metin: string, enFazla: number): string {
+    const s = (metin ?? "").trim();
+    if (s.length <= enFazla) return s;
+    const kes = s.slice(0, enFazla);
+    const son = kes.lastIndexOf(" ");
+    return `${(son > enFazla * 0.6 ? kes.slice(0, son) : kes).trimEnd()}…`;
+  }
+
+  /** Kart gövdesi — hem karusel hem lightbox aynı yapı.
+   *  `buyuk=true` → ortadaki kart ve lightbox (tam bilgi)
+   *  `buyuk=false` → sol/sağ kenar kartı (kısaltılmış) */
   function kartIcerigi(kayit: DonemKaydi | null, buyuk: boolean) {
     if (!kayit?.kazanan) return null;
     const k = kayit.kazanan;
+    const ad = buyuk ? k.ogrenci : kisaAd(k.ogrenci);
+    const metin = buyuk ? k.fikir : kisalt(k.fikir, 60);
     return (
       <>
         <div className={buyuk ? "af-emoji" : "af-k-emoji"}>{kategoriEmoji(k.kategori)}</div>
-        <div className={buyuk ? "af-ad" : "af-k-ad"}>{k.ogrenci}</div>
+        <div className={buyuk ? "af-ad" : "af-k-ad"}>{ad}</div>
         <div className={buyuk ? "af-okul" : "af-k-okul"}>{k.il}</div>
         <div className={buyuk ? "af-tema" : "af-k-tema"}>{k.kategori}</div>
-        <div className={buyuk ? "af-soz" : "af-k-soz"}>&quot;{k.fikir}&quot;</div>
+        <div className={buyuk ? "af-soz" : "af-k-soz"}>&quot;{metin}&quot;</div>
       </>
     );
   }

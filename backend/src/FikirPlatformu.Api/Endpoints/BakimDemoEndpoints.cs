@@ -37,8 +37,18 @@ public static class BakimDemoEndpoints
             // Değerlendirici/yönetici/bakanlık hesabı AÇILMAZ.
             var ogrenciModu = http.Request.Query["mod"].ToString() == "ogrenci";
 
+            // Sprint 11.92: `mod=uzun` → sınırdaki (1500 karakter) tek fikir.
+            var uzunModu = http.Request.Query["mod"].ToString() == "uzun";
+
             try
             {
+                if (uzunModu)
+                {
+                    log.LogWarning("[DEMO] Uzun fikir modu başlatıldı.");
+                    var u = await DemoVeriServisi.UzunFikirEkle(servisler, cancellationToken);
+                    return Results.Ok(u);
+                }
+
                 if (ogrenciModu)
                 {
                     log.LogWarning("[DEMO] Öğrenci modu başlatıldı (oncekiVeriyiSil={Sil}).", sadeceTemizle);

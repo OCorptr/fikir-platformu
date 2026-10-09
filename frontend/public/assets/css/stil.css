@@ -920,32 +920,36 @@ html.koyu-mod .cta-fikir {
 }
 .af-baslik .af-cizgi { width: 3.4rem; height: 0.22rem; border-radius: 1rem; background: var(--sari); }
 /* ============================================================
-   Sprint 11.92 — Kenar kartlar: SADECE BLUR
-   Onur: sol/sağ kartlar göz yormasın, ortadaki okunsun.
-   Önceki denemede küçültme + gri ton + kenar maske + tıklama
-   katmanı yapılmıştı, "çok kötü oldu ve her şeyi bozdu" diye
-   geri alındı. Şimdi sadece istenen blur uygulanıyor; kartların
-   ölçüsü, 3D eğimi ve yerleşimi ESKİ HALİYLE aynı.
+   Sprint 11.92 — Kenar kart görünümü.
+   Onur: "blur yapma, gözlerim bozuldu. Kişinin adı ve soyadı …
+          Elif Y. yerine E. Y. olsun, fikir kısmı da öyle —
+          sadece sol ve sağda iken."
+   → Blur KULLANILMAZ. Yan kartlarda metin JS ile kısaltılır
+     (bkz. HomePage `kisaAd` / `kisalt`), görsel olarak da
+     yarı saydamlaştırılır (metin bulanıklaştırılmaz).
+   → `height` SABİT: fikir metni uzun/kısa olsa da kart
+     büyüyüp küçülmez (Onur: "kart boyu küçülüyor/büyüyor,
+     büyükte kalmalı her zaman").
    ============================================================ */
 .af-sahne { position: relative; padding: 0.5rem 1.4rem 0.2rem; display: flex; align-items: stretch; justify-content: center; gap: 1.4rem; }
 .af-kart {
   background: #fff; border-radius: 1.5rem; text-align: center;
   padding: 1.2rem 1rem 1.1rem; width: 19rem;
+  /* Sabit yükseklik: metin uzunluğu kartı büyütmesin/küçültmesin. */
+  height: 22rem; overflow: hidden;
   box-shadow: 0 0.8rem 2rem rgba(30, 60, 120, 0.14);
   display: flex; flex-direction: column; justify-content: center;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease, filter 0.25s ease;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
 }
 #af-sol {
   transform: perspective(1100px) rotateY(22deg) rotate(-1.2deg) scale(0.93);
   transform-origin: 100% 50%;
-  opacity: 0.96;
-  filter: blur(2.2px);
+  opacity: 0.7;
 }
 #af-sag {
   transform: perspective(1100px) rotateY(-22deg) rotate(1.2deg) scale(0.93);
   transform-origin: 0% 50%;
-  opacity: 0.96;
-  filter: blur(2.2px);
+  opacity: 0.7;
 }
 .af-orta {
   width: 22rem; z-index: 2;
@@ -976,6 +980,9 @@ html.koyu-mod .cta-fikir {
 .af-k-soz {
   font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic;
   font-size: 0.98rem; line-height: 1.5; color: #3D2E00; margin-bottom: 0.4rem;
+  /* Uzun metin taşmasın: sabit satır sayısı + otomatik "…" */
+  display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .af-kenar-kart .af-k-soz { color: #4A5B70; }
 .af-noktalar { display: flex; justify-content: center; margin-top: 0.3rem; }
@@ -1054,7 +1061,14 @@ html.animasyon-durdur .af-sahne.kaydir .af-kart { animation: none; }
 .af-orta .af-soz {
   font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic;
   font-size: 1rem; line-height: 1.45; color: #3D2E00; margin-bottom: 0.3rem;
+  /* Sprint 11.92: uzun metin kartı büyütmesin — 6 satır + "…".
+     Tam metin ortadaki karta tıklayınca (lightbox) görünür. */
+  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
+  overflow: hidden;
 }
+/* Sprint 11.92: büyütme (lightbox) ekranında TAM metin görünür — kırpma yok. */
+.af-lightbox .af-soz { -webkit-line-clamp: unset; display: block; overflow: visible; }
+
 html.koyu-mod .af-orta .af-ad { color: #DCE7F5; text-shadow: none; }
 html.koyu-mod .af-orta .af-okul { color: #9FB4CC; }
 html.koyu-mod .af-orta .af-tema { background: #223757; color: #F6C453; box-shadow: none; }

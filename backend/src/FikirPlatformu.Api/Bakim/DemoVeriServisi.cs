@@ -595,6 +595,137 @@ public static class DemoVeriServisi
     }
 
     /// <summary>
+    /// Sprint 11.92 — **UZUN FİKİR MODU.**
+    ///
+    /// Onur: "çok uzun sınırı sonuna kadar kullanmış fikir yap 1 tane, ben onu da
+    /// Ayın Fikri yapıp test edebilmek için."
+    ///
+    /// Tek bir öğrenci + <b>tam olarak</b> <see cref="Idea.MaxContentLength"/> (1500)
+    /// karakterlik gerçekçi bir fikir. Ana sayfadaki kartta "…" kesilmesini, ortadaki
+    /// karta tıklayınca lightbox'ta tam metni test etmek için.
+    /// </summary>
+    public static async Task<object> UzunFikirEkle(
+        IServiceProvider servisler,
+        CancellationToken cancellationToken)
+    {
+        using var kapsam = servisler.CreateScope();
+        var sp = kapsam.ServiceProvider;
+        var db = sp.GetRequiredService<FikirPlatformuDbContext>();
+        var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
+        var rm = sp.GetRequiredService<RoleManager<IdentityRole>>();
+
+        try
+        {
+            if (!await rm.RoleExistsAsync("Student")) await rm.CreateAsync(new IdentityRole("Student"));
+            var ogrenciRolu = await rm.FindByNameAsync("Student");
+            var kategori = await db.IdeaCategories.AsNoTracking()
+                .Where(c => c.IsActive).OrderBy(c => c.Id).FirstAsync(cancellationToken);
+            var il = await db.Provinces.AsNoTracking().OrderBy(p => p.Id).FirstAsync(cancellationToken);
+
+            // Aynı seed'den ikinci kez çalıştırılırsa yeni hesap açma.
+            var mevcut = await db.Users.AnyAsync(
+                u => u.Email == $"{KullaniciOneki}uzunfikir@demo.local", cancellationToken);
+            if (mevcut)
+            {
+                return new { calistirildi = false, sebep = "Uzun fikir zaten ekli." };
+            }
+
+            var sifre = RastgeleSifreUret();
+            var ogrenci = new ApplicationUser
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserName = $"{KullaniciOneki}uzunfikir@demo.local",
+                Email = $"{KullaniciOneki}uzunfikir@demo.local",
+                FirstName = "Zeynep",
+                LastName = "Kaya",
+                EmailConfirmed = true,
+                PasswordHash = HashParola(sifre),
+                SecurityStamp = Guid.NewGuid().ToString(),
+            };
+            db.Users.Add(ogrenci);
+            if (ogrenciRolu is not null)
+            {
+                db.UserRoles.Add(new IdentityUserRole<string>
+                {
+                    UserId = ogrenci.Id,
+                    RoleId = ogrenciRolu.Id,
+                });
+            }
+
+            var profilId = Guid.NewGuid();
+            db.StudentProfiles.Add(new StudentProfile
+            {
+                Id = profilId,
+                ApplicationUserId = ogrenci.Id,
+                ProvinceId = il.Id,
+                School = Okullar[0],
+                Grade = 8,
+                StudentNumber = "20260001",
+                CreatedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
+            });
+
+            var gonderim = DateTimeOffset.UtcNow.AddDays(-3);
+            var fikir = Idea.CreateDraft(
+                profilId, il.Id, kategori.Id, UzunFikirMetni(), gonderim);
+            fikir.Submit(il.Id, gonderim);
+            db.Ideas.Add(fikir);
+
+            await db.SaveChangesAsync(cancellationToken);
+
+            return new
+            {
+                calistirildi = true,
+                fikirId = fikir.Id,
+                karakter = fikir.Content.Length,
+                sinir = Idea.MaxContentLength,
+                kategori = kategori.Name,
+                il = il.Name,
+                durum = "Submitted (il değerlendirmesi bekliyor)",
+                demoSifre = sifre,
+                ornekGiris = $"{KullaniciOneki}uzunfikir@demo.local",
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new DemoSeedAdimException("uzun fikir ekleme", ex);
+        }
+    }
+
+    /// <summary>Tam olarak <see cref="Idea.MaxContentLength"/> karakterlik gerçekçi fikir metni.</summary>
+    private static string UzunFikirMetni()
+    {
+        var cumleler = new List<string>
+        {
+            "Okulumuzda su tüketimini azaltmak için bir proje başlatmak istiyorum.",
+            "Bahçeye yağmur suyu toplama sistemi kazandırmayı ve bu suyun temizlik ve bahçe sulamasında kullanılmasını öneriyorum.",
+            "Çatılara yağmur oluklarının yanı sıra su deposu yerleştirilmesi, yaz aylarında bile bahçenin susuz kalmamasını sağlar.",
+            "Öğrencilerimiz suyun kıymetini somut olarak görsün diye depodaki su miktarını gösteren şeffaf bir litre ölçer asılı olacak.",
+            "Her ay fen dersinde bu verileri sınıf panosunda paylaşıp önceki ayla karşılaştırarak ne kadar su tasarrufu yapıldığını tartışacağız.",
+            "Birim maliyet düşük olduğu için okulun elektrik faturasına da gözle görülür bir katkı sağlayacak.",
+            "Projeyi çevre kulübü öğrencileri yürütecek ve her yıl bu kulübü yeni öğrencilere devredilecek.",
+            "Böylece fikir okulda kalmaz, düzenli olarak çalışan bir sisteme dönüşür.",
+            "Bütçe için okul yönetimine sunacağımız maliyet tablosu şöyle olacak: su deposu ve oluklar birinci yıl için, sensör ve litre ölçer ikinci yıl için planlanmıştır.",
+            "Daha uzun vadede bahçemizde damla sulama sistemine geçerek su tüketimini yarıya indirebiliriz.",
+            "Bütün bunları okul panosunda ve veli toplantılarında paylaşarak projenin şeffaflığını sağlayacağız.",
+            "Fikrimin en önemli yanı su tasarrufunu öğrencilerin günlük alışkanlık hâline getirmesidir.",
+            "Yalnızca bir proje olarak kalmayıp çevre bilincini ve sorumluluk duygusunu geliştirmesini hedefliyorum.",
+        };
+
+        var metin = string.Join(" ", cumleler);
+        // Sınıra kadar doğal cümlelerle tamamla, sonra kelime sınırında kes.
+        var ekCumle = "Bu çalışma okulumuzun sürdürülebilirlik hedeflerine doğrudan katkı sağlayacaktır.";
+        var i = 0;
+        while (metin.Length + ekCumle.Length + 1 <= Idea.MaxContentLength)
+        {
+            metin += " " + ekCumle;
+            i++;
+            ekCumle = $"Ayrıca bu uygulama {i}. dönemde de gözden geçirilecek ve gerekirse geliştirilecektir.";
+        }
+        return metin[..Idea.MaxContentLength];
+    }
+
+    /// <summary>
     /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
     /// </summary>
     public sealed class DemoSeedAdimException(string adim, Exception icHata)
