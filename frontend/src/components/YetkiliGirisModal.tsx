@@ -271,7 +271,8 @@ export function YetkiliGirisModal({ acik, onKapat }: Props) {
                   required
                   value={eposta}
                   onChange={(e) => setEposta(e.target.value)}
-                  placeholder="ad.soyad@….gov.tr"
+                  /* Sprint 11.92: "ad.soyad@….gov.tr" örneği kaldırıldı — sahte
+                     bir kurum adresi gerçek sanılıyordu ve alakasızdı. */
                 />
               </label>
 

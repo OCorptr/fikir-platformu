@@ -163,19 +163,22 @@ export function EkipPage() {
               )}
               <label>
                 <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Ad</span>
-                <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} placeholder="Ayşe" />
+                <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} />
               </label>
               <label>
                 <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Soyad</span>
-                <input className="arama-kutu" value={soyad} onChange={(e) => setSoyad(e.target.value)} placeholder="Yılmaz" />
+                <input className="arama-kutu" value={soyad} onChange={(e) => setSoyad(e.target.value)} />
               </label>
               <label>
                 <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>E-posta</span>
-                <input className="arama-kutu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="degerlendirici@ilarge.gov.tr" />
+                <input className="arama-kutu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </label>
               <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Şifre (en az 5)</span>
-                <input className="arama-kutu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="•••••" />
+                {/* Sprint 11.92: "en az 5" YANLIŞTI — YEĞİTEK madde 16'ya göre
+                    parola 8+ karakter ve 5 sınıf (büyük/küçük/rakam/özel) içermeli.
+                    Yanlış bilgi kullanıcıyı kısa şifreye yönlendiriyordu. */}
+                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Şifre</span>
+                <input className="arama-kutu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </label>
               <button type="submit" className="btn-ana" disabled={calisiyor}>
                 {calisiyor ? "Oluşturuluyor…" : "➕ Ekle"}

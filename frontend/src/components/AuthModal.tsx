@@ -402,7 +402,6 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   required
                   value={kayitAd}
                   onChange={(e) => setKayitAd(e.target.value)}
-                  placeholder="Adın"
                   maxLength={40}
                 />
               </div>
@@ -413,7 +412,6 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   required
                   value={kayitSoyad}
                   onChange={(e) => setKayitSoyad(e.target.value)}
-                  placeholder="Soyadın"
                   maxLength={40}
                 />
               </div>
@@ -482,7 +480,6 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   inputMode="numeric"
                   value={kayitOkulNo}
                   onChange={(e) => setKayitOkulNo(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                  placeholder="1045"
                   maxLength={12}
                 />
               </div>
