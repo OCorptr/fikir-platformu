@@ -53,6 +53,10 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
         modelBuilder.ApplyConfiguration(new EvaluationConfiguration());
         modelBuilder.ApplyConfiguration(new PeriodConfiguration());
         modelBuilder.ApplyConfiguration(new PeriodSelectionConfiguration());
+        // Sprint 11.92: dönemin Ayın Fikri kazananı. BU SATIR UNUTULURSA EF
+        // konvansiyonuyla "PeriodWinners" tablosunu arar ve her sorgu runtime'da
+        // patlar — startup raw SQL ise `period_winners` oluşturur.
+        modelBuilder.ApplyConfiguration(new PeriodWinnerConfiguration());
         modelBuilder.ApplyConfiguration(new ImplementationReportConfiguration());
         modelBuilder.ApplyConfiguration(new ProvinceUserAssignmentConfiguration());
         modelBuilder.ApplyConfiguration(new AuthEventConfiguration());
