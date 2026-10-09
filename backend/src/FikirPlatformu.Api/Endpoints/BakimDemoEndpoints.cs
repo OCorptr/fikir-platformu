@@ -43,8 +43,19 @@ public static class BakimDemoEndpoints
             // Sprint 11.92: `mod=personel` → yalnızca yönetim hesapları.
             var personelModu = http.Request.Query["mod"].ToString() == "personel";
 
+            // Sprint 11.92: `mod=sifre` → mevcut demo hesaplarının parolasını düzeltir
+            // (hesapları silmez, fikirleri/seçimleri korur).
+            var sifreModu = http.Request.Query["mod"].ToString() == "sifre";
+
             try
             {
+                if (sifreModu)
+                {
+                    log.LogWarning("[DEMO] Demo şifreleri düzeltiliyor.");
+                    var sf = await DemoVeriServisi.SifreleriDuzelt(servisler, cancellationToken);
+                    return Results.Ok(sf);
+                }
+
                 if (personelModu)
                 {
                     log.LogWarning("[DEMO] Personel modu başlatıldı.");

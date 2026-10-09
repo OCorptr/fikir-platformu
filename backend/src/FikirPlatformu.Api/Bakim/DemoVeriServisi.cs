@@ -233,7 +233,7 @@ public static class DemoVeriServisi
         // (her biri PBKDF2 + uzak DB turu) dakikalar sürüyordu.
         // Çözüm: parola hash'ini BİR kez hesapla, hepsinde paylaş; kullanıcı ve
         // roller toplu eklensin. 263 PBKDF2 → 1, 500+ INSERT → 2.
-        var parolaHash = HashParola(sifre);
+        var (parolaHash, paylasilanDamga) = ParolaHashUret(sifre);
         var roller = new List<IdentityUserRole<string>>();
         var yeniKullanicilar = new List<ApplicationUser>();
 
@@ -249,7 +249,7 @@ public static class DemoVeriServisi
                 LastName = parcalar.Length > 1 ? parcalar[1] : "-",
                 EmailConfirmed = true,
                 PasswordHash = parolaHash,
-                SecurityStamp = Guid.NewGuid().ToString(),
+                SecurityStamp = paylasilanDamga,
                 LockoutEnabled = true,
             };
             yeniKullanicilar.Add(kullanici);
@@ -522,7 +522,7 @@ public static class DemoVeriServisi
             if (ogrenciRolu is null) return new { calistirildi = false, sebep = "Student rolü oluşturulamadı." };
 
             var sifre = RastgeleSifreUret();
-            var hash = HashParola(sifre);
+            var (hash, paylasilanDamga) = ParolaHashUret(sifre);
             var roller = new List<IdentityUserRole<string>>();
             var simdi = DateTimeOffset.UtcNow;
 
@@ -539,7 +539,7 @@ public static class DemoVeriServisi
                     LastName = Soyadlar[(i * 7) % Soyadlar.Length],
                     EmailConfirmed = true,
                     PasswordHash = hash,
-                    SecurityStamp = Guid.NewGuid().ToString(),
+                    SecurityStamp = paylasilanDamga,
                 };
                 db.Users.Add(ogrenci);
                 roller.Add(new IdentityUserRole<string> { UserId = ogrenci.Id, RoleId = ogrenciRolu.Id });
@@ -631,6 +631,7 @@ public static class DemoVeriServisi
             }
 
             var sifre = RastgeleSifreUret();
+            var (hash, damga) = ParolaHashUret(sifre);
             var ogrenci = new ApplicationUser
             {
                 Id = Guid.NewGuid().ToString(),
@@ -639,8 +640,8 @@ public static class DemoVeriServisi
                 FirstName = "Zeynep",
                 LastName = "Kaya",
                 EmailConfirmed = true,
-                PasswordHash = HashParola(sifre),
-                SecurityStamp = Guid.NewGuid().ToString(),
+                PasswordHash = hash,
+                SecurityStamp = damga,
             };
             db.Users.Add(ogrenci);
             if (ogrenciRolu is not null)
@@ -776,7 +777,7 @@ public static class DemoVeriServisi
 
             var il = await db.Provinces.AsNoTracking().OrderBy(p => p.Id).FirstAsync(cancellationToken);
             var sifre = RastgeleSifreUret();
-            var hash = HashParola(sifre);
+            var (hash, paylasilanDamga) = ParolaHashUret(sifre);
             var rollerEkle = new List<IdentityUserRole<string>>();
             var olusanlar = new List<string>();
 
@@ -791,7 +792,7 @@ public static class DemoVeriServisi
                     LastName = "Demo",
                     EmailConfirmed = true,
                     PasswordHash = hash,
-                    SecurityStamp = Guid.NewGuid().ToString(),
+                    SecurityStamp = paylasilanDamga,
                 };
                 db.Users.Add(u);
                 rollerEkle.Add(new IdentityUserRole<string> { UserId = u.Id, RoleId = rolIds[rol] });
@@ -825,6 +826,54 @@ public static class DemoVeriServisi
     }
 
     /// <summary>
+    /// Sprint 11.92 — Mevcut demo hesaplarının şifresini düzeltir.
+    ///
+    /// <para>Hash'ler eski (hatalı) yöntemle üretildiği için hiçbir demo hesabı
+    /// giriş yapamıyordu. Kullanıcıları SİLMEZ — öğrencilerin yazdığı fikirler ve
+    /// bakanlığın yaptığı seçimler korunur, sadece parola hash'i yenilenir.</para>
+    /// </summary>
+    public static async Task<object> SifreleriDuzelt(
+        IServiceProvider servisler,
+        CancellationToken cancellationToken)
+    {
+        using var kapsam = servisler.CreateScope();
+        var db = kapsam.ServiceProvider.GetRequiredService<FikirPlatformuDbContext>();
+
+        try
+        {
+            var kullanicilar = await db.Users
+                .Where(u => (u.Email ?? "").StartsWith(KullaniciOneki))
+                .ToListAsync(cancellationToken);
+            if (kullanicilar.Count == 0)
+            {
+                return new { calistirildi = false, sebep = "Demo hesap yok." };
+            }
+
+            var sifre = RastgeleSifreUret();
+            var (hash, damga) = ParolaHashUret(sifre);
+            foreach (var k in kullanicilar)
+            {
+                k.PasswordHash = hash;
+                k.SecurityStamp = damga;
+                k.LockoutEnd = null;
+                k.LockoutEnabled = true;
+            }
+            await db.SaveChangesAsync(cancellationToken);
+
+            return new
+            {
+                calistirildi = true,
+                guncellenen = kullanicilar.Count,
+                demoSifre = sifre,
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new DemoSeedAdimException("şifre düzeltme", ex);
+        }
+    }
+
+    /// <summary>
     /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
     /// </summary>
     public sealed class DemoSeedAdimException(string adim, Exception icHata)
@@ -834,14 +883,23 @@ public static class DemoVeriServisi
     }
 
     /// <summary>
-    /// Demo parolasının hash'ini BİR kez hesaplar; tüm demo hesapları aynı
-    /// hash'i paylaşır. (PBKDF2'yi kullanıcı başına çalıştırmak seed'i dakikalara
-    /// uzatıyordu ve Render'ın 100 sn istek zaman aşımına takılıyordu.)
+    /// Demo parolasının hash'ini hesaplar.
+    ///
+    /// ⚠️ **KRİTİK (Sprint 11.92'de bulundu):** ASP.NET Core Identity'nin
+    /// `PasswordHasher` çıktısının SONUNA kullanıcının <c>SecurityStamp</c>'ini
+    /// gömer ve doğrulamada karşılaştırır. Hash'i sahte bir kullanıcıyla
+    /// üretip başka kullanıcılara yazınca "E-posta veya şifre geçersiz" hatası
+    /// veriyor — hesap var ama GİRİLEMEZ.
+    ///
+    /// <para>Bu yüzden önce damga üretilir, hash o damgaya göre hesaplanır ve
+    /// ikisi birlikte döner. Kullanıcı oluştururken ikisini de aynı kullan.
+    /// </para>
     /// </summary>
-    private static string HashParola(string sifre)
+    private static (string Hash, string Damga) ParolaHashUret(string sifre)
     {
+        var damga = Guid.NewGuid().ToString();
         var hasher = new PasswordHasher<ApplicationUser>();
-        return hasher.HashPassword(new ApplicationUser(), sifre);
+        return (hasher.HashPassword(new ApplicationUser { SecurityStamp = damga }, sifre), damga);
     }
 
     /// <summary>Demo verisini siler (puan, seçim, kazanan, fikir, profil, kullanıcı sırasıyla).</summary>
