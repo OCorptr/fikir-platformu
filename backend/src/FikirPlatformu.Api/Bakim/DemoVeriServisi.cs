@@ -713,7 +713,16 @@ public static class DemoVeriServisi
         };
 
         var metin = string.Join(" ", cumleler);
-        // Sınıra kadar doğal cümlelerle tamamla, sonra kelime sınırında kes.
+
+        // Ana metin zaten sınırın üstündeyse olduğu gibi kes (kelime sınırında).
+        if (metin.Length >= Idea.MaxContentLength)
+        {
+            var kesik = metin[..Idea.MaxContentLength];
+            var son = kesik.LastIndexOf(' ');
+            return son > Idea.MaxContentLength / 2 ? kesik[..son] : kesik;
+        }
+
+        // Sınıra kadar doğal cümlelerle tamamla.
         var ekCumle = "Bu çalışma okulumuzun sürdürülebilirlik hedeflerine doğrudan katkı sağlayacaktır.";
         var i = 0;
         while (metin.Length + ekCumle.Length + 1 <= Idea.MaxContentLength)
