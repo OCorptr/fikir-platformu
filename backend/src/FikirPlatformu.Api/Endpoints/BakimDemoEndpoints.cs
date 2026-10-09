@@ -31,12 +31,15 @@ public static class BakimDemoEndpoints
             }
 
             var temizle = http.Request.Query["temizle"].ToString() == "true";
+            // Sprint 11.92: `sadeceTemizle` → yalnızca siler, yeniden üretmez.
+            var sadeceTemizle = http.Request.Query["sadeceTemizle"].ToString() == "true";
 
             try
             {
-                log.LogWarning("[DEMO] Demo veri üretimi başlatıldı (temizle={Temizle}).", temizle);
-                var sonuc = await DemoVeriServisi.Uret(servisler, temizle, cancellationToken);
-                log.LogWarning("[DEMO] Demo veri üretimi bitti.");
+                log.LogWarning("[DEMO] Demo işlemi başlatıldı (temizle={Temizle}, sadeceTemizle={Sadece}).",
+                    temizle, sadeceTemizle);
+                var sonuc = await DemoVeriServisi.Uret(servisler, temizle, sadeceTemizle, cancellationToken);
+                log.LogWarning("[DEMO] Demo işlemi bitti.");
                 return Results.Ok(sonuc);
             }
             catch (DemoVeriServisi.DemoSeedAdimException ex)

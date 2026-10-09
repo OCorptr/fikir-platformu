@@ -134,6 +134,7 @@ public static class DemoVeriServisi
     public static async Task<object> Uret(
         IServiceProvider servisler,
         bool temizle,
+        bool sadeceTemizle,
         CancellationToken cancellationToken)
     {
         using var kapsam = servisler.CreateScope();
@@ -175,6 +176,21 @@ public static class DemoVeriServisi
         {
             adim.Deger = "demo verilerini temizleme";
             await DemoVeriTemizle(db, um, cancellationToken);
+
+            // ⚠️ Sprint 11.92: `temizle=true` TEMİZLEyip ÜRETMEYE DEVAM EDİYORDU —
+            // yani bir kez daha 80 fikir + 80 hesap yazıyordu. Artık ayrı bayrak:
+            // `sadeceTemizle=true` → siler ve ÜRETMEZ, döner.
+            if (sadeceTemizle)
+            {
+                return new
+                {
+                    calistirildi = true,
+                    temizlendi = true,
+                    kalanDemoKullanici = await db.Users
+                        .CountAsync(u => (u.Email ?? "").StartsWith(KullaniciOneki), cancellationToken),
+                    not = "Tüm demo verisi silindi (hesap, profil, fikir, puanlama, seçim, kazanan).",
+                };
+            }
         }
 
         adim.Deger = "rolleri oluşturma";
