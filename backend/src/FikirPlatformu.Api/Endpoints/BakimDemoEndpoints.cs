@@ -39,6 +39,18 @@ public static class BakimDemoEndpoints
                 log.LogWarning("[DEMO] Demo veri üretimi bitti.");
                 return Results.Ok(sonuc);
             }
+            catch (DemoVeriServisi.DemoSeedAdimException ex)
+            {
+                // Adım + iç hata tipi: teşhis için yeterli, veri/şifre sızdırmaz.
+                log.LogError(ex.InnerException, "[DEMO] Hata — adım={Adim}", ex.Adim);
+                return Results.Json(new
+                {
+                    calistirildi = false,
+                    hataAdimi = ex.Adim,
+                    hataTipi = ex.InnerException?.GetType().Name,
+                    message = "Demo veri üretilemedi. Ayrıntı için sunucu loglarına bakın.",
+                }, statusCode: 500);
+            }
             catch (Exception ex)
             {
                 // İstisna metni istemciye SIZMAZ (YEĞİTEK madde 41) — sadece log.

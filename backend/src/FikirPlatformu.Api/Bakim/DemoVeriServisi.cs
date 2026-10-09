@@ -139,8 +139,24 @@ public static class DemoVeriServisi
         var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
         var rm = sp.GetRequiredService<RoleManager<IdentityRole>>();
 
+        // Hata olursa hangi ADIM'da olduğumuzu bilelim (mesaj sızdırmadan).
+        var adim = "başlatma";
+        try
+        {
+            return await UretIc(adim);
+        }
+        catch (Exception ex)
+        {
+            throw new DemoSeedAdimException(adim, ex);
+        }
+
+        async Task<object> UretIc(string adim)
+        {
         var mevcutDemo = await db.Users.AnyAsync(u => (u.Email ?? "").StartsWith(KullaniciOneki), cancellationToken);
-        if (mevcutDemo)
+
+        // Sprint 11.92 düzeltme: `temizle=true` iken erken DÖNMEMELİ — aksi halde
+        // temizleme hiç çalışmıyor ve yarım kalan veri (1 öğrenci) kilitli kalıyordu.
+        if (mevcutDemo && !temizle)
         {
             return new
             {
@@ -150,6 +166,13 @@ public static class DemoVeriServisi
             };
         }
 
+        if (temizle)
+        {
+            adim = "demo verilerini temizleme";
+            await DemoVeriTemizle(db, um, cancellationToken);
+        }
+
+        adim = "rolleri oluşturma";
         // ---- Roller (yoksa oluştur) ----
         foreach (var rol in new[] { "Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin" })
         {
@@ -172,14 +195,10 @@ public static class DemoVeriServisi
             };
         }
 
-        if (temizle)
-        {
-            await DemoVeriTemizle(db, um, cancellationToken);
-        }
-
         // ---- Demo parolası: kodda YOK, her çalıştırmada rastgele üretilir ----
         var sifre = RastgeleSifreUret();
 
+        adim = "öğrenci hesaplarını oluşturma";
         // ---- Öğrenciler ----
         var ogrenciler = new List<ApplicationUser>();
         for (var i = 0; i < OgrenciSayisi; i++)
@@ -203,6 +222,7 @@ public static class DemoVeriServisi
             ogrenciler.Add(ogrenci);
         }
 
+        adim = "değerlendirici ve il yöneticisi hesaplarını oluşturma";
         // ---- Değerlendiriciler (her ile 1 değerlendirici + 1 yönetici) ----
         var degerlendiriciler = new Dictionary<int, List<ApplicationUser>>();
         for (var i = 0; i < iller.Count; i++)
@@ -229,8 +249,10 @@ public static class DemoVeriServisi
         var bakanlik = await KullaniciOlustur(
             um, $"{KullaniciOneki}bakanlik@demo.local", sifre, "Bakanlık Temsilcisi");
         await um.AddToRoleAsync(bakanlik, "MinistryOfficial");
+        adim = "veritabanına kaydetme";
         await db.SaveChangesAsync(cancellationToken);
 
+        adim = "fikir, değerlendirme ve kazanan üretme";
         // ---- Fikirler: her dönem × her kategori ----
         var fikirSayisi = 0;
         var adaySayisi = 0;
@@ -325,6 +347,7 @@ public static class DemoVeriServisi
             }
         }
 
+        adim = "veritabanına kaydetme";
         await db.SaveChangesAsync(cancellationToken);
 
         return new
@@ -341,6 +364,17 @@ public static class DemoVeriServisi
             ornekGiris = $"{KullaniciOneki}ogrenci01@demo.local",
             not = "Bu hesaplar DEMO verisidir. Yayına almadan önce temizlenmelidir.",
         };
+        }
+    }
+
+    /// <summary>
+    /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
+    /// Mesaj/veri içermez — yalnızca adım etiketi ve iç istisna.
+    /// </summary>
+    public sealed class DemoSeedAdimException(string adim, Exception icHata)
+        : Exception($"[DEMO] Adım '{adim}' başarısız: {icHata.GetType().Name}", icHata)
+    {
+        public string Adim { get; } = adim;
     }
 
     private static async Task<ApplicationUser> KullaniciOlustur(
