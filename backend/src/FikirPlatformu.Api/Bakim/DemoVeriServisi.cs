@@ -730,7 +730,7 @@ public static class DemoVeriServisi
         foreach (var id in demoKullanicilar)
         {
             var varMi = await db.Database.SqlQueryRaw<int>(
-                    "SELECT COUNT(*) FROM kvkk_rizalari " +
+                    "SELECT COUNT(*) AS value FROM kvkk_rizalari " +
                     "WHERE user_id = {0} AND tur = 'yayim' AND iptal_at IS NULL",
     id)
                 .FirstOrDefaultAsync(cancellationToken);

@@ -406,7 +406,7 @@ public static class StudentIdeaEndpoints
                     cancellationToken, userId);
 
                 var varMi = await db.Database.SqlQueryRaw<int>(
-                        "SELECT COUNT(*) FROM kvkk_rizalari WHERE user_id = {0} AND tur = 'yayim'",
+                        "SELECT COUNT(*) AS value FROM kvkk_rizalari WHERE user_id = {0} AND tur = 'yayim'",
     userId)
                     .FirstOrDefaultAsync(cancellationToken);
                 if (varMi == 0)
@@ -443,7 +443,7 @@ public static class StudentIdeaEndpoints
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
             var varMi = await db.Database.SqlQueryRaw<int>(
-                    "SELECT COUNT(*) FROM kvkk_rizalari " +
+                    "SELECT COUNT(*) AS value FROM kvkk_rizalari " +
                     "WHERE user_id = {0} AND tur = 'yayim' AND iptal_at IS NULL",
     userId)
                 .FirstOrDefaultAsync(cancellationToken);
