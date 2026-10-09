@@ -6,7 +6,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
-import { getCandidates } from "../services/province";
+import { getCandidates, approveIdea } from "../services/province";
 import { ilYoneticiMi } from "../components/YetkiliPanelSecim";
 import { type CandidateSummary, type MeSession, sessionForContext } from "../types";
 
@@ -28,6 +28,29 @@ export function CandidatesPage() {
   const [adaylar, setAdaylar] = useState<CandidateSummary[]>([]);
   const [yukleniyor, setYukleniyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  // Sprint 11.92 (Onur): "İl onayı Aday Havuzu sayfasında yapılacak."
+  // Detay sayfasındaki "İl Onayı Ver" butonu kaldırıldı; onay buradan.
+  const [onaylananId, setOnaylananId] = useState<string | null>(null);
+  const [onayBitis, setOnayBitis] = useState(false);
+
+  async function adayOnayla(aday: CandidateSummary) {
+    if (!confirm(
+      `“${(aday.content || "").slice(0, 80)}…”\n\nBu fikri il onayıyla kilitleyip bakanlık aday havuzuna göndermek istiyor musun?`,
+    )) return;
+    setOnayBitis(true);
+    setHata(null);
+    try {
+      await approveIdea(aday.ideaId);
+      setOnaylananId(aday.ideaId);
+      // Aday havuzunu tazele — onaylanan fikir listeden düşer.
+      const taze = await getCandidates();
+      setAdaylar(taze);
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setOnayBitis(false);
+    }
+  }
 
   const navigate = useNavigate();
 
@@ -82,7 +105,7 @@ export function CandidatesPage() {
     <AdminLayout
       ben={ben}
       baslik="Aday Havuzu"
-      aciklama="Ortalama puanı 3.5 eşiğini geçen fikirler · bakanlığa dönemsel aday olarak gönderilebilir"
+      aciklama="Ortalama puanı 3.5 eşiğini geçen fikirler · il onayı buradan verilir, onaylananlar bakanlığa aday olur"
       donemRozet="📅 2026-2027 · Eylül"
     >
       {!kimlikKontrolEdildi && (
@@ -121,9 +144,20 @@ export function CandidatesPage() {
                     <div className="okul">Puan: <strong style={{ color: "var(--turuncu-baslik)" }}>{a.averageScore.toFixed(2)}</strong> / 5</div>
                     <div className="fikir-alinti">"{a.content || "(boş)"}"</div>
                     <span className="durum yesil">🌟 Aday</span>
-                    <button type="button" className="btn-ana btn-aday" onClick={() => navigate(`/il-panel/fikir/${a.ideaId}`)}>
-                      📂 Detayı Aç
-                    </button>
+                    <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem", flexWrap: "wrap" }}>
+                      <button
+                        type="button"
+                        className="btn-ana btn-aday"
+                        onClick={() => adayOnayla(a)}
+                        disabled={onayBitis}
+                        aria-label={`${a.categoryName} kategorisindeki bu fikre il onayı ver`}
+                      >
+                        {onayBitis && onaylananId === a.ideaId ? "Onaylanıyor…" : "✅ İl Onayı Ver"}
+                      </button>
+                      <button type="button" className="btn-ikincil btn-aday" onClick={() => navigate(`/il-panel/fikir/${a.ideaId}`)}>
+                        📂 Detayı Aç
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

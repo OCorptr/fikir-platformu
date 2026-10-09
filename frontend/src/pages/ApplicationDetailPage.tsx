@@ -9,7 +9,6 @@ import { AuthModal } from "../components/AuthModal";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
-  approveIdea,
   assignEvaluator,
   getEvaluations,
   getProvinceIdea,
@@ -63,7 +62,6 @@ export function ApplicationDetailPage() {
   );
   const [puanlamaCalisiyor, setPuanlamaCalisiyor] = useState(false);
 
-  const [onayCalisiyor, setOnayCalisiyor] = useState(false);
 
   const [raporlar, setRaporlar] = useState<ImplementationReport[]>([]);
   const [yeniDurum, setYeniDurum] = useState<ImplementationStatus>("InProgress");
@@ -166,18 +164,9 @@ export function ApplicationDetailPage() {
     finally { setPuanlamaCalisiyor(false); }
   }
 
-  async function onayla() {
-    if (!id) return;
-    if (!confirm("Bu fikri onaylayıp kilitlemek istediğine emin misin?")) return;
-    setOnayCalisiyor(true);
-    setHata(null);
-    try {
-      await approveIdea(id);
-      const d = await getProvinceIdea(id);
-      setDetay(d);
-    } catch (e) { setHata(mesajCikar(e)); }
-    finally { setOnayCalisiyor(false); }
-  }
+  // Sprint 11.92 (Onur): "İl Onayı Ver" butonu bu sayfadan KALDIRILDI.
+  // Onay artık Aday Havuzu sayfasından yapılır — puanlayan kişi detay
+  // sayfasında takılı kalan bir "onayla" butonu görmeyecek.
 
   async function uygulamaRaporGonder() {
     if (!id) return;
@@ -319,10 +308,8 @@ export function ApplicationDetailPage() {
                     ✏️ Puanla / Yorumla
                   </button>
                 )}
-                {managerMi && detay.idea.status === "EvaluationCompleted" && (
-                  <button type="button" className="btn-ana" onClick={onayla} disabled={onayCalisiyor}>
-                    {onayCalisiyor ? "Onaylanıyor…" : "✅ İl Onayı Ver"}
-                  </button>
+                {detay.idea.status === "EvaluationCompleted" && (
+                  <span className="meta">✅ Değerlendirme tamamlandı. İl onayı Aday Havuzu sayfasından verilir.</span>
                 )}
                 {detay.idea.status === "Locked" && (
                   <span className="meta">🔒 İl onayı verildi; fikir kilitli.</span>
