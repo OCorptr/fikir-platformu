@@ -52,9 +52,13 @@ public static class BakimDemoEndpoints
             // hata metnini yanıta koymak güvenlidir.
             var inboxTestModu = http.Request.Query["mod"].ToString() == "inboxtest";
 
-            try
+            // Sprint 11.92: `mod=inboxtest` → inbox sorgusunu doğrudan çalıştırıp
+            // hatayı döner (teşhis). Uç gizli anahtarla korumalı, bu yüzden iç
+            // hata metnini yanıta koymak güvenlidir. Kendi try/catch'inde —
+            // aşağıdaki genel catch mesajı yutmasın.
+            if (http.Request.Query["mod"].ToString() == "inboxtest")
             {
-                if (inboxTestModu)
+                try
                 {
                     var asama = http.Request.Query["asama"].ToString() == "kararli"
                         ? FikirPlatformu.Application.Provinces.InboxAsama.Kararli
@@ -65,7 +69,22 @@ public static class BakimDemoEndpoints
                     var liste = await svc.ListAsync(null, "teşhis", asama, cancellationToken);
                     return Results.Ok(new { basarili = true, adet = liste.Count });
                 }
+                catch (Exception ex)
+                {
+                    var kok = ex;
+                    while (kok.InnerException is not null) kok = kok.InnerException;
+                    return Results.Json(new
+                    {
+                        basarili = false,
+                        hataTipi = ex.GetType().Name,
+                        mesaj = ex.Message,
+                        kokMesaj = kok.Message,
+                    }, statusCode: 500);
+                }
+            }
 
+            try
+            {
                 if (sifreModu)
                 {
                     log.LogWarning("[DEMO] Demo şifreleri düzeltiliyor.");
