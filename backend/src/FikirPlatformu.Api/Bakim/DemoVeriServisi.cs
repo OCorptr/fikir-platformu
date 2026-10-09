@@ -160,9 +160,10 @@ public static class DemoVeriServisi
         {
         var mevcutDemo = await db.Users.AnyAsync(u => (u.Email ?? "").StartsWith(KullaniciOneki), cancellationToken);
 
-        // Sprint 11.92 düzeltme: `temizle=true` iken erken DÖNMEMELİ — aksi halde
-        // temizleme hiç çalışmıyor ve yarım kalan veri (1 öğrenci) kilitli kalıyordu.
-        if (mevcutDemo && !temizle)
+        // Sprint 11.92 düzeltme: temizleme bayrakları VARKEN erken DÖNMEMELİ —
+        // aksi halde temizleme hiç çalışmıyor ve yarım kalan veri kilitli kalıyordu.
+        var temizlemeIstendi = temizle || sadeceTemizle;
+        if (mevcutDemo && !temizlemeIstendi)
         {
             return new
             {
@@ -172,7 +173,7 @@ public static class DemoVeriServisi
             };
         }
 
-        if (temizle)
+        if (temizlemeIstendi)
         {
             adim.Deger = "demo verilerini temizleme";
             await DemoVeriTemizle(db, um, cancellationToken);
