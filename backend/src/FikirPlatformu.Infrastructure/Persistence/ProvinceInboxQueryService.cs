@@ -52,10 +52,11 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
                 || f.Status == IdeaSubmissionStatus.InEvaluation;
         }
 
+        // `where` içinde metot çağrısı C# query syntax'ında derlenmiyor
+        // ("Yöntem adı bekleniyor"); filtreyi kaynağa uyguluyoruz.
         var raw = await (
-            from fikir in db.Ideas.AsNoTracking()
-            where durumFiltresi(fikir)
-                && (provinceId == null || fikir.ProvinceId == provinceId)
+            from fikir in db.Ideas.AsNoTracking().Where(durumFiltresi)
+            where (provinceId == null || fikir.ProvinceId == provinceId)
             join profil in db.StudentProfiles.AsNoTracking() on fikir.StudentId equals profil.Id
             join kullanici in db.Users.AsNoTracking() on profil.ApplicationUserId equals kullanici.Id
             join il in db.Provinces.AsNoTracking() on profil.ProvinceId equals il.Id
