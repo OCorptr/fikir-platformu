@@ -239,7 +239,10 @@ public static class DemoVeriServisi
 
         adim.Deger = "öğrenci hesaplarını oluşturma";
         // ---- Öğrenciler ----
-        var ogrenciler = new List<ApplicationUser>();
+        // ⚠️ `ideas.student_id` FK'sı `student_profiles.id` referansı verir,
+        // ApplicationUser.Id'ye DEĞİL. Profil id'leri burada tutup fikir
+        // üretirken doğrudan kullanıyoruz (ayrıca her fikir için DB'ye gitmiyoruz).
+        var ogrenciler = new List<(Guid ProfilId, int IlId)>();
         var kullanilanIlIds = new List<int>();
         for (var i = 0; i < OgrenciSayisi; i++)
         {
@@ -251,9 +254,10 @@ public static class DemoVeriServisi
                 $"{Adlar[i % Adlar.Length]} {Soyadlar[(i * 7) % Soyadlar.Length]}",
                 "Student");
 
+            var profilId = Guid.NewGuid();
             db.StudentProfiles.Add(new StudentProfile
             {
-                Id = Guid.NewGuid(),
+                Id = profilId,
                 ApplicationUserId = ogrenci.Id,
                 ProvinceId = il.Id,
                 School = Okullar[i % Okullar.Length],
@@ -262,7 +266,7 @@ public static class DemoVeriServisi
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });
-            ogrenciler.Add(ogrenci);
+            ogrenciler.Add((profilId, il.Id));
         }
 
         adim.Deger = "değerlendirici ve il yöneticisi hesaplarını oluşturma";
@@ -315,15 +319,14 @@ public static class DemoVeriServisi
                 for (var k = 0; k < DonemBasinaKategoriFikri; k++)
                 {
                     var ogrenci = ogrenciler[ogrenciSira++ % ogrenciler.Count];
-                    var profil = await db.StudentProfiles.FirstAsync(p => p.ApplicationUserId == ogrenci.Id, cancellationToken);
-                    var ilId = profil.ProvinceId;
+                    var ilId = ogrenci.IlId;
 
                     // SubmittedAt, dönem aralığının İÇİNDE olmalı (aday havuzu sorgusu bunu şart koşuyor).
                     var gonderimZamani = donem.StartAt.AddDays(15 + k * 7)
                         .AddHours(new Random(k * 31 + kategori.Id).Next(1, 10));
 
                     var fikir = Idea.CreateDraft(
-                        Guid.Parse(ogrenci.Id), ilId, kategori.Id,
+                        ogrenci.ProfilId, ilId, kategori.Id,
                         sablonlar[k % sablonlar.Length], gonderimZamani.AddDays(-2));
 
                     // --- Durum zinciri: domain metotlarıyla ---
@@ -449,13 +452,16 @@ public static class DemoVeriServisi
         var demoKullanicilar = await db.Users.Where(u => (u.Email ?? "").StartsWith(KullaniciOneki)).ToListAsync(cancellationToken);
         if (demoKullanicilar.Count == 0) return;
         var ids = demoKullanicilar.Select(u => u.Id).ToList();
-        var ogrenciler = demoKullanicilar
-            .Where(u => (u.Email ?? "").StartsWith(KullaniciOneki + "ogrenci") && Guid.TryParse(u.Id, out _))
-            .Select(u => Guid.Parse(u.Id)).ToList();
+        // ⚠️ `ideas.student_id` → `student_profiles.id` FK'sı var; fikirler
+        // profil id'siyle tutulur, kullanıcı id'siyle DEĞİL.
+        var profilIds = await db.StudentProfiles
+            .Where(p => ids.Contains(p.ApplicationUserId))
+            .Select(p => p.Id)
+            .ToListAsync(cancellationToken);
 
-        if (ogrenciler.Count > 0)
+        if (profilIds.Count > 0)
         {
-            var fikirler = await db.Ideas.Where(f => ogrenciler.Contains(f.StudentId)).ToListAsync(cancellationToken);
+            var fikirler = await db.Ideas.Where(f => profilIds.Contains(f.StudentId)).ToListAsync(cancellationToken);
             var fikirIds = fikirler.Select(f => f.Id).ToList();
 
             await db.Evaluations.Where(e => fikirIds.Contains(e.IdeaId)).ExecuteDeleteAsync(cancellationToken);
