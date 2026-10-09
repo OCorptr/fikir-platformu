@@ -195,6 +195,7 @@ Bu dört sprint, **aynı hatada dört kez yanlış kök neden** bulundu. Hepsi d
 - **EF Core CLI sandbox sorunu** — `dotnet ef migrations add` dosya yazmıyor (Windows kernel sandbox). Sprint 11'de startup idempotent raw SQL ile çözüldü; yeni migration CI veya temiz bash'te üretilmeli.
 - **Modal içinde `useNavigate()` çalışmıyor** — `fullPageNav()` (`window.location.href`) kullanılıyor. React Router declarative mod.
 - **`docs/DURUM.md` arşiv** — Aşama 0-10 (2026-09-26), PostgreSQL dönemi. Güncel değil, güncel liste `docs/architecture.md`.
+- **Deploy sonrası tek seferlik form/buton sorunu** (9 Eki 2026) — Sprint 11.92 deploy'unun hemen ardından "Yönetim → Yeni Sistem Yöneticisi" oluşturma denemesi ilk seferde takıldı; sekmeyi kapatıp bir süre sonra yeniden açınca **sorunsuz oluştu**. Muhtemelen eski HTML'in silinmiş JS chunk'ını göstermesi (tarayıcı önbelleği). Kalıcı kusur bulunmadı; tekrar olursa **Network sekmesinden eski `index-<hash>.js` isteniyor mu** kontrol et.
 - **`compose.yaml` silindi** (Sprint 11.52) — PostgreSQL 18 image'ıydı, uygulama Pomelo MySQL. Lokal DB: TiDB Cloud veya `docker-compose.yml`.
 
 ## ⚡ Hızlı referans
