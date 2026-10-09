@@ -365,13 +365,18 @@ public static class ProvinceEndpoints
 
             var somutIl = await SomutIlAsync(db, id, ilId, cancellationToken);
             var sonuc = await service.SubmitAsync(
-                new SubmitImplementationReportCommand(id, somutIl, istek.Status, istek.Note ?? "", userId),
+                new SubmitImplementationReportCommand(
+                    id, somutIl, istek.Status, istek.Note ?? "", userId, istek.RelatedProject),
                 cancellationToken);
 
             return sonuc switch
             {
                 SubmitImplementationReportResult.Ok ok => Results.Ok(new { ideaId = id, reportId = ok.ReportId, reportedAt = ok.ReportedAt }),
                 SubmitImplementationReportResult.NotFound => Results.NotFound(new { message = "Fikir bulunamadı veya başka ile ait." }),
+                SubmitImplementationReportResult.RelatedProjectTooLong => Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["relatedProject"] = ["İlişkili proje açıklaması en fazla 500 karakter olabilir."]
+                }),
                 _ => Results.StatusCode(500),
             };
         }).RequireAuthorization("ProvinceOnly");
@@ -513,7 +518,10 @@ public static class ProvinceEndpoints
 
     public sealed record UygulamaRaporuIstegi(
         [Required] ImplementationStatus Status,
-        [StringLength(2000)] string? Note);
+        [StringLength(2000)] string? Note,
+        // Sprint 11.92 (Onur): "Bazen ayın fikri seçilmese bile o fikir hayata
+        // geçirilebilir, arşedeki bir projeyle paralel bir şeyler yapılabilir."
+        [StringLength(500)] string? RelatedProject);
 }
 
 public sealed record AssignEvaluatorIstegi([Required, StringLength(450)] string EvaluatorUserId);

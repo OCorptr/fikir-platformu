@@ -535,6 +535,30 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "[STARTUP] period_winners tablosu oluşturulamadı.");
     }
 
+    // Sprint 11.92: `implementation_reports.related_project` kolonu.
+    // Onur: "Bazen ayın fikri seçilmese bile o fikir hayata geçirilip arşedeki
+    // bir projeyle paralel bir şeyler yapılabilir" → raporda HANGİ PROJE
+    // kapsamında uygulandığı yazılacak. EF migration bu ortamda üretilemediği
+    // (sandbox dosya yazma engeli) için kolon bilgi şemasından kontrol edilip
+    // yoksa eklenir; her açılışta no-op.
+    try
+    {
+        var sutunVarMi = dbContext.Database.SqlQueryRaw<int>(
+            "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'implementation_reports' " +
+            "AND COLUMN_NAME = 'related_project'").AsEnumerable().FirstOrDefault();
+        if (sutunVarMi == 0)
+        {
+            dbContext.Database.ExecuteSqlRaw(
+                "ALTER TABLE `implementation_reports` ADD COLUMN `related_project` VARCHAR(500) NULL");
+        }
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "[STARTUP] implementation_reports.related_project kolonu eklenemedi.");
+    }
+
     // Sprint 11.60 / YG-17: PasswordChangedAt başlangıç değerlemesi.
     // Eski kayıtlarda bu alan NULL'dır. NULL, "ne zaman değiştirildiği
     // bilinmiyor" demektir ve politikada en kötü senaryo (zorunlu değişim)

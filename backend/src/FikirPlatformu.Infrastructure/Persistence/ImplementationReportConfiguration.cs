@@ -17,6 +17,7 @@ public sealed class ImplementationReportConfiguration : IEntityTypeConfiguration
             .HasConversion<string>()
             .HasMaxLength(32);
         b.Property(x => x.Note).HasColumnName("note").HasMaxLength(2000).IsRequired();
+        b.Property(x => x.RelatedProject).HasColumnName("related_project").HasMaxLength(500);
         b.Property(x => x.ReportedByUserId).HasColumnName("reported_by_user_id").HasMaxLength(450);
         b.Property(x => x.ReportedAt).HasColumnName("reported_at");
 

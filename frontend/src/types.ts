@@ -438,6 +438,8 @@ export interface ImplementationReport {
   ideaId: string;
   status: ImplementationStatus;
   note: string;
+  /** Sprint 11.92: fikir hangi mevcut proje kapsamında uygulanıyor (opsiyonel). */
+  relatedProject?: string | null;
   reportedByUserId: string;
   reportedAt: string;
 }
@@ -456,4 +458,5 @@ export interface ImplementationSummary {
 export interface SubmitImplementationRequest {
   status: ImplementationStatus;
   note?: string;
+  relatedProject?: string;
 }

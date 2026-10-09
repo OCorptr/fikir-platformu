@@ -66,6 +66,11 @@ export function ApplicationDetailPage() {
   const [raporlar, setRaporlar] = useState<ImplementationReport[]>([]);
   const [yeniDurum, setYeniDurum] = useState<ImplementationStatus>("InProgress");
   const [yeniNot, setYeniNot] = useState("");
+  // Sprint 11.92 (Onur): "Bazen ayın fikri seçilmese bile o fikir hayata
+  // geçirilebilir, arşedeki bir projeyle paralel bir şeyler yapılabilir."
+  const [yeniProje, setYeniProje] = useState("");
+  // Aday olmayan (Locked) fikirde önce "Hayata Geçir" butonu, sonra form.
+  const [raporFormuAcik, setRaporFormuAcik] = useState(false);
   const [uygulamaCalisiyor, setUygulamaCalisiyor] = useState(false);
 
   useEffect(() => {
@@ -173,12 +178,17 @@ export function ApplicationDetailPage() {
     setUygulamaCalisiyor(true);
     setHata(null);
     try {
-      await submitImplementationReport(id, { status: yeniDurum, note: yeniNot.trim() });
+      await submitImplementationReport(id, {
+        status: yeniDurum,
+        note: yeniNot.trim(),
+        relatedProject: yeniProje.trim() || undefined,
+      });
       const r = await getImplementationReports(id);
       setRaporlar(r);
       const d = await getProvinceIdea(id);
       setDetay(d);
       setYeniNot("");
+      setYeniProje("");
     } catch (e) { setHata(mesajCikar(e)); }
     finally { setUygulamaCalisiyor(false); }
   }
@@ -316,7 +326,30 @@ export function ApplicationDetailPage() {
                 )}
               </div>
 
-              {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed") && (
+              {/* Sprint 11.92 (Onur): "Hayata Geçir".
+                  Ayın fikri seçilmemiş, il onaylı (Locked) bir fikir de
+                  uygulamaya alınabilir — okulun hâlihazırda yürüttüğü bir proje
+                  kapsamında paralel yürütülür. Bakanlık adaylığı gerekmez. */}
+              {managerMi && detay.idea.status === "Locked" && !raporFormuAcik && (
+                <div className="detay-uygulama-form">
+                  <p className="meta" style={{ marginBottom: "0.7rem" }}>
+                    Bu fikir bakanlık adayı olmadan da hayata geçirilebilir.
+                    Hangi proje kapsamında uygulanıyorsa aşağıda yazabilirsiniz.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn-ana"
+                    onClick={() => {
+                      setYeniDurum("InProgress");
+                      setRaporFormuAcik(true);
+                    }}
+                  >
+                    🚀 Hayata Geçir
+                  </button>
+                </div>
+              )}
+
+              {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed" || (detay.idea.status === "Locked" && raporFormuAcik)) && (
                 <>
                   <div className="bolum-basligi turkuaz" style={{ marginTop: "1.4rem" }}>Uygulama Raporu</div>
                   <div className="detay-uygulama-form">
@@ -345,6 +378,21 @@ export function ApplicationDetailPage() {
                         maxLength={500}
                       />
                     </div>
+                    <div className="alan">
+                      <span>İlişkili proje (opsiyonel)</span>
+                      <input
+                        className="arama-kutu"
+                        style={{ width: "100%" }}
+                        value={yeniProje}
+                        onChange={(e) => setYeniProje(e.target.value)}
+                        placeholder="Örn. 2026-2027 Okul Bahçesi Yenileme Projesi kapsamında"
+                        maxLength={500}
+                      />
+                      <small className="meta" style={{ display: "block", marginTop: "0.3rem" }}>
+                        Fikir ayın fikri olarak seçilmediyse, mevcut hangi proje
+                        kapsamında uygulandığını buraya yazın.
+                      </small>
+                    </div>
                     <button
                       type="button"
                       className="btn-ana"
@@ -365,6 +413,11 @@ export function ApplicationDetailPage() {
                             {" · "}
                             {new Date(r.reportedAt).toLocaleString("tr-TR")}
                             {r.note ? <div className="meta">"{r.note}"</div> : null}
+                            {r.relatedProject ? (
+                              <div className="meta" style={{ marginTop: "0.2rem" }}>
+                                🔗 {r.relatedProject}
+                              </div>
+                            ) : null}
                           </li>
                         ))}
                       </ul>

@@ -159,14 +159,34 @@ public sealed class Idea : Entity
         UpdatedAt = at;
     }
 
-    /// <summary>İl AR-GE yöneticisi uygulamaya başlattığında Planned → ImplementationInProgress (plan §28).</summary>
+    /// <summary>
+    /// Uygulamaya başlama.
+    ///
+    /// <para><b>Sprint 11.92 (Onur):</b> "Bazen ayın fikri seçilmese bile o fikir
+    /// hayata geçirilebilir, arşedeki bir projeyle paralel bir şeyler yapılabilir."
+    /// Önceden yalnızca <see cref="IdeaSubmissionStatus.Planned"/> (yani BAKANLIĞIN
+    /// kategori adayı seçtiği) fikirler uygulamaya başlatılabiliyordu; il onaylı
+    /// ama aday olmayan fikirler bu yoldan çıkamıyordu.</para>
+    ///
+    /// <para>Artık <c>Locked</c> (il onaylı) durumundan da başlayabilir — bu yol
+    /// "kendi kurum projesi kapsamında uygulanıyor" demektir ve bakanlık adaylığı
+    /// gerektirmez.</para>
+    /// </summary>
     public void StartImplementation(DateTimeOffset at)
     {
-        if (Status != IdeaSubmissionStatus.Planned)
-            throw new InvalidOperationException("Yalnızca planlanmış fikirler uygulamaya başlatılabilir.");
+        if (Status != IdeaSubmissionStatus.Planned && Status != IdeaSubmissionStatus.Locked)
+            throw new InvalidOperationException(
+                "Yalnızca il onaylı veya planlanmış fikirler uygulamaya başlatılabilir.");
         Status = IdeaSubmissionStatus.ImplementationInProgress;
         UpdatedAt = at;
     }
+
+    /// <summary>Bu fikir bakanlığın kategori adayı seçtiği bir fikir mi? (Sprint 11.92)</summary>
+    public bool BakanlikAdayiMi =>
+        Status is IdeaSubmissionStatus.Planned
+            or IdeaSubmissionStatus.ImplementationInProgress
+            or IdeaSubmissionStatus.ImplementationCompleted
+            or IdeaSubmissionStatus.ImplementationFailed;
 
     /// <summary>Uygulama tamamlandı.</summary>
     public void CompleteImplementation(DateTimeOffset at)
