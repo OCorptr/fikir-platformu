@@ -305,9 +305,16 @@ public static class DemoVeriServisi
         var adaySayisi = 0;
         var ogrenciSira = 0;
 
+        var donemSira = 0;
         foreach (var donem in donemler)
         {
             var donemKazanani = default(Guid);
+
+            // Her dönemin kazananı FARKLI kategoriden ve FARKLI öğrenciden olsun.
+            // Sabit bir kategori seçimi dört dönemin kazananını da aynı yapıyordu
+            // (hep "Kültür ve Sanat" / aynı öğrenci) — gerçekçi değil.
+            var kazananKategoriId = kategoriler[donemSira % kategoriler.Count].Id;
+            ogrenciSira = donemSira * 7;
 
             foreach (var kategori in kategoriler)
             {
@@ -372,8 +379,8 @@ public static class DemoVeriServisi
                         });
                         adaySayisi++;
 
-                        // Dönem kazananı: kategoriler arasında ilk 3'ünden biri.
-                        if (donemKazanani == Guid.Empty && kategori.Id <= 3)
+                        // Dönem kazananı: bu dönem için ayrılmış kategoriden biri.
+                        if (donemKazanani == Guid.Empty && kategori.Id == kazananKategoriId)
                         {
                             donemKazanani = fikir.Id;
                         }
@@ -391,6 +398,8 @@ public static class DemoVeriServisi
                     SelectedAt = donem.StartAt.AddDays(75),
                 });
             }
+
+            donemSira++;
         }
 
         adim.Deger = "veritabanına kaydetme";
