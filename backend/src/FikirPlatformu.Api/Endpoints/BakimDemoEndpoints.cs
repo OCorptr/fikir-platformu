@@ -5,17 +5,27 @@ namespace FikirPlatformu.Api.Endpoints;
 /// <summary>
 /// Bakım uçları — demo/test verisi üretimi.
 ///
-/// Sprint 11.92. Güvenlik: <c>AdminMaintenance__Secret</c> tanımlı değilse
-/// endpoint fail-closed (403) kalır — tıpkı <c>/api/__maintenance/admin-reset</c>.
+/// Sprint 11.92 GÜVENLİK (iki katman):
+///   1. <c>BakimModu=Acik</c> tanımlı DEĞİLSE bu uçlar hiç map edilmez
+///      (fail-closed). MEB'e taşırken tanımlanmamalıdır.
+///   2. Anahtar artık <b>URL'de değil</b>, <c>X-Maintenance-Token</c> başlığındadır
+///      (OWASP ASVS 8.3.1 — sorgu dizesine sır konmaz).
 ///
-/// Kullanım:
-///   curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/demo-seed?token=SECRET"
-///   curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/demo-seed?token=SECRET&amp;temizle=true"
+/// Kullanım (PowerShell):
+///   $h = @{ 'X-Maintenance-Token' = $env:BAKIM }
+///   Invoke-RestMethod -Method Post -Headers $h -Uri "…/api/__maintenance/demo-seed?mod=ogrenci"
 /// </summary>
 public static class BakimDemoEndpoints
 {
-    public static IEndpointRouteBuilder MapBakimDemoEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapBakimDemoEndpoints(
+        this IEndpointRouteBuilder app, IConfiguration yapilandirma)
     {
+        // Katman 1: mod kapalıysa uçlar hiç var olmaz.
+        if (!BakimGizliAnahtar.Acik(yapilandirma))
+        {
+            return app;
+        }
+
         app.MapPost("/api/__maintenance/demo-seed", async (
             HttpContext http,
             IConfiguration yapilandirma,

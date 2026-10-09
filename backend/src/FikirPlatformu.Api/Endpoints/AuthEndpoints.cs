@@ -21,7 +21,10 @@ public static class AuthEndpoints
 {
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var grup = app.MapGroup("/api/auth").WithTags("Kimlik");
+        // Sprint 11.92 (güvenlik): Bu grubun tamamı kimlik giriş/üyelik uçlarıdır ve
+    // fail-closed politikası nedeniyle AÇIK işaretlenmelidir. (Bakım uçları
+    // `BakimModu=Acik` olmadan hiç map edilmiyor.)
+    var grup = app.MapGroup("/api/auth").WithTags("Kimlik").AllowAnonymous();
 
         grup.MapPost("/register", async (
             KayitIstegi istek,

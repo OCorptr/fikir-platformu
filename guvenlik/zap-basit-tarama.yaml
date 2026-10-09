@@ -1,0 +1,57 @@
+# ZAP Automation Plan — "Geleceğin Fikri Platformu" (pasif tarama)
+#
+# ZAP 2.17 şeması: `environment` (urls + context) ZORUNLU, rapor şablonu
+# `html` değil `traditional-html` (geçerli listeler: modern, traditional-html,
+# high-level-report, risk-confidence-html, traditional-md, sarif-json …).
+#
+# ÇALIŞTIRMA (komut satırı):
+#   cd /d "C:\Program Files\ZAP\Zed Attack Proxy"
+#   zap.bat -cmd -autorun "D:\Coding\Fikir_Platformu\guvenlik\zap-basit-tarama.yaml"
+#
+# ZAP AÇIKKEN (GUI): menüden planı açıp çalıştır — dosya yolunu yukarıdaki komut
+# satırından kopyalayabilirsin.
+#
+# ⚠️ Bu iş PASİF (pasifScan-wait). Aktif tarama YAPILMAZ: aktif tarama veritabanına
+# sahte fikir/kullanıcı yazabilir ve e-posta tetikleyebilir.
+#
+# Ne arar: eksik güvenlik başlıkları, CORS, sürüm bilgisi, hassas dosya,
+# IDOR, kod enjeksiyonu, hata mesajı bilgi sızıntısı.
+
+environment:
+  urls:
+    - "https://fikir-platformu-web.onrender.com"
+    - "https://fikir-platformu.onrender.com"
+  context:
+    id: root
+    name: root
+    includePaths: []
+    excludePaths: []
+    authentication:
+      method: "none"
+    sessionManagement:
+      method: "none"
+    users: []
+
+jobs:
+  - type: spider
+    parameters:
+      context: root
+    description: "Ana sayfa + bağlantıları tara (React SPA)"
+
+  # ⚠️ spiderAjax TARAYICI gerektirir; bu makinede kurulu tarayıcı olmadığı için
+  # job sessizce planı düşürüyordu. Tarayıcı kurulu bir ortamda açılabilir.
+  # - type: spiderAjax
+  #   parameters:
+  #     context: root
+
+  - type: passiveScan-wait
+    parameters:
+      maxWait: 2
+    description: "Pasif tarama — trafik izlenerek açık aranır"
+
+  - type: report
+    parameters:
+      template: "traditional-html"
+      reportDir: "D:\\Coding\\Fikir_Platformu\\guvenlik"
+      reportFile: "zap-raporu.html"
+    description: "HTML raporu üret → guvenlik\\zap-raporu.html"

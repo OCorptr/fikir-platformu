@@ -7,7 +7,9 @@ public static class ReferenceEndpoints
 {
     public static IEndpointRouteBuilder MapReferenceEndpoints(this IEndpointRouteBuilder app)
     {
-        var grup = app.MapGroup("/api/reference").WithTags("Referans");
+        // Sprint 11.92: fail-closed politikası nedeniyle açık işaretlenir
+        // (il/kategori listesi kayıt ekranında, giriş yapmadan kullanılıyor).
+        var grup = app.MapGroup("/api/reference").WithTags("Referans").AllowAnonymous();
 
         grup.MapGet("/provinces", async (FikirPlatformuDbContext veritabani) =>
         {

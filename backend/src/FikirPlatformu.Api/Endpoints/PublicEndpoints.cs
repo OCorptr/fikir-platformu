@@ -33,7 +33,9 @@ public static class PublicEndpoints
 
     public static IEndpointRouteBuilder MapPublicEndpoints(this IEndpointRouteBuilder app)
     {
-        var grup = app.MapGroup("/api/public").WithTags("Herkese açık");
+        // Sprint 11.92: fail-closed politikası nedeniyle AÇIK — ana sayfa
+        // herkese açık ve kimlik gerektirmiyor.
+        var grup = app.MapGroup("/api/public").WithTags("Herkese açık").AllowAnonymous();
 
         // GET /api/public/ayin-fikirleri
         grup.MapGet("/ayin-fikirleri", async (

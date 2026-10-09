@@ -27,7 +27,8 @@ public static class CaptchaEndpoints
 
     public static IEndpointRouteBuilder MapCaptchaEndpoints(this IEndpointRouteBuilder app)
     {
-        var grup = app.MapGroup("/api/auth/captcha").WithTags("Captcha");
+        // Sprint 11.92: fail-closed politikası nedeniyle açık (kayıt öncesi çalışır).
+        var grup = app.MapGroup("/api/auth/captcha").WithTags("Captcha").AllowAnonymous();
 
         grup.MapGet("/new", () =>
         {

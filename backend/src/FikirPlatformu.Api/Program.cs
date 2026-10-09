@@ -366,6 +366,24 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
 
 builder.Services.AddAuthorization(options =>
 {
+    // =============================================================
+    // Sprint 11.92 (güvenlik) — FAIL-CEDED YETKİLENDİRME.
+    //
+    // Yetkilendirme eklenmemiş (ya da yanlışlıkla atlanmış) bir uç, önceki
+    // davranışda sessizce HERKESE AÇIKTI. Artık varsayılan KAPALI: kimlik
+    // doğrulanmamış istek 401 alır.
+    //
+    // Gerçekten açık olması gerekenler grup/uc düzeyinde `.AllowAnonymous()`
+    // ile AÇIK işaretlendi: /api/auth, /api/auth/captcha, /api/reference,
+    // /api/public, /api/health ve MFA'nın /cancel ucu.
+    //
+    // ⚠️ YENİ UÇ EKLEDİĞİNDE: grupta yetkilendirme yoksa buraya takılıp 401 döner.
+    // Açık olması gerekiyorsa `.AllowAnonymous()` ekle.
+    // =============================================================
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+
     // Her policy kendi cookie scheme'i ile authenticate olur + rol kontrolü yapar.
     options.AddPolicy("StudentOnly", p => p
         .AddAuthenticationSchemes(IdentityConstants.ApplicationScheme)
@@ -739,29 +757,91 @@ app.Use(async (ctx, next) =>
     await next();
 });
 
+// =============================================================
+// Sprint 11.92 (güvenlik) — CSRF / CROSS-SITE REQUEST FORGERY savunması.
+//
+// SORUN: CORS tanımlıysa cookie'ler `SameSite=None` ile CROSS-SITE gönderilir
+// (aksi hâlde tarayıcı uygulamayı çağıramaz). Bu durumda saldırganın
+// sitesinden `fetch` ile POST atmak mümkün hâle gelir; CORS yalnızca
+// *okuma* yanıtını engeller, isteği değil. Antiforgery middleware'i yok,
+// koruma yalnızca "gövde her zaman application/json" varsayımına dayanıyordu
+// — bu, tesadüfe dayalı savunmadır ve bir uç form-encoded'a dönüşse düşer.
+//
+// ÇÖZÜM: Durum değiştiren (güvensiz) metotlarda istek bir bağlantı çerezi
+// taşıyorsa, `Origin` başlığı beyaz listedeki bir kaynaktan gelmek ZORUNDA.
+// Böylece saldırganın sayfasından gelen istek reddedilir; kurumun kendi
+// sayfasından gelen istek (düzgün `Origin` ile) geçer.
+//
+// Not: CORS zaten JSON gövdeli istekler için preflight üretir; bu katman
+// preflight'sız (simple request) gönderimlere ve header'ı olmayan istemcilere
+// karşı ikinci savunmadır.
+// =============================================================
+app.Use(async (http, sonraki) =>
+{
+    var guvenliMi = HttpMethods.IsGet(http.Request.Method)
+                 || HttpMethods.IsHead(http.Request.Method)
+                 || HttpMethods.IsOptions(http.Request.Method)
+                 || HttpMethods.IsTrace(http.Request.Method);
+
+    if (!guvenliMi && http.Request.Cookies.ContainsKey(".FikirStudent.Auth"))
+    {
+        var origin = http.Request.Headers.Origin.ToString();
+        if (string.IsNullOrEmpty(origin))
+        {
+            http.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await http.Response.WriteAsJsonAsync(new
+            {
+                message = "İstek reddedildi: çapraz site kaynaklı istekler kabul edilmiyor.",
+            });
+            return;
+        }
+
+        if (!BakimCORS.AktifOriginler(builder.Configuration, builder.Environment)
+            .Contains(origin, StringComparer.OrdinalIgnoreCase))
+        {
+            http.Response.StatusCode = StatusCodes.Status403Forbidden;
+            await http.Response.WriteAsJsonAsync(new
+            {
+                message = "İstek reddedildi: kaynak izinli değil.",
+            });
+            return;
+        }
+    }
+
+    await sonraki();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapGet("/api/__debug/cors-config", (
-    HttpContext http,
-    IConfiguration cfg) =>
+// =============================================================
+// Sprint 11.92 GÜVENLİK — Bakım/debug uçları artık İKİ KATMAN korumalı:
+//   1) `BakimModu=Acik` tanımlı değilse bu uçlar HİÇ map edilmez (fail-closed).
+//      MEB'e taşırken bu değişken tanımlanmamalıdır.
+//   2) Anahtar `X-Maintenance-Token` BAŞLIĞINDA olmalı; sorgu dizesi (`?token=`)
+//      artık KABUL EDİLMEZ — OWASP ASVS 8.3.1: sır URL/log/Referer'a düşmesin.
+// =============================================================
+if (BakimGizliAnahtar.Acik(builder.Configuration))
 {
-    // Sprint 11.52: Gömülü varsayılan anahtar kaldırıldı — `AdminMaintenance__Secret`
-    // tanımlı değilse bu debug endpoint kapalıdır (fail-closed).
-    if (!BakimGizliAnahtar.Gecerli(http, cfg))
+    app.MapGet("/api/__debug/cors-config", (
+        HttpContext http,
+        IConfiguration cfg) =>
     {
-        return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
-    }
-    var corsSection = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>();
-    return Results.Ok(new
-    {
+        if (!BakimGizliAnahtar.Gecerli(http, cfg))
+        {
+            return Results.Json(new { message = "Geçersiz veya eksik token." }, statusCode: 401);
+        }
+        var corsSection = cfg.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        return Results.Ok(new
+        {
         corsSectionLength = corsSection?.Length ?? 0,
         corsSectionValues = corsSection ?? Array.Empty<string>(),
         envHasKey = cfg.GetSection("Cors:AllowedOrigins").Exists(),
         // Sprint 11.52: Gerçek CORS whitelist'i (env boşsa hardcoded fallback dahil) göster.
         aktifCorsOrigins = BakimCORS.AktifOriginler(cfg, app.Environment),
+        });
     });
-});
+}
 
 app.MapGet("/api/health", (IClock clock) => Results.Ok(new
 {
@@ -777,7 +857,7 @@ app.MapGet("/api/health", (IClock clock) => Results.Ok(new
               ?? "calisma-ortaminda-yok"),
     environment = builder.Environment.EnvironmentName,
     utcTime = clock.UtcNow
-}));
+})).AllowAnonymous();  // Sprint 11.92: sağlık ucu fail-closed politikasından muaf
 
 app.MapGet("/api/health/db", async (FikirPlatformuDbContext db, CancellationToken cancellationToken) =>
 {
@@ -787,7 +867,7 @@ app.MapGet("/api/health/db", async (FikirPlatformuDbContext db, CancellationToke
     return connected
         ? Results.Ok(new { status = "connected", database = "MySQL/TiDB", provider = motor })
         : Results.StatusCode(503);
-});
+}).AllowAnonymous();  // Sprint 11.92: sağlık ucu fail-closed politikasından muaf
 
 app.MapAuthEndpoints();
 app.MapMfaEndpoints();
@@ -801,7 +881,7 @@ app.MapMinistryEndpoints();
 // Sprint 11.92: herkese açık okuma uçları (ana sayfa "Ayın Fikirleri").
 // Kimlik doğrulaması GEREKMEZ; PII maskeleme yapıldığı için yayınlanabilir.
 app.MapPublicEndpoints();
-app.MapBakimDemoEndpoints();
+app.MapBakimDemoEndpoints(builder.Configuration);
 
 // Bakım endpoint'i — sistem yöneticisi hesabını oluşturur/sıfırlar.
 // Hesap bilgileri `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password`
@@ -819,8 +899,11 @@ app.MapBakimDemoEndpoints();
 // hardcoded fallback kullanılır (sadece bilinen taraf erişebilir).
 // Sprint 12'de admin panelinden SystemAdmin yönetimi yapılacak, bu kaldırılacak.
 //
-// Kullanım:
-//   curl -X POST "https://fikir-platformu.onrender.com/api/__maintenance/admin-reset?token=ENV_SECRET"
+// Kullanım (anahtar BAŞLIKTA):
+//   curl -X POST "https://…/api/__maintenance/admin-reset" -H "X-Maintenance-Token: $SECRET"
+// ⚠️ Bu uç yalnızca `BakimModu=Acik` varken map edilir (Sprint 11.92 güvenlik).
+if (BakimGizliAnahtar.Acik(builder.Configuration))
+{
 app.MapPost("/api/__maintenance/admin-reset", async (
     HttpContext http,
     IConfiguration yapilandirma,
@@ -928,8 +1011,8 @@ app.MapPost("/api/__maintenance/admin-reset", async (
         passwordHint = "Belirlediğiniz şifre ile giriş yapın. MFA setup sonra yapılır.",
     });
 }).AllowAnonymous();
+} // /if BakimModu=Acik  (admin-reset bloğu)
 
-// Sprint 11.48: MustChangePassword flag kapat — Identity'nin "hesap açıldığında
 // ilk girişte şifre değiştir" flag'i (MustChangePassword) bazı seed/admin hesaplarda
 // true olarak kalıyor. Onur Admin Panel'de hesabında 'Şifre değişmeli' rozeti
 // görüyordu — sebebi bu. Bu endpoint ile flag'i false yapılır.

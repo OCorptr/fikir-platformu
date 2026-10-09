@@ -18,27 +18,48 @@ internal static class BakimGizliAnahtar
     /// <summary>Ortam değişkeni adı (docs/runbook.md ile aynı).</summary>
     public const string AyarAnahtari = "AdminMaintenance:Secret";
 
-    /// <summary>Anahtar tanımlı mı? Tanımlı değilse endpoint'ler devre dışıdır.</summary>
+    /// <summary>Anahtarın taşınması gereken başlık (URL DEĞİL).</summary>
+    public const string BaslikAdi = "X-Maintenance-Token";
+
+    /// <summary>Bakım/debug uçlarının açık olup olmadığını belirleyen ayar.</summary>
+    public const string BakimModuAnahtari = "BakimModu";
+
+    /// <summary>
+    /// Bu uçlar üretimde AÇIK OLMAMALI. <c>BakimModu=Acik</c> tanımlı değilse
+    /// devre dışıdırlar (fail-closed).
+    ///
+    /// Sprint 11.92 güvenlik: kullanıcı bu uçlarla sistem yöneticisi parolasını
+    /// sıfırlayabiliyordu. MEB'e taşırken bu ayar TANIMLANMAMALIDIR.
+    /// </summary>
+    public static bool Acik(IConfiguration yapilandirma)
+    {
+        return string.Equals(
+            yapilandirma[BakimModuAnahtari], "Acik", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Anahtar tanımlı mı? Tanımlı değilse uçlar zaten kapalı (fail-closed).</summary>
     public static bool Tanimli(IConfiguration yapilandirma)
     {
         var deger = yapilandirma[AyarAnahtari];
         return !string.IsNullOrWhiteSpace(deger);
     }
 
-    /// <summary>İstekte gelen <c>?token=</c> ile beklenen anahtar eşleşiyor mu?</summary>
+    /// <summary>
+    /// Anahtar doğrulaması — **istek başlığından** okunur.
+    ///
+    /// Sprint 11.92 (OWASP ASVS 8.3.1 / V14.2.1): "sensitive data ... URL and query
+    /// string do not contain sensitive information, such as an API key or session
+    /// token." Sır sorgu dizesinden okunursa web sunucusu loglarına, tarayıcı
+    /// geçmişine ve `Referer` başlığına düşer. Artık yalnızca
+    /// <c>X-Maintenance-Token</c> başlığı kabul edilir.
+    /// </summary>
     public static bool Gecerli(HttpContext http, IConfiguration yapilandirma)
     {
         var beklenen = yapilandirma[AyarAnahtari];
-        if (string.IsNullOrWhiteSpace(beklenen))
-        {
-            return false;
-        }
+        if (string.IsNullOrWhiteSpace(beklenen)) return false;
 
-        var verilen = http.Request.Query["token"].ToString();
-        if (string.IsNullOrEmpty(verilen))
-        {
-            return false;
-        }
+        var verilen = http.Request.Headers[BaslikAdi].ToString();
+        if (string.IsNullOrEmpty(verilen)) return false;
 
         return FixedTimeEquals(verilen, beklenen);
     }

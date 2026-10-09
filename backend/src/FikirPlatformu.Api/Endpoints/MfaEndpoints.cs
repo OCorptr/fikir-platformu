@@ -30,7 +30,10 @@ public static class MfaEndpoints
 {
     public static IEndpointRouteBuilder MapMfaEndpoints(this IEndpointRouteBuilder app)
     {
-        var grup = app.MapGroup("/api/auth/mfa").WithTags("MFA");
+        // Sprint 11.92: fail-closed politikası nedeniyle grup KAPALI; yalnızca
+        // oturum açmayı gerektirmeyen uçlar aşağıda `.AllowAnonymous()` ile
+        // AÇIK işaretlenir (MFA doğrulama / iptal gibi).
+        var grup = app.MapGroup("/api/auth/mfa").WithTags("MFA").RequireAuthorization();
 
         // 1) MFA kurulumu başlat — method parametresi ile.
         grup.MapPost("/setup", async (
