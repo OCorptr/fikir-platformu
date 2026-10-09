@@ -736,10 +736,12 @@ public static class DemoVeriServisi
                 .FirstOrDefaultAsync(cancellationToken);
             if (varMi > 0) continue;
 
-            await db.Database.ExecuteSqlRawAsync(
+            // Senkron ExecuteSqlRaw: bu sürümde async aşırıyüklemesi cancellationToken'ı
+            // SQL parametresi sanıyor ("store type mapping for CancellationToken").
+            db.Database.ExecuteSqlRaw(
                 "INSERT INTO kvkk_rizalari (id, user_id, tur, metin_versiyonu, verildi_at, ip_adresi, user_agent) " +
                 "VALUES ({0}, {1}, 'yayim', '2026-09-10', {2}, 'demo-seed', 'demo-seed')",
-                cancellationToken, Guid.NewGuid().ToString(), id, DateTimeOffset.UtcNow.UtcDateTime);
+                Guid.NewGuid().ToString(), id, DateTimeOffset.UtcNow.UtcDateTime);
             eklendi++;
         }
 
