@@ -37,9 +37,13 @@ public static class PublicEndpoints
 
         // GET /api/public/ayin-fikirleri
         grup.MapGet("/ayin-fikirleri", async (
+            HttpContext http,
+            IConfiguration yapilandirma,
             FikirPlatformuDbContext db,
             CancellationToken cancellationToken) =>
         {
+            try
+            {
             var simdi = DateTimeOffset.UtcNow;
 
             var donemler = await db.Periods.AsNoTracking()
@@ -149,9 +153,30 @@ public static class PublicEndpoints
                 // Tüm dönemler, en yeniden eskiye. Frontend ilk 3'ü anasayfada gösterir.
                 donemler = kayitlar,
             });
+            }
+            catch (Exception ex)
+            {
+                // Teşhis: hata metni YALNIZCA bakım anahtarı doğruysa döner.
+                var tanili = BakimGizliAnahtar.Gecerli(http, yapilandirma);
+                return Results.Json(new
+                {
+                    message = "Beklenmeyen bir hata oluştu.",
+                    hataTipi = tanili ? ex.GetType().Name : null,
+                    hataMesaji = tanili ? KisaHata(ex) : null,
+                }, statusCode: 500);
+            }
         });
 
         return app;
+    }
+
+    /// <summary>En içteki istisna mesajı (teşhis amaçlı, uzunluk sınırlı).</summary>
+    private static string KisaHata(Exception ex)
+    {
+        var kok = ex;
+        while (kok.InnerException is not null) kok = kok.InnerException;
+        var m = kok.Message;
+        return m.Length <= 350 ? m : m[..350] + "…";
     }
 
     private static async Task<Dictionary<Guid, KazananKart>> KazananKartlariniYukle(        FikirPlatformuDbContext db,
