@@ -223,6 +223,22 @@ table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .durum.turuncu { background: #FDEBD8; color: #B26A05; }
 .durum.mavi { background: #E3F0FB; color: #1E5C9E; }
 .durum.altin { background: #FCF3D5; color: #9A7400; }
+
+/* Sprint 11.92 — KOYU MOD ROZET/İKON DENETİMİ.
+   Sorun: rozet zeminleri (`.ikon.*`, `.durum.*`) koyu modda AÇIK kalıyordu,
+   metin ise koyu modun açık rengine (`body { color:#DCE7F5 }`) geçiyordu →
+   açık zemin üzerinde açık yazı = 1.1 kontrast, yani GÖRÜNMEZ. */
+html.koyu-mod .ikon.turkuaz { background: rgba(63, 198, 203, 0.18); }
+html.koyu-mod .ikon.sari,
+html.koyu-mod .ikon.altin { background: rgba(246, 180, 14, 0.18); }
+html.koyu-mod .ikon.turuncu { background: rgba(255, 154, 61, 0.18); }
+html.koyu-mod .ikon.mavi { background: rgba(90, 160, 220, 0.18); }
+html.koyu-mod .ikon.yesil { background: rgba(111, 203, 139, 0.18); }
+
+html.koyu-mod .durum.yesil { background: rgba(111, 203, 139, 0.18); color: #9FE0B4; }
+html.koyu-mod .durum.turuncu { background: rgba(255, 154, 61, 0.18); color: #FFB877; }
+html.koyu-mod .durum.mavi { background: rgba(90, 160, 220, 0.18); color: #A8CCEE; }
+html.koyu-mod .durum.altin { background: rgba(246, 180, 14, 0.18); color: #F6C453; }
 .btn-masa {
   cursor: pointer; background: #fff; border: 0.14rem solid #C9D8E6; color: #33475F;
   border-radius: 1.2rem; padding: 0.38rem 0.8rem; margin: 0.12rem 0.18rem 0.12rem 0;
@@ -248,6 +264,10 @@ table.tablo { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
 .aday-kart h3 { font-size: 1.35rem; color: var(--lacivert); margin-top: 0.3rem; }
 .aday-kart .okul { font-size: 0.88rem; font-weight: 700; color: #8AA0B5; }
 .aday-kart .fikir-alinti { font-family: 'Nunito', sans-serif; font-weight: 700; font-style: italic; font-size: 1.02rem; line-height: 1.5; color: var(--lacivert); margin: 0.75rem 0.4rem 0.85rem; }
+/* Sprint 11.92: koyu mod denetimi. `.aday-tema` açık griydi ve koyu kart
+   üzerinde 2.87 kontrast veriyordu (gereken 4.5) — okunmuyordu. */
+html.koyu-mod .aday-tema { color: #9FB4CC; }
+html.koyu-mod .aday-kart .okul { color: #9FB4CC; }
 /* Sprint 11.92: aday kartında iki ayrı aksiyon (kategori adayı + dönemin kazananı)
    üst üste binmesin diye dikey yığın. */
 .aday-eylemler { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.6rem; }

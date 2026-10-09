@@ -42,6 +42,57 @@
   --yt-gecis: 0.12s;
 }
 
+/* ============================================================
+   KOYU MOD — Sprint 11.92 (Onur: "koyu mod için tüm alanları kontrol et")
+   ------------------------------------------------------------
+   Sorun: bu dosyada TEK BİR `html.koyu-mod` kuralı yoktu. Tema tamamen
+   `--yt-*` değişkenlerine dayandığı için tek yerde palet çevirmek yeterli:
+   kartlar beyaz kalıp koyu sayfa zemininin üzerinde beyaz bloklar olarak
+   duruyor, `.adm-h1/.adm-etiket` lacivert kalıp koyu zeminde okunmuyordu.
+
+   Not: Rozet/buton gibi anlam taşıyan renkler koyu zeminde de aynı
+   kalsın diye AYRI değişkenlerle yönetilir; sadece zemin ve metin
+   renkleri çevrilir.
+   ============================================================ */
+html.koyu-mod {
+  --yt-lacivert: #DCE7F5;   /* başlıklar */
+  --yt-govde: #C9D9EC;      /* gövde metni */
+  --yt-soluk: #9FB4CC;      /* ikincil metin */
+  --yt-meta: #8FA6C0;       /* en soluk metin (kontrast sınırına dikkat) */
+  --yt-yuzey: #1B2C49;      /* kart zemin */
+  --yt-yuzey-2: #17233A;    /* ikincil zemin (tablo başlığı, input) */
+  --yt-baslik-zemin: #223757;
+  --yt-cizgi: #31486B;
+  --yt-cizgi-acik: #263754;
+  --yt-vurgu: #3FC6CB;
+  --yt-uyari: #FF9A3D;
+  --yt-uyari-zemin: #2C2318;
+  --yt-basari: #6FCB8B;
+  --yt-tehlike: #F08679;
+  --yt-tehlike-zemin: #2E1C1A;
+  --yt-bilgi-zemin: #1F2E4A;
+}
+
+/* Metin renkleri koyu zemin üzerinde kullanıldığında gölgelenmemeli. */
+html.koyu-mod .adm-tablo th,
+html.koyu-mod .adm-tablo td { border-color: var(--yt-cizgi); }
+html.koyu-mod .adm-tablo-satir:hover { background: var(--yt-yuzey-2); }
+html.koyu-mod .adm-cip { background: var(--yt-yuzey-2); border-color: var(--yt-cizgi); color: var(--yt-govde); }
+html.koyu-mod .adm-cip-aktif { background: var(--yt-vurgu); color: #07212A; border-color: transparent; }
+html.koyu-mod .adm-rozet-yesil { background: rgba(111, 203, 139, 0.16); color: #9FE0B4; }
+html.koyu-mod .adm-rozet-sari { background: rgba(246, 180, 14, 0.16); color: #F6C453; }
+html.koyu-mod .adm-rozet-kirmizi { background: rgba(240, 134, 121, 0.16); color: #F5A79D; }
+html.koyu-mod .adm-rozet-mavi { background: rgba(63, 198, 203, 0.16); color: #7FDEE1; }
+html.koyu-mod .adm-bildirim-basari { background: rgba(111, 203, 139, 0.14); color: #9FE0B4; }
+html.koyu-mod .adm-bildirim-hata { background: rgba(240, 134, 121, 0.14); color: #F5A79D; }
+html.koyu-mod .adm-bildirim-uyari { background: var(--yt-uyari-zemin); color: #FFB877; }
+html.koyu-mod .adm-bildirim-bilgi { background: var(--yt-bilgi-zemin); color: #C9D9EC; }
+html.koyu-mod .adm-sifre-kutu { background: var(--yt-yuzey-2); border-color: var(--yt-cizgi); }
+html.koyu-mod .adm-sifre-kutu code { color: var(--yt-lacivert); }
+html.koyu-mod .adm-grup-ok { border-color: var(--yt-cizgi); }
+html.koyu-mod .adm-tablo-satir td:last-child,
+html.koyu-mod .adm-tablo th:last-child { color: var(--yt-soluk); }
+
 body.sayfa-admin {
   font-family: "Nunito", "Baloo 2", sans-serif;
   color: var(--yt-govde);
