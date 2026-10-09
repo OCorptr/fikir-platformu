@@ -93,6 +93,12 @@ html.koyu-mod .adm-grup-ok { border-color: var(--yt-cizgi); }
 html.koyu-mod .adm-tablo-satir td:last-child,
 html.koyu-mod .adm-tablo th:last-child { color: var(--yt-soluk); }
 
+/* `.adm-btn-ana` beyaz yazı + teal zemin → 2.07 kontrast (WCAG AA için 4.5
+   gerekir). Koyu modda vurgu rengi parlaklaştığı için yazı KOYULAŞTIRILIR:
+   koyu yazı + parlak teal çok daha yüksek kontrast verir. */
+html.koyu-mod .adm-btn-ana,
+html.koyu-mod .adm-btn-ana:hover:not(:disabled) { color: #06232B; }
+
 body.sayfa-admin {
   font-family: "Nunito", "Baloo 2", sans-serif;
   color: var(--yt-govde);
