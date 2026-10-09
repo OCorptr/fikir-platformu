@@ -405,9 +405,9 @@ public static class StudentIdeaEndpoints
                     "UPDATE kvkk_rizalari SET iptal_at = NULL WHERE user_id = {0} AND tur = 'yayim'",
                     cancellationToken, userId);
 
-                var varMi = await db.Database.SqlQueryRawAsync<int>(
+                var varMi = await db.Database.SqlQueryRaw<int>(
                         "SELECT COUNT(*) FROM kvkk_rizalari WHERE user_id = {0} AND tur = 'yayim'",
-                        cancellationToken, userId)
+    userId)
                     .FirstOrDefaultAsync(cancellationToken);
                 if (varMi == 0)
                 {
@@ -442,10 +442,10 @@ public static class StudentIdeaEndpoints
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
 
-            var varMi = await db.Database.SqlQueryRawAsync<int>(
+            var varMi = await db.Database.SqlQueryRaw<int>(
                     "SELECT COUNT(*) FROM kvkk_rizalari " +
                     "WHERE user_id = {0} AND tur = 'yayim' AND iptal_at IS NULL",
-                    cancellationToken, userId)
+    userId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             return Results.Ok(new { yayimRizasiVar = varMi > 0 });

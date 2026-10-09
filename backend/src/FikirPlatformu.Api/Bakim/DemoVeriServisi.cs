@@ -729,10 +729,10 @@ public static class DemoVeriServisi
         var eklendi = 0;
         foreach (var id in demoKullanicilar)
         {
-            var varMi = await db.Database.SqlQueryRawAsync<int>(
+            var varMi = await db.Database.SqlQueryRaw<int>(
                     "SELECT COUNT(*) FROM kvkk_rizalari " +
                     "WHERE user_id = {0} AND tur = 'yayim' AND iptal_at IS NULL",
-                    cancellationToken, id)
+    id)
                 .FirstOrDefaultAsync(cancellationToken);
             if (varMi > 0) continue;
 
