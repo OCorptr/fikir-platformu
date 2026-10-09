@@ -69,9 +69,13 @@ public static class PublicEndpoints
             // açık kartta görünmez.
             var rizaVerenler = (await db.Database
                 .SqlQueryRaw<string>(
-                    // ⚠️ EF skaler sorguyu `s.value` diye sarar; kolon adı `value`
-                    // OLMALI (aksi hâlde "Unknown column 's.value'").
-                    "SELECT DISTINCT user_id AS value FROM kvkk_rizalari " +
+                    // ⚠️ İki tuzak bir arada:
+                    //   1) EF skaler sorguyu `s.value` diye sarar → kolon adı `value`
+                    //      olmalı (yoksa "Unknown column 's.value'").
+                    //   2) Pomelo `CHAR(36)` kolonu Guid olarak döndürüyor →
+                    //      `InvalidCastException: Guid → String`. CAST ile metne
+                    //      çeviriyoruz.
+                    "SELECT DISTINCT CAST(user_id AS CHAR(36)) AS value FROM kvkk_rizalari " +
                     "WHERE tur = 'yayim' AND iptal_at IS NULL")
                 .ToListAsync(cancellationToken))
                 .ToHashSet(StringComparer.OrdinalIgnoreCase);
