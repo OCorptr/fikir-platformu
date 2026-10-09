@@ -13,8 +13,16 @@ import type {
   SubmitEvaluationsRequest,
 } from "../types";
 
-export async function getInbox(signal?: AbortSignal): Promise<InboxEntry[]> {
-  return apiRequest<InboxEntry[]>("/api/province/inbox", { signal });
+/**
+ * Sprint 11.92 (Onur): iki aşamalı ayrım.
+ *   `gelen`   → puanlanmamış / puanlanmakta olan fikirler (Gelen Fikirler sekmesi)
+ *   `kararli` → puanlanmış ve sonrası (Raporlama sekmesi) — yönetici kararı burada.
+ */
+export async function getInbox(
+  asama: "gelen" | "kararli" = "gelen",
+  signal?: AbortSignal,
+): Promise<InboxEntry[]> {
+  return apiRequest<InboxEntry[]>(`/api/province/inbox?asama=${asama}`, { signal });
 }
 
 export async function getProvinceIdea(

@@ -7,7 +7,8 @@ import { Navigate } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
-import { getInbox } from "../services/province";
+import { getInbox, approveIdea } from "../services/province";
+import { submitImplementationReport } from "../services/implementations";
 import { type InboxEntry, type MeSession, SONUC_DURUM_IKON, type SonucDurumu, sonucDurumu, sessionForContext } from "../types";
 
 const TEMA_EMOJI: Record<string, string> = {
@@ -41,6 +42,57 @@ export function ProvinceReportPage() {
 
   const [temaFiltresi, setTemaFiltresi] = useState("");
   const [sonucFiltresi, setSonucFiltresi] = useState<"hepsi" | SonucDurumu>("hepsi");
+  // Sprint 11.92: yönetici kararı buradan veriliyor.
+  const [eylemCalisiyor, setEylemCalisiyor] = useState<string | null>(null);
+
+  const kararliYenile = async () => setInbox(await getInbox("kararli"));
+
+  /** Değerlendirmesi biten fikri il onayına alır (bakanlık adayı olur). */
+  async function ilOnayiVer(ideaId: string) {
+    if (!confirm("Bu fikri il onayına alıp bakanlık aday havuzuna gönderelim mi?")) return;
+    setEylemCalisiyor(ideaId);
+    setHata(null);
+    try {
+      await approveIdea(ideaId);
+      await kararliYenile();
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setEylemCalisiyor(null);
+    }
+  }
+
+  /**
+   * İl onaylı fikri, bakanlık adayı olmadan mevcut bir okul projesi kapsamında
+   * uygulamaya alır. "İlişkili proje" opsiyoneldir (Onur) — boş bırakılsa da
+   * kayıt yapılır; iptal edilirse hiçbir şey olmaz.
+   */
+  async function hayataGecir(ideaId: string, fikirMetni: string) {
+    const kisa = (fikirMetni || "").slice(0, 70).replace(/\s+/g, " ").trim();
+    const proje = window.prompt(
+      `Bu fikir hangi mevcut proje kapsamında uygulanacak?\n\n` +
+      `"${kisa}…"\n\n` +
+      `Örnek: 2026-2027 Okul Bahçesi Yenileme Projesi\n` +
+      `Boş bırakırsanız kayıt yine yapılır (opsiyonel).`,
+      "",
+    );
+    if (proje === null) return;
+
+    setEylemCalisiyor(ideaId);
+    setHata(null);
+    try {
+      await submitImplementationReport(ideaId, {
+        status: "InProgress",
+        note: "",
+        relatedProject: proje.trim() || undefined,
+      });
+      await kararliYenile();
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setEylemCalisiyor(null);
+    }
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -56,7 +108,7 @@ export function ProvinceReportPage() {
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
-    getInbox(controller.signal)
+    getInbox("kararli", controller.signal)
       .then(setInbox)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
@@ -206,6 +258,10 @@ export function ProvinceReportPage() {
                         <th>Değerlendirme</th>
                         <th>Durum</th>
                         <th>Sonuç</th>
+                        {/* Sprint 11.92 (Onur): puanlanan fikirler gelen
+                            kutusundan çıkıp buraya düşer; yönetici kararı
+                            (İl Onayı Ver / Hayata Geçir) buradan verilir. */}
+                        <th>Eylem</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -248,6 +304,40 @@ export function ProvinceReportPage() {
                                 </span>
                               );
                             })()}
+                          </td>
+                          <td>
+                            {i.status === "EvaluationCompleted" ? (
+                              <button
+                                type="button"
+                                className="btn-ikincil btn-kucul"
+                                style={{ whiteSpace: "nowrap" }}
+                                onClick={() => ilOnayiVer(i.ideaId)}
+                                disabled={eylemCalisiyor === i.ideaId}
+                              >
+                                {eylemCalisiyor === i.ideaId ? "…" : "✅ İl Onayı Ver"}
+                              </button>
+                            ) : i.status === "Locked" ? (
+                              <button
+                                type="button"
+                                className="btn-ikincil btn-kucul"
+                                style={{ whiteSpace: "nowrap" }}
+                                onClick={() => hayataGecir(i.ideaId, i.content)}
+                                disabled={eylemCalisiyor === i.ideaId}
+                                title="Bakanlık adayı olmadan, mevcut bir okul projesi kapsamında uygulanır"
+                              >
+                                {eylemCalisiyor === i.ideaId ? "…" : "🚀 Hayata Geçir"}
+                              </button>
+                            ) : i.status === "ImplementationInProgress" ? (
+                              <span className="durum mavi">⏳ Uygulamada</span>
+                            ) : i.status === "ImplementationCompleted" ? (
+                              <span className="durum yesil">✔ Tamamlandı</span>
+                            ) : i.status === "ImplementationFailed" ? (
+                              <span className="durum turuncu">✖ Başarısız</span>
+                            ) : i.status === "Planned" ? (
+                              <span className="durum altin">📌 Planlandı</span>
+                            ) : (
+                              <span className="meta">—</span>
+                            )}
                           </td>
                         </tr>
                       ))}

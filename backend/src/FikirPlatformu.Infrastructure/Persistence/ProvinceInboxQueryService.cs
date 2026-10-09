@@ -13,6 +13,7 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
     public async Task<IReadOnlyList<InboxEntry>> ListAsync(
         int? provinceId,
         string currentUserId,
+        InboxAsama asama = InboxAsama.Gelen,
         CancellationToken cancellationToken = default)
     {
         // Sadece gönderilmiş fikirler (taslak/silinmiş hariç).
@@ -22,20 +23,27 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
         // `provinceId == null` → il filtresi uygulanmaz, TÜM iller döner.
         // Personel için null asla üretilmez (kendi ili atanır), 0 dönerse
         // endpoint Forbid verir.
+        // Sprint 11.92 (Onur): iki aşamalı ayrım.
+        //   Gelen   → puanlanmamış / puanlanmakta olan fikirler. Puanlama
+        //             başlayınca değil BİTİNCE fikir buradan çıkar.
+        //   Kararlı → puanlanmış ve sonrası; yönetici kararının verildiği yer
+        //             (İl Onayı Ver / Hayata Geçir buradan yapılır).
+        var asamaDahil = asama == InboxAsama.Kararli
+            ? new[]
+            {
+                IdeaSubmissionStatus.EvaluationCompleted,
+                IdeaSubmissionStatus.Locked,
+                IdeaSubmissionStatus.Planned,
+                IdeaSubmissionStatus.ImplementationInProgress,
+                IdeaSubmissionStatus.ImplementationCompleted,
+                IdeaSubmissionStatus.ImplementationFailed,
+            }
+            : new[] { IdeaSubmissionStatus.Submitted, IdeaSubmissionStatus.InEvaluation };
+
         var raw = await (
             from fikir in db.Ideas.AsNoTracking()
             where (provinceId == null || fikir.ProvinceId == provinceId)
-                && (fikir.Status == IdeaSubmissionStatus.Submitted
-                    || fikir.Status == IdeaSubmissionStatus.InEvaluation
-                    || fikir.Status == IdeaSubmissionStatus.EvaluationCompleted
-                    // Sprint 11.92 (Onur): "Hayata Geçir" gelen kutusundan yapılacak.
-                    // İl onaylanan (Locked) fikirler ÖNCEDEN listeden düşüyordu —
-                    // onaylayınca fikir kayboluyor, hayata geçirme yolu görünmüyordu.
-                    || fikir.Status == IdeaSubmissionStatus.Locked
-                    || fikir.Status == IdeaSubmissionStatus.Planned
-                    || fikir.Status == IdeaSubmissionStatus.ImplementationInProgress
-                    || fikir.Status == IdeaSubmissionStatus.ImplementationCompleted
-                    || fikir.Status == IdeaSubmissionStatus.ImplementationFailed)
+                && asamaDahil.Contains(fikir.Status)
             join profil in db.StudentProfiles.AsNoTracking() on fikir.StudentId equals profil.Id
             join kullanici in db.Users.AsNoTracking() on profil.ApplicationUserId equals kullanici.Id
             join il in db.Provinces.AsNoTracking() on profil.ProvinceId equals il.Id

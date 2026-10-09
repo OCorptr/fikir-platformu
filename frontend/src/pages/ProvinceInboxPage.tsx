@@ -7,7 +7,6 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import { getInbox, markRead } from "../services/province";
-import { submitImplementationReport } from "../services/implementations";
 import { type InboxEntry, type MeSession, SONUC_DURUM_IKON, sonucDurumu, sessionForContext } from "../types";
 
 const TEMA_EMOJI: Record<string, string> = {
@@ -37,41 +36,10 @@ export function ProvinceInboxPage() {
   const [temaFiltresi, setTemaFiltresi] = useState("");
   const [degerlendirmeFiltresi, setDegerlendirmeFiltresi] = useState<"hepsi" | "degis" | "degmemis">("hepsi");
   const [okunduFiltresi, setOkunduFiltresi] = useState<"hepsi" | "okundu" | "okunmamis">("hepsi");
-  // Sprint 11.92: Gelen Fikirler'den "Hayata Geçir".
-  const [uygulamaCalisiyor, setUygulamaCalisiyor] = useState<string | null>(null);
 
-  /**
-   * İl onaylı (Locked) fikri, bakanlık adayı olmadan mevcut bir okul projesi
-   * kapsamında uygulamaya alır. "İlişkili proje" opsiyoneldir (Onur) — sorulmasa
-   * da kaydedebilir; yazılmak istenirse prompt ile alınır.
-   */
-  async function hayataGecir(ideaId: string, fikirMetni: string) {
-    const kisa = (fikirMetni || "").slice(0, 70).replace(/\s+/g, " ").trim();
-    const proje = window.prompt(
-      `Bu fikir hangi mevcut proje kapsamında uygulanacak?\n\n` +
-      `"${kisa}…"\n\n` +
-      `Örnek: 2026-2027 Okul Bahçesi Yenileme Projesi\n` +
-      `Boş bırakırsanız kayıt yine yapılır (opsiyonel).`,
-      "",
-    );
-    // null = iptal; "" = boş bırakıldı (opsiyonel) → ikisi de devam eder.
-    if (proje === null) return;
-
-    setUygulamaCalisiyor(ideaId);
-    setHata(null);
-    try {
-      await submitImplementationReport(ideaId, {
-        status: "InProgress",
-        note: "",
-        relatedProject: proje.trim() || undefined,
-      });
-      setInbox(await getInbox());
-    } catch (e) {
-      setHata(mesajCikar(e));
-    } finally {
-      setUygulamaCalisiyor(null);
-    }
-  }
+  // Sprint 11.92 (Onur): "Puanlama yapıldığı anda Gelen Fikirler kısmında değil de
+  // Raporlama kısmında sadece olmalı ve Gelen Fikirler kısmından çıkmalı,
+  // yoksa Gelen Fikirler kısmı gereksiz dolacak hep."
 
   const navigate = useNavigate();
 
@@ -89,7 +57,7 @@ export function ProvinceInboxPage() {
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
-    getInbox(controller.signal)
+      getInbox("gelen", controller.signal)
       .then(setInbox)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
@@ -229,9 +197,6 @@ export function ProvinceInboxPage() {
                       </th>
                       <th>Tarih</th>
                       <th>Sonuç</th>
-                      {/* Sprint 11.92 (Onur): "Hayata Geçir" GELEN FİKİRLER
-                          kısmından yapılmalı." */}
-                      <th>Eylem</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -297,28 +262,6 @@ export function ProvinceInboxPage() {
                               </span>
                             );
                           })()}
-                        </td>
-                        <td onClick={(e) => e.stopPropagation()}>
-                          {i.status === "Locked" ? (
-                            <button
-                              type="button"
-                              className="btn-ikincil"
-                              style={{ whiteSpace: "nowrap" }}
-                              onClick={() => hayataGecir(i.ideaId, i.content)}
-                              disabled={uygulamaCalisiyor === i.ideaId}
-                              title="Bakanlık adayı olmadan, mevcut bir okul projesi kapsamında uygulanır"
-                            >
-                              {uygulamaCalisiyor === i.ideaId ? "…" : "🚀 Hayata Geçir"}
-                            </button>
-                          ) : i.status === "ImplementationInProgress" ? (
-                            <span className="durum mavi" style={{ whiteSpace: "nowrap" }}>⏳ Uygulamada</span>
-                          ) : i.status === "ImplementationCompleted" ? (
-                            <span className="durum yesil" style={{ whiteSpace: "nowrap" }}>✔ Tamamlandı</span>
-                          ) : i.status === "ImplementationFailed" ? (
-                            <span className="durum turuncu" style={{ whiteSpace: "nowrap" }}>✖ Başarısız</span>
-                          ) : (
-                            <span className="meta">—</span>
-                          )}
                         </td>
                       </tr>
                     ))}

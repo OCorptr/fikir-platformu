@@ -67,9 +67,12 @@ public static class ProvinceEndpoints
     {
         var grup = app.MapGroup("/api/province").WithTags("İl AR-GE");
 
-        // GET /api/province/inbox — kendi ilinin gönderilmiş fikirleri
+        // GET /api/province/inbox — kendi ilinin fikirleri
+        // ?asama=gelen   → puanlanmamışlar (varsayılan; "Gelen Fikirler" sekmesi)
+        // ?asama=kararli → puanlanmış ve sonrası ("Raporlama" sekmesi)
         grup.MapGet("/inbox", async (
             HttpContext http,
+            string? asama,
             FikirPlatformuDbContext db,
             IProvinceInboxQueryService inboxService,
             CancellationToken cancellationToken) =>
@@ -77,7 +80,10 @@ public static class ProvinceEndpoints
             var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
             var ilId = await GetProvinceForStaffAsync(db, http, userId, cancellationToken);
-            var liste = await inboxService.ListAsync(ilId, userId, cancellationToken);
+            var secilenAsama = string.Equals(asama, "kararli", StringComparison.OrdinalIgnoreCase)
+                ? InboxAsama.Kararli
+                : InboxAsama.Gelen;
+            var liste = await inboxService.ListAsync(ilId, userId, secilenAsama, cancellationToken);
             return Results.Ok(liste);
         }).RequireAuthorization("ProvinceOnly");
 
