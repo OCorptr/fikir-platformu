@@ -216,7 +216,9 @@ export function HomePage() {
                   ? "Dönem bilgisi yükleniyor…"
                   : veriHatasi
                     ? "Dönem bilgisi alınamadı. Lütfen daha sonra tekrar deneyin."
-                    : "İlk dönem değerlendirmesi yakında burada görünecek."}
+                    : donem
+                      ? `${donem.etiket} adayları henüz değerlendirilmedi. Seçim yapıldığında burada görünecek.`
+                      : "İlk dönem değerlendirmesi yakında burada görünecek."}
               </p>
             </div>
           )}
