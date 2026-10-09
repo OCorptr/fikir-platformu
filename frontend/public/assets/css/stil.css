@@ -1085,14 +1085,15 @@ html.animasyon-durdur .af-sahne.kaydir .af-kart { animation: none; }
    Sabit kart yüksekliği ve kırpma KALDIRILIR; uzun metin kaydırılır.
    (Önceden 22rem + overflow:hidden vardı, 1500 karakter burada da kesiliyordu.) */
 .af-lightbox .af-kart {
-  height: auto; max-height: 78vh; overflow-y: auto;
+  height: auto; max-height: 84vh;
+  /* ⚠️ `overflow` KESİNLİKLE visible kalmalı. Kaydırma `.af-lb-govde`
+     içine alındı; buraya yazılırsa başlık şeridini (kartın 1.1rem ÜSTÜNDE
+     duran absolute öğe) o da kırpıyor ve "yarısı görünüyor" oluyor. */
+  overflow: visible;
   align-items: center; text-align: center;
-  /* ⚠️ `.af-lightbox` position:fixed;inset:0 → şerit EKRANIN 1.1rem ÜSTÜNDE
-     konumlanıp kesiliyordu. Kartı referans noktası yaptık; şerit artık
-     ana sayfadaki gibi kartın ÜSTÜNDE durur (Onur: "iç kısımda değil,
-     ana sayfada ayarladığımız gibi"). */
   position: relative;
 }
+.af-lb-govde { max-height: 72vh; overflow-y: auto; width: 100%; }
 .af-lightbox .af-soz {
   -webkit-line-clamp: unset; display: block; overflow: visible;
 }

@@ -263,7 +263,10 @@ export function HomePage() {
             </button>
             <div className="af-kart af-orta">
               <div className="af-kurdele">{kurdele(orta)}</div>
-              {kartIcerigi(orta, true)}
+              {/* Sprint 11.92: kaydırma kutusu İÇERİDE. Kaydırma kartın
+                  kendisinde olursa başlık şeridini (kartın dışına taşan
+                  absolute öğe) o da kırpıyordu. */}
+              <div className="af-lb-govde">{kartIcerigi(orta, true)}</div>
             </div>
           </div>
         )}
