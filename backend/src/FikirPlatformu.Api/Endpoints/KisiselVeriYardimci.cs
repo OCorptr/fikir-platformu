@@ -36,4 +36,28 @@ public static class KisiselVeriYardimci
         if (ip.Length > 4) return ip[..^4] + "****";
         return "***";
     }
+
+    /// <summary>
+    /// Öğrenci adını kamuya açık ekranlarda gösterirken maskeler (Sprint 11.92).
+    ///
+    /// Onur kuralı (9 Eki 2026): "Emir K." — ad açık, soyadın YALNIZCA başharfi.
+    ///
+    /// Gerekçe: ana sayfa kimlik doğrulaması olmayan herkese açık bir sayfa ve
+    /// projede öğrencilere karşı gizlilik çizgisi var (admin paneli öğrenci
+    /// rollerini hiç listelemez). Açık rıza olmadan soyadı yayınlamak KVKK'ya
+    /// ters düşerdi; ad + başharf ise fikri okunur tutar.
+    ///
+    /// Soyadı boşsa veya tek harften oluşuyorsa başharf eklenmez.
+    /// </summary>
+    public static string OgrenciAdiMaskele(string? ad, string? soyad)
+    {
+        var temizAd = (ad ?? "").Trim();
+        var temizSoyad = (soyad ?? "").Trim();
+
+        if (temizAd.Length == 0 && temizSoyad.Length == 0) return "Öğrenci";
+        if (temizAd.Length == 0) return $"{temizSoyad[0]}.";
+        if (temizSoyad.Length == 0) return temizAd;
+
+        return $"{temizAd} {temizSoyad[0]}.";
+    }
 }

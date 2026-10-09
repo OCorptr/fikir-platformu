@@ -56,6 +56,45 @@ E-posta gönderimi aynı gün çalışır duruma geldi.
 
 **Etkilenen akışlar:** parola sıfırlama, kayıt doğrulama, MFA e-posta kodu. **TOTP MFA etkilenmez** (e-posta kullanmaz) — TOTP tanımlıysa giriş her zaman açıktı.
 
+## 🏠 Sprint 11.92 — "Ayın Fikirleri" artık gerçek veriye bağlı
+
+**Onur'un bildirdiği belirti:** "Şu anda Ekim ayına geçmişiz ama ana sayfada Dönenler
+tamamen yanlış… sanki her ay seçmişiz gibi bir hata var."
+
+**Kök neden:** Ana sayfa hiç API çağırmıyordu. `HomePage.tsx` içinde **5 sahte kayıt**
+sabit duruyordu; ay etiketleri ("Eylül", "Ağustos"…) kodun içinde yazılıydı, arşiv
+modalı da öyle (hatta sahte verinin kendisi tutarsızdı: arşivde Temmuz "Defne Arslan",
+karuselde "Arda Yılmaz").
+
+**Onur'un kuralı (iki kademeli seçim):**
+1. İl AR-GE değerlendirmesi sonunda **her kategoriden en fazla 1** fikir bakanlık
+   adayı olarak gönderilir → `period_selections`
+2. Bakanlık bu adayların içinden **1** tanesini seçer → `period_winners` (yeni)
+
+**Değişiklikler:**
+| Dosya | Ne yaptı |
+|---|---|
+| `Domain/Ministry/PeriodWinner.cs` | Yeni varlık — dönem başına tek kazanan |
+| `Persistence/PeriodWinnerConfiguration.cs` | EF konfigürasyonu (`period_winners`) |
+| `Program.cs` | Startup idempotent raw SQL ile tablo (EF migration üretilemiyor) |
+| `KisiselVeriYardimci.OgrenciAdiMaskele` | PII maskesi: **"Emir K."** (ad + soyad başharfi) |
+| `MinistryEndpoints` | `POST /api/ministry/periods/{id}/kazanan` (MinistryOnly) — kazanan o dönemin adayları arasından olmak zorunda |
+| `Endpoints/PublicEndpoints.cs` | **Yeni**, anonim: `GET /api/public/ayin-fikirleri` → aktif dönem + adaylar + kazanan + arşiv |
+| `services/ayinFikirleri.ts` | Yeni frontend servisi + kategori→emoji eşlemesi |
+| `HomePage.tsx` | Mock tamamen silindi; uçtan besleniyor; veri yoksa dürüst boş durum |
+| `stil.css` | `.af-bos`, `.arsiv-bos` stilleri eklendi |
+| `OgrenciAdiMaskelemeTestleri.cs` | 10 yeni test (**61 toplam**) |
+
+> ⚠️ **KVKK notu:** Ana sayfa anonim olduğu için öğrenci adı maskeleniyor. Projede
+> öğrencilere karşı gizlilik çizgisi var (admin paneli öğrenci rollerini hiç
+> listelemez) — açık rıza olmadan soyadı yayınlamak bu çizgiyi çiğnerdi.
+> **Okul bilgisi modelde yok** (`ApplicationUser` yalnızca FirstName/LastName içeriyor),
+> bu yüzden kartta **il adı** gösteriliyor.
+
+**Bakanlık panelinde yapılacak:** `POST /api/ministry/periods/{id}/select` kategori
+adaylarını atar; ardından `/kazanan` ile tek kazanan işaretlenir. **Frontend'de
+bakanlık ekranına kazanan seçme butonu henüz eklenmedi** — API hazır, UI sonraki adım.
+
 ---
 
 ## 📌 HEAD
@@ -195,7 +234,7 @@ Bu dört sprint, **aynı hatada dört kez yanlış kök neden** bulundu. Hepsi d
 - **EF Core CLI sandbox sorunu** — `dotnet ef migrations add` dosya yazmıyor (Windows kernel sandbox). Sprint 11'de startup idempotent raw SQL ile çözüldü; yeni migration CI veya temiz bash'te üretilmeli.
 - **Modal içinde `useNavigate()` çalışmıyor** — `fullPageNav()` (`window.location.href`) kullanılıyor. React Router declarative mod.
 - **`docs/DURUM.md` arşiv** — Aşama 0-10 (2026-09-26), PostgreSQL dönemi. Güncel değil, güncel liste `docs/architecture.md`.
-- **Deploy sonrası tek seferlik form/buton sorunu** (9 Eki 2026) — Sprint 11.92 deploy'unun hemen ardından "Yönetim → Yeni Sistem Yöneticisi" oluşturma denemesi ilk seferde takıldı; sekmeyi kapatıp bir süre sonra yeniden açınca **sorunsuz oluştu**. Muhtemelen eski HTML'in silinmiş JS chunk'ını göstermesi (tarayıcı önbelleği). Kalıcı kusur bulunmadı; tekrar olursa **Network sekmesinden eski `index-<hash>.js` isteniyor mu** kontrol et.
+- **Deploy sonrası tek seferlik form/buton sorunu** (9 Eki 2026) — Sprint 11.92 deploy'unun hemen ardından "Yönetim → Yeni Sistem Yöneticisi" oluşturma denemesi ilk seferde takıldı; sekmeyi kapatıp bir süre sonra yeniden açınca **sorunsuz oluştu**. `index.html` `no-cache, no-store` gönderdiği için kök neden netleşmedi (önbellek varsayımı zayıf). Kalıcı kusur bulunmadı; tekrar olursa Network sekmesinden **hangi `index-<hash>.js` isteniyor** ve konsoldaki hata mesajını kontrol et.
 - **`compose.yaml` silindi** (Sprint 11.52) — PostgreSQL 18 image'ıydı, uygulama Pomelo MySQL. Lokal DB: TiDB Cloud veya `docker-compose.yml`.
 
 ## ⚡ Hızlı referans

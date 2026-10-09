@@ -1,56 +1,45 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { YetkiliGirisModal } from "../components/YetkiliGirisModal";
 import { me } from "../services/auth";
 import { fullPageNav } from "../components/YetkiliPanelSecim";
 import { sessionForContext } from "../types";
+import {
+  ayinFikirleriGetir,
+  kategoriEmoji,
+  kategoriEtiket,
+  type AyinFikriKart,
+  type ArsivKaydi,
+  type DonemOzet,
+} from "../services/ayinFikirleri";
 
-const kazananlar = [
-  {
-    emoji: "🌱",
-    ad: "Mert Demir",
-    okul: "Yunus Emre Ortaokulu · Buca",
-    tema: "🌱 Çevre ve Sürdürülebilirlik",
-    soz: '"Atık yağları toplayıp sabun üreten atölye kursak; geliri okul kütüphanesine aktaralım."',
-    ay: "Eylül",
-  },
-  {
-    emoji: "🔬",
-    ad: "Zeynep Kaya",
-    okul: "Atatürk Anadolu Lisesi · Bornova",
-    tema: "❤️ Sosyal Fayda",
-    soz: '"Okul bahçemize güneş enerjili akıllı sulama sistemi kuralım; bitkiler telefondan sulansın."',
-    ay: "Ağustos",
-  },
-  {
-    emoji: "💡",
-    ad: "Arda Yılmaz",
-    okul: "Atatürk Ortaokulu · İzmir",
-    tema: "⚙️ Teknoloji ve Yenilik",
-    soz: '"Görme engelli arkadaşlarımız için okul içinde sesli yönlendirme sistemi geliştirebiliriz."',
-    ay: "Temmuz",
-  },
-  {
-    emoji: "🤖",
-    ad: "Elif Şahin",
-    okul: "Mehmet Akif Ersoy Ortaokulu · Karşıyaka",
-    tema: "🤖 Yapay Zekâ",
-    soz: '"Zorlandığımız konuları yapay zekâ bizim seviyemize göre anlatan bir çalışma arkadaşı olsa."',
-    ay: "Haziran",
-  },
-  {
-    emoji: "📖",
-    ad: "Emir Koç",
-    okul: "Mareşal Fevzi Çakmak İlkokulu · Bayraklı",
-    tema: "📖 Değerler Eğitimi",
-    soz: '"Sınıflar arası iyilik kartı turnuvası düzenleyelim; kazanan sınıf sinema günü kazansın."',
-    ay: "Mayıs",
-  },
-];
+/**
+ * Sprint 11.92 — "Ayın Fikirleri" artık gerçek veriden geliyor.
+ *
+ * ÖNCE (Onur, 9 Eki 2026): "Şu anda Ekim ayına geçmişiz ama ana sayfada
+ * Dönenler tamamen yanlış… sanki her ay seçmişiz gibi bir hata var."
+ * KÖK NEDEN: bu bileşen hiç API çağırmıyordu — 5 sahte kayıt dosyanın içinde
+ * sabit duruyordu, ay etiketleri ("Eylül", "Ağustos"…) de kod içinde yazılıydı.
+ *
+ * ŞİMDİ:
+ *   adaylar  = içinde bulunulan 3 aylık dönemin kategori adayları
+ *              (İl AR-GE her kategoriden 1 aday gönderir)
+ *   kazanan  = bakanlığın adaylar arasından seçtiği tek fikir (👑)
+ *   arşiv   = önceki dönemlerin kazananları
+ *
+ * Veri yoksa sahte içerik gösterilmez; dürüst bir boş durum gösterilir.
+ */
 
 export function HomePage() {
   const [aktif, setAktif] = useState(0);
   const [arsivAcik, setArsivAcik] = useState(false);
   const [lightboxAcik, setLightboxAcik] = useState(false);
+  const [donem, setDonem] = useState<DonemOzet | null>(null);
+  const [adaylar, setAdaylar] = useState<AyinFikriKart[]>([]);
+  const [kazananFikirId, setKazananFikirId] = useState<string | null>(null);
+  const [arsiv, setArsiv] = useState<ArsivKaydi[]>([]);
+  const [yukleniyor, setYukleniyor] = useState(true);
+  const [veriHatasi, setVeriHatasi] = useState<string | null>(null);
+
   // Sprint 11.55: `/giris` rotası ana sayfayı giriş modalı AÇIK halde gösterir.
   // Önceden bu rota tanımsızdı ve 404 dönüyordu.
   const [yetkiliGirisAcik, setYetkiliGirisAcik] = useState(
@@ -84,6 +73,21 @@ export function HomePage() {
     return () => controller.abort();
   }, [yetkiliGirisAcik]);
 
+  // Gerçek "Ayın Fikirleri" verisi — anonim uç.
+  useEffect(() => {
+    const controller = new AbortController();
+    ayinFikirleriGetir(controller.signal)
+      .then((cevap) => {
+        setDonem(cevap.donem);
+        setAdaylar(cevap.adaylar ?? []);
+        setKazananFikirId(cevap.kazananFikirId);
+        setArsiv(cevap.arsiv ?? []);
+      })
+      .catch(() => setVeriHatasi("Dönem bilgisi alınamadı."))
+      .finally(() => setYukleniyor(false));
+    return () => controller.abort();
+  }, []);
+
   // CTA davranışı: yönetici → panel seçimi modalı, diğer herkes → /fikir.
   function ctaTiklandi() {
     if (yetkiliOturum) {
@@ -93,16 +97,49 @@ export function HomePage() {
     fullPageNav("/fikir");
   }
 
-  const n = kazananlar.length;
+  const n = adaylar.length;
+  const veriVar = n > 0;
 
   useEffect(() => {
+    if (!veriVar) return;
     const zaman = setInterval(() => setAktif((deger) => (deger + 1) % n), 6000);
     return () => clearInterval(zaman);
-  }, [n]);
+  }, [veriVar, n]);
 
-  const sol = kazananlar[(aktif - 1 + n) % n];
-  const orta = kazananlar[aktif];
-  const sag = kazananlar[(aktif + 1) % n];
+  // Liste değişince (yeni veri geldiğinde) indeks taşabilir.
+  useEffect(() => {
+    if (aktif >= n) setAktif(0);
+  }, [n, aktif]);
+
+  const donemEtiketi = donem?.etiket ?? "";
+
+  const sol = veriVar ? adaylar[(aktif - 1 + n) % n] : null;
+  const orta = veriVar ? adaylar[aktif] : null;
+  const sag = veriVar ? adaylar[(aktif + 1) % n] : null;
+
+  /** Kart kurdelesi: bakanlığın seçtiği fikir 👑, diğerleri kategori rozetiyle. */
+  function kurdele(kart: AyinFikriKart | null): string {
+    if (!kart) return "";
+    return kart.fikirId === kazananFikirId
+      ? `👑 Ayın Fikri · ${donemEtiketi}`
+      : `${kategoriEtiket(kart.kategori)} · ${donemEtiketi}`;
+  }
+
+  // Kart içeriği tek yerde — hem karusel hem lightbox aynı yapıyı kullanır.
+  const kartGovdesi = useMemo(
+    () =>
+      (kart: AyinFikriKart | null, buyuk: boolean) =>
+        !kart ? null : (
+          <>
+            <div className={buyuk ? "af-emoji" : "af-k-emoji"}>{kategoriEmoji(kart.kategori)}</div>
+            <div className={buyuk ? "af-ad" : "af-k-ad"}>{kart.ogrenci}</div>
+            <div className={buyuk ? "af-okul" : "af-k-okul"}>{kart.il}</div>
+            <div className={buyuk ? "af-tema" : "af-k-tema"}>{kart.kategori}</div>
+            <div className={buyuk ? "af-soz" : "af-k-soz"}>&quot;{kart.fikir}&quot;</div>
+          </>
+        ),
+    [],
+  );
 
   return (
     <>
@@ -116,68 +153,73 @@ export function HomePage() {
 
         <div className="kartlar">
           <div className="af-baslik">
-            <span className="af-cizgi"></span>🏆 Ayın Fikirleri<span className="af-cizgi"></span>
+            <span className="af-cizgi"></span>🏆 Ayın Fikirleri
+            {donemEtiketi ? ` · ${donemEtiketi}` : ""}
+            <span className="af-cizgi"></span>
           </div>
 
-          <div className="af-sahne">
-            <div className="af-kart af-kenar-kart" id="af-sol">
-              <div className="af-k-emoji">{sol.emoji}</div>
-              <div className="af-k-ad">{sol.ad}</div>
-              <div className="af-k-okul">{sol.okul}</div>
-              <div className="af-k-tema">{sol.tema}</div>
-              <div className="af-k-soz">{sol.soz}</div>
+          {veriVar ? (
+            <>
+              <div className="af-sahne">
+                <div className="af-kart af-kenar-kart" id="af-sol">
+                  {kartGovdesi(sol, false)}
+                </div>
+
+                <div
+                  className="af-kart af-orta"
+                  id="af-orta"
+                  style={{ cursor: "pointer" }}
+                  onClick={() => setLightboxAcik(true)}
+                  title="Büyütmek için tıkla"
+                >
+                  <div className="af-kurdele">{kurdele(orta)}</div>
+                  {kartGovdesi(orta, true)}
+                </div>
+
+                <div className="af-kart af-kenar-kart" id="af-sag">
+                  {kartGovdesi(sag, false)}
+                </div>
+
+                <button
+                  className="af-ok af-ok-sol"
+                  type="button"
+                  aria-label="Önceki"
+                  onClick={() => setAktif((deger) => (deger - 1 + n) % n)}
+                >
+                  ‹
+                </button>
+                <button
+                  className="af-ok af-ok-sag"
+                  type="button"
+                  aria-label="Sonraki"
+                  onClick={() => setAktif((deger) => (deger + 1) % n)}
+                >
+                  ›
+                </button>
+              </div>
+
+              <div className="af-noktalar">
+                {adaylar.map((kart) => (
+                  <i
+                    key={kart.fikirId}
+                    className={kart.fikirId === orta?.fikirId ? "aktif" : ""}
+                    onClick={() => setAktif(adaylar.findIndex((k) => k.fikirId === kart.fikirId))}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            // Veri yokken sahte kart göstermiyoruz (Sprint 11.92).
+            <div className="af-bos">
+              <p>
+                {yukleniyor
+                  ? "Dönem bilgisi yükleniyor…"
+                  : veriHatasi
+                    ? "Dönem bilgisi alınamadı. Lütfen daha sonra tekrar deneyin."
+                    : "İlk dönem değerlendirmesi yakında burada görünecek."}
+              </p>
             </div>
-
-            <div
-              className="af-kart af-orta"
-              id="af-orta"
-              style={{ cursor: "pointer" }}
-              onClick={() => setLightboxAcik(true)}
-              title="Büyütmek için tıkla"
-            >
-              <div className="af-kurdele">👑 Ayın Fikri · {orta.ay}</div>
-              <div className="af-emoji">{orta.emoji}</div>
-              <div className="af-ad">{orta.ad}</div>
-              <div className="af-okul">{orta.okul}</div>
-              <div className="af-tema">{orta.tema}</div>
-              <div className="af-soz">{orta.soz}</div>
-            </div>
-
-            <div className="af-kart af-kenar-kart" id="af-sag">
-              <div className="af-k-emoji">{sag.emoji}</div>
-              <div className="af-k-ad">{sag.ad}</div>
-              <div className="af-k-okul">{sag.okul}</div>
-              <div className="af-k-tema">{sag.tema}</div>
-              <div className="af-k-soz">{sag.soz}</div>
-            </div>
-
-            <button
-              className="af-ok af-ok-sol"
-              type="button"
-              aria-label="Önceki"
-              onClick={() => setAktif((deger) => (deger - 1 + n) % n)}
-            >
-              ‹
-            </button>
-            <button
-              className="af-ok af-ok-sag"
-              type="button"
-              aria-label="Sonraki"
-              onClick={() => setAktif((deger) => (deger + 1) % n)}
-            >
-              ›
-            </button>
-          </div>
-
-          <div className="af-noktalar">
-            {kazananlar.map((_, indeks) => (
-              <i
-                key={indeks}
-                className={indeks === aktif ? "aktif" : ""}
-                onClick={() => setAktif(indeks)}
-              />
-            ))}
-          </div>
+          )}
 
           <button type="button" className="cta-fikir" onClick={ctaTiklandi}>
             <span className="cta-ikon">✏️</span>
@@ -186,7 +228,7 @@ export function HomePage() {
           </button>
         </div>
 
-        {lightboxAcik && (
+        {lightboxAcik && orta && (
           <div
             className="af-lightbox"
             onClick={(olay) => {
@@ -208,12 +250,8 @@ export function HomePage() {
               ✕
             </button>
             <div className="af-kart af-orta">
-              <div className="af-kurdele">👑 Ayın Fikri · {orta.ay}</div>
-              <div className="af-emoji">{orta.emoji}</div>
-              <div className="af-ad">{orta.ad}</div>
-              <div className="af-okul">{orta.okul}</div>
-              <div className="af-tema">{orta.tema}</div>
-              <div className="af-soz">{orta.soz}</div>
+              <div className="af-kurdele">{kurdele(orta)}</div>
+              {kartGovdesi(orta, true)}
             </div>
           </div>
         )}
@@ -244,22 +282,28 @@ export function HomePage() {
             <div className="arsiv-icerik">
               <button className="arsiv-kapat" type="button" aria-label="Kapat" onClick={() => setArsivAcik(false)}>✕</button>
               <h2>🏆 Ayın Fikri Arşivi</h2>
-              <p className="arsiv-alt">Önceki aylarda seçilen kazanan fikirler</p>
+              <p className="arsiv-alt">Önceki dönemlerde seçilen kazanan fikirler</p>
               <div className="arsiv-zaman">
-                <div className="ay-kart">
-                  <div className="ay-etiket">Ağustos 2026</div>
-                  <div className="ay-kazanan">🔬 Zeynep Kaya</div>
-                  <div className="ay-okul">Atatürk Anadolu Lisesi · Bornova</div>
-                  <div className="ay-tema">Sosyal Fayda</div>
-                  <div className="ay-fikir-giris">"Okul bahçemize güneş enerjili akıllı sulama sistemi kuralım; bitkiler telefondan sulansın."</div>
-                </div>
-                <div className="ay-kart">
-                  <div className="ay-etiket">Temmuz 2026</div>
-                  <div className="ay-kazanan">🤝 Defne Arslan</div>
-                  <div className="ay-okul">Fatih Sultan Mehmet Ortaokulu · Gaziemir</div>
-                  <div className="ay-tema">Sosyal Sorumluluk</div>
-                  <div className="ay-fikir-giris">"Huzurevindeki dedelerimize ve ninelerimize mektup yazalım, her ay onları ziyaret edelim."</div>
-                </div>
+                {arsiv.length === 0 && (
+                  <p className="arsiv-bos">Henüz tamamlanmış bir dönem yok.</p>
+                )}
+                {arsiv.map((kayit) => (
+                  <div className="ay-kart" key={kayit.id}>
+                    <div className="ay-etiket">{kayit.etiket}</div>
+                    {kayit.kazanan ? (
+                      <>
+                        <div className="ay-kazanan">
+                          {kategoriEmoji(kayit.kazanan.kategori)} {kayit.kazanan.ogrenci}
+                        </div>
+                        <div className="ay-okul">{kayit.kazanan.il}</div>
+                        <div className="ay-tema">{kayit.kazanan.kategori}</div>
+                        <div className="ay-fikir-giris">&quot;{kayit.kazanan.fikir}&quot;</div>
+                      </>
+                    ) : (
+                      <div className="ay-kazanan">Bu dönem için kazanan seçilmedi.</div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

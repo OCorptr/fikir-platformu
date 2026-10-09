@@ -975,6 +975,19 @@ html.koyu-mod .cta-fikir {
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .af-noktalar i.aktif { background: var(--sari); transform: scale(1.25); }
+
+/* Sprint 11.92: gerçek dönem verisi henüz yokken gösterilen boş durum.
+   Önceden sahte "Ayın Fikri" kartları gösteriliyordu. */
+.af-bos {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 9rem; padding: 1.6rem;
+  border: 0.16rem dashed #C9D8E6; border-radius: 1.4rem;
+  background: #F7FAFD;
+}
+.af-bos p { margin: 0; font-family: 'Nunito', sans-serif; font-weight: 600; color: #5A7089; text-align: center; }
+.arsiv-bos { margin: 0.4rem 0 0; font-family: 'Nunito', sans-serif; color: #7A8CA0; text-align: center; }
+html.koyu-mod .af-bos { background: #17233A; border-color: #31486B; }
+html.koyu-mod .af-bos p { color: #9FB4CC; }
 .af-ok {
   position: absolute; top: 50%; transform: translateY(-50%); z-index: 3;
   width: 2.9rem; height: 2.9rem; border-radius: 50%; border: none; cursor: pointer;

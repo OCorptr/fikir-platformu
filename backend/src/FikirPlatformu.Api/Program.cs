@@ -512,6 +512,29 @@ using (var scope = app.Services.CreateScope())
         logger.LogError(ex, "[STARTUP] auth_events.Reason kolonu oluşturulamadı.");
     }
 
+    // Sprint 11.92: `period_winners` tablosu — dönemin "Ayın Fikri" kazananı.
+    // Onur kuralı (9 Eki 2026): İl AR-GE her kategoriden 1 aday gönderir
+    // (`period_selections`), Bakanlık bunlardan 1'ini seçer. Ana sayfa bu
+    // kazananı gösteriyor. EF migration bu ortamda üretilemediği için (sandbox
+    // dosya yazma engeli) idempotent raw SQL ile oluşturulur; her açılışta no-op.
+    try
+    {
+        dbContext.Database.ExecuteSqlRaw(
+            "CREATE TABLE IF NOT EXISTS `period_winners` (" +
+            "`period_id` CHAR(36) NOT NULL," +
+            "`idea_id` CHAR(36) NOT NULL," +
+            "`selected_by_user_id` VARCHAR(450) NOT NULL," +
+            "`selected_at` DATETIME(6) NOT NULL," +
+            "PRIMARY KEY (`period_id`)," +
+            "KEY `ix_period_winners_idea` (`idea_id`)" +
+            ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "[STARTUP] period_winners tablosu oluşturulamadı.");
+    }
+
     // Sprint 11.60 / YG-17: PasswordChangedAt başlangıç değerlemesi.
     // Eski kayıtlarda bu alan NULL'dır. NULL, "ne zaman değiştirildiği
     // bilinmiyor" demektir ve politikada en kötü senaryo (zorunlu değişim)
@@ -721,6 +744,9 @@ app.MapReferenceEndpoints();
 app.MapStudentIdeaEndpoints();
 app.MapProvinceEndpoints();
 app.MapMinistryEndpoints();
+// Sprint 11.92: herkese açık okuma uçları (ana sayfa "Ayın Fikirleri").
+// Kimlik doğrulaması GEREKMEZ; PII maskeleme yapıldığı için yayınlanabilir.
+app.MapPublicEndpoints();
 
 // Bakım endpoint'i — sistem yöneticisi hesabını oluşturur/sıfırlar.
 // Hesap bilgileri `SeedSystemAdmin__Email` / `SeedSystemAdmin__Password`

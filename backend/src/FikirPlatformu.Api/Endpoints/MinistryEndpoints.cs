@@ -172,6 +172,79 @@ public static class MinistryEndpoints
             return Results.Ok(new { period, selections = sonuc });
         }).RequireAuthorization("MinistryOnly");
 
+        // =============================================================
+        // Sprint 11.92 — Ayın Fikri kazananı
+        // Onur kuralı: İl AR-GE her kategoriden 1 aday gönderir, bakanlık
+        // bu adayların içinden 1'ini seçer. `/select` ucu kategori başına
+        // aday atar; bu ucu o adaylar arasından TEK kazananı işaretler.
+        // =============================================================
+        grup.MapPost("/periods/{id:guid}/kazanan", async (
+            Guid id,
+            KazananSecimIstegi istek,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            IPeriodRepository repo,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var period = await repo.GetAsync(id, cancellationToken);
+            if (period is null) return Results.NotFound(new { message = "Dönem bulunamadı." });
+
+            // Kazanan, o dönemin ADAYLARI arasından olmak zorunda.
+            var secimler = await repo.GetSelectionsForPeriodAsync(id, cancellationToken);
+            if (!secimler.Any(s => s.IdeaId == istek.IdeaId))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["ideaId"] = ["Kazanan, bu dönemin kategori adayları arasından seçilmelidir."]
+                });
+            }
+
+            // Dönem başına tek kazanan — yeniden seçim üzerine yazar.
+            var mevcut = await db.PeriodWinners.FirstOrDefaultAsync(w => w.PeriodId == id, cancellationToken);
+            var oncekiFikirId = mevcut?.IdeaId;
+            if (mevcut is null)
+            {
+                db.PeriodWinners.Add(new Domain.Ministry.PeriodWinner
+                {
+                    PeriodId = id,
+                    IdeaId = istek.IdeaId,
+                    SelectedByUserId = userId,
+                    SelectedAt = DateTimeOffset.UtcNow,
+                });
+            }
+            else
+            {
+                mevcut.IdeaId = istek.IdeaId;
+                mevcut.SelectedByUserId = userId;
+                mevcut.SelectedAt = DateTimeOffset.UtcNow;
+            }
+
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Email = KisiselVeriYardimci.EmailMaskele(http.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserUpdated,
+                Success = true,
+                FailureReason = $"donem-kazanan: {oncekiFikirId?.ToString() ?? "-"} -> {istek.IdeaId}",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+
+            return Results.Ok(new
+            {
+                message = "Dönemin fikri seçildi.",
+                periodId = id,
+                ideaId = istek.IdeaId,
+                oncekiFikirId,
+            });
+        }).RequireAuthorization("MinistryOnly");
+
         // GET /api/ministry/implementations — tüm Planned+Implementation fikirler (özet ekranı, plan §30)
         grup.MapGet("/implementations", async (
             IImplementationSummaryQueryService service,
@@ -186,4 +259,5 @@ public static class MinistryEndpoints
 
     public sealed record YeniDonemIstegi(DateTimeOffset? StartAt, [StringLength(100)] string? Label);
     public sealed record DonemSecimIstegi([Range(1, int.MaxValue)] int CategoryId, [Required] Guid IdeaId);
+    public sealed record KazananSecimIstegi([Required] Guid IdeaId);
 }

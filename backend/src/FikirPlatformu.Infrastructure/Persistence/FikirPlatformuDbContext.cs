@@ -29,6 +29,7 @@ public sealed class FikirPlatformuDbContext(DbContextOptions<FikirPlatformuDbCon
     public DbSet<Evaluation> Evaluations => Set<Evaluation>();
     public DbSet<Period> Periods => Set<Period>();
     public DbSet<PeriodSelection> PeriodSelections => Set<PeriodSelection>();
+    public DbSet<PeriodWinner> PeriodWinners => Set<PeriodWinner>();
     public DbSet<ImplementationReport> ImplementationReports => Set<ImplementationReport>();
     public DbSet<ProvinceUserAssignment> ProvinceUserAssignments => Set<ProvinceUserAssignment>();
     public DbSet<AuthEvent> AuthEvents => Set<AuthEvent>();
