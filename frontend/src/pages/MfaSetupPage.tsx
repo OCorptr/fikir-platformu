@@ -278,7 +278,7 @@ export function MfaSetupPage() {
           <code>{setup.emailHint}***@…</code> adresine 6 haneli bir doğrulama kodu gönderdik.
           E-postayı açıp kodu aşağıya girin.
         </p>
-        <p className="mfa-aciklama" style={{ fontSize: "0.85rem", color: "#888" }}>
+        <p className="mfa-aciklama" style={{ fontSize: "0.85rem", color: "var(--metin-ikincil)" }}>
           ⏱️ Kod 5 dakika geçerlidir. E-posta gelmedi mi? Spam klasörünü kontrol edin.
         </p>
 

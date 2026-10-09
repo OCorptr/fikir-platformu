@@ -747,6 +747,84 @@ public static class DemoVeriServisi
     }
 
     /// <summary>
+    /// Sprint 11.92 — **PERSONEL MODU.** Yalnızca yönetim hesapları, fikir yok.
+    ///
+    /// Koyu mod denetimi için panel ekranlarına (bakanlık / il / admin)
+    /// kimlik doğrulamasıyla girip görsel kontrol yapabilmek amacıyla eklendi.
+    /// Onur'un isteği: "koyu mod için tüm alanları bir kontrol etmeni istiyorum."
+    /// </summary>
+    public static async Task<object> PersonelEkle(
+        IServiceProvider servisler,
+        CancellationToken cancellationToken)
+    {
+        using var kapsam = servisler.CreateScope();
+        var sp = kapsam.ServiceProvider;
+        var db = sp.GetRequiredService<FikirPlatformuDbContext>();
+        var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
+        var rm = sp.GetRequiredService<RoleManager<IdentityRole>>();
+
+        try
+        {
+            var roller = new[] { "Student", "ProvinceEvaluator", "ProvinceManager", "MinistryOfficial", "SystemAdmin" };
+            var rolIds = new Dictionary<string, string>();
+            foreach (var rolAdi in roller)
+            {
+                var rol = await rm.FindByNameAsync(rolAdi);
+                if (rol is null) { await rm.CreateAsync(new IdentityRole(rolAdi)); rol = await rm.FindByNameAsync(rolAdi); }
+                if (rol is not null) rolIds[rolAdi] = rol.Id;
+            }
+
+            var il = await db.Provinces.AsNoTracking().OrderBy(p => p.Id).FirstAsync(cancellationToken);
+            var sifre = RastgeleSifreUret();
+            var hash = HashParola(sifre);
+            var rollerEkle = new List<IdentityUserRole<string>>();
+            var olusanlar = new List<string>();
+
+            async Task<ApplicationUser> Ekle(string eposta, string ad, string rol)
+            {
+                var u = new ApplicationUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = eposta,
+                    Email = eposta,
+                    FirstName = ad,
+                    LastName = "Demo",
+                    EmailConfirmed = true,
+                    PasswordHash = hash,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                };
+                db.Users.Add(u);
+                rollerEkle.Add(new IdentityUserRole<string> { UserId = u.Id, RoleId = rolIds[rol] });
+                olusanlar.Add($"{eposta} ({rol})");
+                return u;
+            }
+
+            await Ekle($"{KullaniciOneki}sistem@demo.local", "Sistem", "SystemAdmin");
+            await Ekle($"{KullaniciOneki}bakanlik@demo.local", "Bakanlık", "MinistryOfficial");
+            var yonetici = await Ekle($"{KullaniciOneki}ilyonetici@demo.local", "İl", "ProvinceManager");
+            await Ekle($"{KullaniciOneki}ildegerlendirici@demo.local", "Değerlendirici", "ProvinceEvaluator");
+
+            db.ProvinceUserAssignments.Add(ProvinceUserAssignment.Create(
+                yonetici.Id, il.Id, "ProvinceManager", "demo-seed", DateTimeOffset.UtcNow));
+
+            db.UserRoles.AddRange(rollerEkle);
+            await db.SaveChangesAsync(cancellationToken);
+
+            return new
+            {
+                calistirildi = true,
+                hesaplar = olusanlar,
+                demoSifre = sifre,
+                not = "Koyu mod denetimi için yönetim hesapları. Fikir/veri üretilmedi.",
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new DemoSeedAdimException("personel ekleme", ex);
+        }
+    }
+
+    /// <summary>
     /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
     /// </summary>
     public sealed class DemoSeedAdimException(string adim, Exception icHata)

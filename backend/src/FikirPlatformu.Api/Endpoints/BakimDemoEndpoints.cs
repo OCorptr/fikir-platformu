@@ -40,8 +40,18 @@ public static class BakimDemoEndpoints
             // Sprint 11.92: `mod=uzun` → sınırdaki (1500 karakter) tek fikir.
             var uzunModu = http.Request.Query["mod"].ToString() == "uzun";
 
+            // Sprint 11.92: `mod=personel` → yalnızca yönetim hesapları.
+            var personelModu = http.Request.Query["mod"].ToString() == "personel";
+
             try
             {
+                if (personelModu)
+                {
+                    log.LogWarning("[DEMO] Personel modu başlatıldı.");
+                    var p = await DemoVeriServisi.PersonelEkle(servisler, cancellationToken);
+                    return Results.Ok(p);
+                }
+
                 if (uzunModu)
                 {
                     log.LogWarning("[DEMO] Uzun fikir modu başlatıldı.");

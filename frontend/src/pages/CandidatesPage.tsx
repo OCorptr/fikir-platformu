@@ -141,7 +141,7 @@ export function CandidatesPage() {
                   <div key={a.ideaId} className="aday-kart">
                     <div className="aday-emoji">{emoji(kat)}</div>
                     <h3>{kat}</h3>
-                    <div className="okul">Puan: <strong style={{ color: "var(--turuncu-baslik)" }}>{a.averageScore.toFixed(2)}</strong> / 5</div>
+                    <div className="okul">Puan: <strong style={{ color: "var(--metin-vurgu)" }}>{a.averageScore.toFixed(2)}</strong> / 5</div>
                     <div className="fikir-alinti">"{a.content || "(boş)"}"</div>
                     <span className="durum yesil">🌟 Aday</span>
                     <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem", flexWrap: "wrap" }}>

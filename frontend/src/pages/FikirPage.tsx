@@ -396,8 +396,8 @@ export default function FikirPage() {
             <circle cx="26" cy="26" r="24" fill="none" stroke="#16a34a" strokeWidth="3" />
             <path d="M15 27 l7.5 7 L38 19" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" />
           </svg>
-          <h2 style={{ color: "#16355c", fontSize: "1.8rem" }}>Fikrin bize ulaştı!</h2>
-          <p style={{ color: "#647a92" }}>{mesaj ?? "Fikrinin değerlendirme sürecini buradan takip edebilirsin."}</p>
+          <h2 style={{ color: "var(--metin-ana)", fontSize: "1.8rem" }}>Fikrin bize ulaştı!</h2>
+          <p style={{ color: "var(--metin-ikincil)" }}>{mesaj ?? "Fikrinin değerlendirme sürecini buradan takip edebilirsin."}</p>
           <div className="adimlar">
             <span className="adim aktif">Gönderildi</span>
             <span className="adim">Ön Değerlendirme</span>
@@ -412,8 +412,8 @@ export default function FikirPage() {
       ) : (
         <>
           <h1>
-            <span style={{ color: "#1f9fa4" }}>Fikir</span>{" "}
-            <span style={{ color: "#ef7814" }}>Formu</span>
+            <span style={{ color: "var(--metin-marka-1)" }}>Fikir</span>{" "}
+            <span style={{ color: "var(--metin-marka-2)" }}>Formu</span>
           </h1>
 
           {mesaj && (

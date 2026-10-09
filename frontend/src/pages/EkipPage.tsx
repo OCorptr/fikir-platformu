@@ -145,7 +145,7 @@ export function EkipPage() {
                   atamanın yapılacağı ili seçmesi gerekiyor. */}
               {ilSecmeli && (
                 <label>
-                  <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>İl</span>
+                  <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>İl</span>
                   <select
                     className="arama-kutu"
                     value={hedefIl ?? ""}
@@ -162,22 +162,22 @@ export function EkipPage() {
                 </label>
               )}
               <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Ad</span>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>Ad</span>
                 <input className="arama-kutu" value={ad} onChange={(e) => setAd(e.target.value)} />
               </label>
               <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Soyad</span>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>Soyad</span>
                 <input className="arama-kutu" value={soyad} onChange={(e) => setSoyad(e.target.value)} />
               </label>
               <label>
-                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>E-posta</span>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>E-posta</span>
                 <input className="arama-kutu" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
               </label>
               <label>
                 {/* Sprint 11.92: "en az 5" YANLIŞTI — YEĞİTEK madde 16'ya göre
                     parola 8+ karakter ve 5 sınıf (büyük/küçük/rakam/özel) içermeli.
                     Yanlış bilgi kullanıcıyı kısa şifreye yönlendiriyordu. */}
-                <span style={{ display: "block", fontSize: "0.8rem", color: "#647a92" }}>Şifre</span>
+                <span style={{ display: "block", fontSize: "0.8rem", color: "var(--metin-ikincil)" }}>Şifre</span>
                 <input className="arama-kutu" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
               </label>
               <button type="submit" className="btn-ana" disabled={calisiyor}>

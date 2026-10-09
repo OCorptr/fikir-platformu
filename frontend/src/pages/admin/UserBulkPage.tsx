@@ -191,7 +191,7 @@ export function UserBulkPage() {
         <ol className="adm-kucuk-metin" style={{ lineHeight: 1.9, paddingLeft: "1.2rem" }}>
           {ADIMLAR.map((a) => (
             <li key={a.baslik}>
-              <strong style={{ color: "var(--yt-lacivert)" }}>{a.baslik}.</strong>{" "}
+              <strong style={{ color: "var(--metin-ana)" }}>{a.baslik}.</strong>{" "}
               {a.metin}
             </li>
           ))}

@@ -136,8 +136,8 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
       >
         <div className="fikir-karti auth-modal-kart">
           <h1 className="auth-modal-baslik">
-            <span style={{ color: "#1f9fa4" }}>Fikrine</span>{" "}
-            <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
+            <span style={{ color: "var(--metin-marka-1)" }}>Fikrine</span>{" "}
+            <span style={{ color: "var(--metin-marka-2)" }}>Hoş Geldin!</span>
           </h1>
           <p className="balon">Oturum kontrol ediliyor…</p>
         </div>
@@ -277,8 +277,8 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
     >
       <div className="fikir-karti auth-modal-kart">
         <h1 id="auth-modal-baslik" className="auth-modal-baslik">
-          <span style={{ color: "#1f9fa4" }}>Fikrine</span>{" "}
-          <span style={{ color: "#ef7814" }}>Hoş Geldin!</span>
+          <span style={{ color: "var(--metin-marka-1)" }}>Fikrine</span>{" "}
+          <span style={{ color: "var(--metin-marka-2)" }}>Hoş Geldin!</span>
         </h1>
 
         {/* Onur feedback (Sprint 10.3): Cross-context guard.

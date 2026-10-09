@@ -216,9 +216,9 @@ export function ApplicationDetailPage() {
           {detay && (
             <div className="tablo-kart" style={{ padding: "1.4rem 1.6rem" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", marginBottom: "1rem", flexWrap: "wrap" }}>
-                <h2 style={{ fontFamily: "'Baloo 2', sans-serif", color: "var(--lacivert)", fontSize: "1.4rem" }}>
+                <h2 style={{ fontFamily: "'Baloo 2', sans-serif", color: "var(--metin-ana)", fontSize: "1.4rem" }}>
                   {detay.idea.categoryName}
-                  <span style={{ color: "#647a92", fontSize: "1rem", fontWeight: 600 }}> · {detay.idea.provinceName}</span>
+                  <span style={{ color: "var(--metin-ikincil)", fontSize: "1rem", fontWeight: 600 }}> · {detay.idea.provinceName}</span>
                 </h2>
                 <span className={`durum ${detay.idea.status === "Locked" ? "mavi" : detay.idea.status === "EvaluationCompleted" ? "yesil" : "turuncu"}`}>
                   {IDEA_STATUS_LABELS[detay.idea.status]}
@@ -381,8 +381,8 @@ export function ApplicationDetailPage() {
         <div className="af-lightbox" role="dialog" aria-modal="true">
           <div className="fikir-karti auth-modal-kart">
             <h2 className="auth-modal-baslik">
-              <span style={{ color: "#1f9fa4" }}>Değerlendirici</span>{" "}
-              <span style={{ color: "#ef7814" }}>Ata</span>
+              <span style={{ color: "var(--metin-marka-1)" }}>Değerlendirici</span>{" "}
+              <span style={{ color: "var(--metin-marka-2)" }}>Ata</span>
             </h2>
             {evaluatorler.length === 0 ? (
               <p>Değerlendirici listesi yükleniyor…</p>
@@ -420,8 +420,8 @@ export function ApplicationDetailPage() {
         <div className="af-lightbox" role="dialog" aria-modal="true">
           <div className="fikir-karti auth-modal-kart" style={{ maxWidth: "36rem" }}>
             <h2 className="auth-modal-baslik">
-              <span style={{ color: "#1f9fa4" }}>Fikri</span>{" "}
-              <span style={{ color: "#ef7814" }}>Puanla</span>
+              <span style={{ color: "var(--metin-marka-1)" }}>Fikri</span>{" "}
+              <span style={{ color: "var(--metin-marka-2)" }}>Puanla</span>
             </h2>
             <p className="meta">Her kriter için 1-5 arası puan ver (5 = en iyi). Yorum opsiyonel.</p>
             <div className="auth-form">

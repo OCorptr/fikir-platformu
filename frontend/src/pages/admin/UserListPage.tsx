@@ -671,7 +671,7 @@ function KullaniciSatiri({
 
   return (
     <tr>
-      <th scope="row" style={{ fontWeight: 700, color: "var(--yt-lacivert)" }}>
+      <th scope="row" style={{ fontWeight: 700, color: "var(--metin-ana)" }}>
         {u.firstName} {u.lastName}
       </th>
       <td>

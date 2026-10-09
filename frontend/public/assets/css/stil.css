@@ -15,6 +15,28 @@
   --cizgi: #E3ECF4;
   --turkuaz-baslik: #1F9FA4;
   --turuncu-baslik: #EF7814;
+
+  /* Sprint 11.92 — METİN renkleri için anlamsal değişkenler.
+     Sorun: sayfalarda `style={{ color: "var(--lacivert)" }}` gibi INLINE renkler
+     kullanılıyordu. Inline stil, koyu mod CSS geçersiz kılmalarını yener —
+     yani dönem başlıkları, form etiketleri, puan renkleri koyu zeminde lacivert
+     kalıp okunmuyordu. `--lacivert` bir ZEMİN rengi olarak da kullanıldığı için
+     onu koyu modda çevirmek butonları bozardı. Bu yüzden yalnızca metin için
+     ayrı değişkenler tanımlandı; inline stiller bunları kullanınca koyu modda
+     otomatik doğru rengi alır. */
+  --metin-ana: #16355C;      /* başlıklar */
+  --metin-ikincil: #647A92;   /* etiket, yardımcı metin */
+  --metin-vurgu: #C07800;    /* puan / vurgu */
+  --metin-marka-1: #1F9FA4;  /* marka kelimesi 1 */
+  --metin-marka-2: #EF7814;  /* marka kelimesi 2 */
+}
+
+html.koyu-mod {
+  --metin-ana: #DCE7F5;
+  --metin-ikincil: #9FB4CC;
+  --metin-vurgu: #F6C453;
+  --metin-marka-1: #3FC6CB;
+  --metin-marka-2: #FF9A3D;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

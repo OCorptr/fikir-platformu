@@ -382,7 +382,7 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                 <div className="il-panel-bos"><p>Henüz aktif dönem yok.</p></div>
               ) : (
                 <section className="tablo-kart" style={{ marginBottom: "1.2rem" }}>
-                  <div style={{ marginBottom: "0.6rem", fontWeight: 800, color: "var(--lacivert)", fontSize: "1.05rem" }}>
+                  <div style={{ marginBottom: "0.6rem", fontWeight: 800, color: "var(--metin-ana)", fontSize: "1.05rem" }}>
                     {donemEtiketi(aktifDonem)}
                     <span className={`durum ${aktifDonem.status === "Open" ? "yesil" : "turuncu"}`} style={{ marginLeft: "0.6rem" }}>
                       {aktifDonem.status === "Open" ? "🟢 Açık" : `🔒 ${PERIOD_STATUS_LABELS[aktifDonem.status]}`}
@@ -423,7 +423,7 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                   const p = periods.find((x) => x.id === seciliPeriodId);
                   if (!p) return null;
                   return (
-                    <div style={{ marginBottom: "0.4rem", fontWeight: 800, color: "var(--lacivert)", fontSize: "1.05rem" }}>
+                    <div style={{ marginBottom: "0.4rem", fontWeight: 800, color: "var(--metin-ana)", fontSize: "1.05rem" }}>
                       {donemEtiketi(p)}
                       <span className={`durum ${p.status === "Open" ? "yesil" : "turuncu"}`} style={{ marginLeft: "0.6rem" }}>
                         {p.status === "Open" ? "🟢 Açık" : `🔒 ${PERIOD_STATUS_LABELS[p.status]}`}
