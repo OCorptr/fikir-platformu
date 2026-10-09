@@ -97,6 +97,57 @@ bakanlık ekranına kazanan seçme butonu henüz eklenmedi** — API hazır, UI 
 
 ---
 
+## 🏠 Sprint 11.92 — Ana sayfa + değerlendirme kriterleri + demo veri
+
+**Onur talebi (9 Eki 2026, ikinci tur):** Anasayfada **10 aday değil, sadece bakanlığın
+seçtiği kazanan** yayınlansın — aktif dönem + geçmiş 2 dönem. Arşivde tüm kazananlar.
+Ayrıca "İl Arge değerlendirmesindeki değerlendirme kriterlerini gözden geçir, düzeltilecek
+kısımları düzelt" ve test için 4 dönemlik kazanan + her tema için fikir üretilsin.
+
+### Değerlendirme kriterlerinde bulunan 2 GERÇEK KUSUR
+
+| # | Kusur | Sonuç | Düzeltme |
+|---|---|---|---|
+| 1 | `Scores.Count == 0` kontrolü — **en az 1 kriter** yeterliydi | Değerlendirici sadece "Etki: 5" yazınca kriter ortalamaları sözlüğünde tek giriş kalıyor, `ortalamalar.Values.Average()` o tek değere eşitleniyor, fikir **3.5 eşiğini ölçülmemiş 3 kriterle geçiyordu** | 4 kriterin tamamı zorunlu; tekrarlı kriter sayım yerine geçmez (`MissingCriteria`) |
+| 2 | Yalnızca `Locked` iken puanlama engelleniyordu | `EvaluationCompleted` iken puanlar değişebiliyor ama durum geri dönmediği için **ortalama ile durum tutarsızlaşıyordu** (puan düşer, fikir "değerlendirildi" kalır) | `AlreadyCompleted` sonucu; ayrıca yorum 1000 karakter sınırı |
+
+> 💡 Not: kriter sayısı `SubmitEvaluationService.ZorunluKriterSayisi` (4) ve
+> enum'dan türetiliyor — kriter eklenirse kural kendiliğinden güncellenir.
+
+### Anasayfa / arşiv ayrımı
+
+| Yer | Ne gösterir |
+|---|---|
+| **Anasayfa karuseli** | Kazananı olan ilk **3** dönem (aktif + geçmiş 2). Adaylar gösterilmez. |
+| **Ayın Fikri Arşivi** | Kazananı olan **tüm** dönemler, en yeniden eskiye. |
+
+`GET /api/public/ayin-fikirleri` artık `{ aktifDonem, donemler[] }` döner; her dönem
+kaydı `{ id, etiket, baslangic, bitis, durum, kazanan, secimTarihi }`.
+
+### Demo veri üreteci (çalıştırılmayı bekliyor)
+
+`POST /api/__maintenance/demo-seed?token=<AdminMaintenance__Secret>` →
+`Bakim/DemoVeriServisi.cs`. Mevcut 4 dönemin (2026 I–IV) **her biri için 10 kategoriden
+birer fikir** üretir ve zinciri **gerçek domain metotlarıyla** yürütür:
+
+```
+CreateDraft → Submit → MoveToInEvaluation → CompleteEvaluation → Approve → Plan
+```
+
++ 20 öğrenci (`demo.ogrenci##@demo.local`), 2×81 değerlendirici, 2×81 il yöneticisi,
+bakanlık temsilcisi, kategori başına değerlendirme (4 kriter × 2 kişi), `SubmittedAt`
+dönem aralığının içinde (aday havuzu sorgusunun şartı).
+
+- **Şifre koda gömülmez** — her çalıştırmada rastgele üretilir, **yalnızca yanıtta** döner.
+- İdempotent: `demo.` önekli kullanıcı varsa çalışmaz.
+- Temizleme: `&temizle=true` → puan/seçim/kazanan/fikir/profil/kullanıcı sırayla silinir.
+
+> ⚠️ **Çalıştırılmadı** — `AdminMaintenance__Secret` değeri gerekiyor. Onur'dan istenecek.
+
+**Test:** 61 → **76** (`DegerlendirmeKriteriTestleri` 15 test, `OgrenciAdiMaskelemeTestleri` 10 test).
+
+---
+
 ## 📌 HEAD
 
 - **Commit:** `2aac7fe` (Sprint 11.88 — `architecture.md` bayat `needsGmailOAuth` dalı düzeltildi)
