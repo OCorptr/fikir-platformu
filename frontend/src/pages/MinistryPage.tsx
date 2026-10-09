@@ -10,8 +10,10 @@ import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
   getPeriodCandidates,
+  getPeriodSelected,
   listPeriods,
   selectForPeriod,
+  selectPeriodWinner,
 } from "../services/ministry";
 import {
   donemEtiketi,
@@ -21,7 +23,9 @@ import {
   type Period,
   type PeriodCandidatesResponse,
   sessionForContext,
+  type SelectedIdea,
 } from "../types";
+import { ayinFikirleriGetir } from "../services/ayinFikirleri";
 
 const KATEGORI_EMOJI: Record<string, string> = {
   "Kültür ve Sanat": "🎨",
@@ -48,6 +52,10 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
   // Aktif Adaylar için otomatik seçilen Open dönem
   const [aktifDonem, setAktifDonem] = useState<Period | null>(null);
   const [adaylar, setAdaylar] = useState<PeriodCandidatesResponse | null>(null);
+  // Sprint 11.92: dönemin seçilmiş kategorileri + TEK kazananı.
+  const [secililer, setSecililer] = useState<SelectedIdea[]>([]);
+  const [kazananFikirId, setKazananFikirId] = useState<string | null>(null);
+  const [kazananCalisiyor, setKazananCalisiyor] = useState(false);
 
   // Dönemler sekmesinde kullanıcının seçtiği dönem (URL'e yazılmaz, state'te tutulur)
   const [seciliPeriodId, setSeciliPeriodId] = useState<string | null>(null);
@@ -97,12 +105,12 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
-    getPeriodCandidates(aktifDonem.id, controller.signal)
-      .then(setAdaylar)
+    secimleriTazele(aktifDonem.id)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
       })
       .finally(() => setYukleniyor(false));
+    KazananBilgisi(aktifDonem.id, controller.signal);
     return () => controller.abort();
   }, [ben, gorunum, aktifDonem]);
 
@@ -112,17 +120,42 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     const controller = new AbortController();
     setYukleniyor(true);
     setHata(null);
-    getPeriodCandidates(seciliPeriodId, controller.signal)
-      .then(setAdaylar)
+    secimleriTazele(seciliPeriodId)
       .catch((e) => {
         if (!(e instanceof DOMException && e.name === "AbortError")) setHata(mesajCikar(e));
       })
       .finally(() => setYukleniyor(false));
+    KazananBilgisi(seciliPeriodId, controller.signal);
     return () => controller.abort();
   }, [ben, gorunum, seciliPeriodId]);
 
+  /**
+   * Sprint 11.92: kazanan bilgisi `/selected` yanıtında YOK (o sadece kategori
+   * adaylarını döner). Kazanan `period_winners` tablosundadır ve anonim kamu
+   * ucunda yayınlanır — ana sayfanın okuduğu kaynakla aynı kaynaktan okuyoruz.
+   */
+  async function KazananBilgisi(periodId: string, signal?: AbortSignal) {
+    try {
+      const cevap = await ayinFikirleriGetir(signal);
+      setKazananFikirId(cevap.donemler.find((d) => d.id === periodId)?.kazanan?.fikirId ?? null);
+    } catch {
+      /* kazanan bilgisi kritik değil — aday kartları çalışmaya devam etsin */
+    }
+  }
+
   if (kimlikKontrolEdildi && !ben) {
     return <Navigate to="/" replace />;
+  }
+
+  /** Seçili dönemin kategori adaylarını ve TEK kazananını tazeler. */
+  async function secimleriTazele(periodId: string) {
+    const [a, s] = await Promise.all([
+      getPeriodCandidates(periodId),
+      getPeriodSelected(periodId),
+    ]);
+    setAdaylar(a);
+    setSecililer(s.selections);
+    return s;
   }
 
   async function secimYap(categoryId: number, ideaId: string) {
@@ -133,9 +166,36 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     setHata(null);
     try {
       await selectForPeriod(hedef.id, categoryId, ideaId);
-      const a = await getPeriodCandidates(hedef.id);
-      setAdaylar(a);
+      await secimleriTazele(hedef.id);
     } catch (e) { setHata(mesajCikar(e)); }
+  }
+
+  /**
+   * Sprint 11.92 — Dönemin kazananını seç (2. kademe).
+   * Yalnızca o kategorinin adayı seçilmişse aktif olur; backend de
+   * "kazanan, bu dönemin adayları arasından olmalı" diye doğruluyor.
+   */
+  async function kazananSec(ideaId: string) {
+    const hedef = gorunum === "adaylar"
+      ? aktifDonem
+      : periods.find((p) => p.id === seciliPeriodId) ?? null;
+    if (!hedef) return;
+    if (!confirm(
+      "Bu fikri dönemin TEK kazananı yapmak istiyor musun?\n\n" +
+      "Kazanan, herkese açık ana sayfada yayınlanır (öğrenci adı maskeli: \"Elif Y.\" gibi).",
+    )) return;
+
+    setKazananCalisiyor(true);
+    setHata(null);
+    try {
+      await selectPeriodWinner(hedef.id, ideaId);
+      setKazananFikirId(ideaId);
+      await secimleriTazele(hedef.id);
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setKazananCalisiyor(false);
+    }
   }
 
   const baslik = gorunum === "adaylar" ? "Aktif Adaylar" : "Dönemler";
@@ -174,14 +234,44 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
             <div className="okul">📅 {new Date(i.updatedAt).toLocaleDateString("tr-TR")}</div>
             <div className="fikir-alinti">&ldquo;{i.content || "(boş)"}&rdquo;</div>
             {!i.isSelected && <span className="durum yesil">🌟 Aday</span>}
-            <button
-              type="button"
-              className={`btn-ana btn-aday ${i.isSelected ? "secildi" : ""}`}
-              onClick={() => secimYap(g.categoryId, i.id)}
-              disabled={!hedef || hedef.status !== "Open" || g.selected || i.isSelected}
-            >
-              {i.isSelected ? "✅ Ayın Fikri Seçildi" : g.selected ? "🔒 Kategori Seçildi" : "👑 Ayın Fikri Seç"}
-            </button>
+            {i.isSelected && i.id === kazananFikirId && (
+              <span className="durum yesil">👑 Dönemin Fikri</span>
+            )}
+
+            {/* Sprint 11.92 — İki ayrı buton çünkü iki ayrı kayıt var.
+                Önceden tek "👑 Ayın Fikri Seç" butonu vardı ama o YALNIZCA
+                `/select`'i çağırıyordu (kategori adayı); `period_winners`
+                hiç yazılmadığı için ana sayfa hiçbir şey göstermiyordu. */}
+            <div className="aday-eylemler">
+              <button
+                type="button"
+                className={`btn-ana btn-aday ${i.isSelected ? "secildi" : ""}`}
+                onClick={() => secimYap(g.categoryId, i.id)}
+                disabled={!hedef || hedef.status !== "Open" || g.selected || i.isSelected}
+              >
+                {i.isSelected
+                  ? "✅ Kategori Adayı Seçildi"
+                  : g.selected
+                    ? "🔒 Kategori Seçildi"
+                    : "📌 Kategori Adayı Seç"}
+              </button>
+
+              {i.isSelected && (
+                <button
+                  type="button"
+                  className={`btn-ikincil btn-aday ${i.id === kazananFikirId ? "secildi" : ""}`}
+                  onClick={() => kazananSec(i.id)}
+                  disabled={!hedef || hedef.status !== "Open" || kazananCalisiyor}
+                  title="Bu dönemin tek kazananı — ana sayfada yayınlanır"
+                >
+                  {i.id === kazananFikirId
+                    ? "👑 Ayın Fikri Seçildi"
+                    : kazananCalisiyor
+                      ? "Seçiliyor…"
+                      : "👑 Ayın Fikri Seç"}
+                </button>
+              )}
+            </div>
           </div>
         ))}
       </div>

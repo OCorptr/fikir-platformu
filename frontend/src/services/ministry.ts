@@ -42,6 +42,26 @@ export async function selectForPeriod(
   });
 }
 
+/**
+ * Sprint 11.92 — Dönemin TEK kazananını seç.
+ *
+ * İki kademe birbirinden AYRIDIR (Onur, 9 Eki 2026):
+ *   1. `selectForPeriod` → her kategoriden 1 **aday** (bakanlığa gönderilir)
+ *   2. `selectPeriodWinner` → bu adaylar arasından **tek kazanan** (anasayfada yayınlanır)
+ *
+ * Önceden tek adımdı: UI'daki "👑 Ayın Fikri Seç" butonu yalnızca 1. adımı
+ * çağırıyordu, `period_winners` hiç yazılmıyordu ve ana sayfa boş kalıyordu.
+ */
+export async function selectPeriodWinner(
+  periodId: string,
+  ideaId: string,
+): Promise<{ message: string; periodId: string; ideaId: string; oncekiFikirId: string | null }> {
+  return apiRequest(`/api/ministry/periods/${periodId}/kazanan`, {
+    method: "POST",
+    body: { ideaId },
+  });
+}
+
 export async function getPeriodSelected(
   periodId: string,
   signal?: AbortSignal,
