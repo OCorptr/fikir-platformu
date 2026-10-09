@@ -197,7 +197,7 @@ public static class BakimDemoEndpoints
                     new { message = "Demo veri üretilemedi. Ayrıntı için sunucu loglarına bakın." },
                     statusCode: 500);
             }
-        });
+}).AllowAnonymous();  // Sprint 11.92: fail-closed politikası bu ucu kilitlerdi; yetkilendirme handler içindeki anahtar kontrolüyle yapılır.
 
         return app;
     }

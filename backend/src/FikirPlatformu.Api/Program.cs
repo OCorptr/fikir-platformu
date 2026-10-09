@@ -839,8 +839,8 @@ if (BakimGizliAnahtar.Acik(builder.Configuration))
         envHasKey = cfg.GetSection("Cors:AllowedOrigins").Exists(),
         // Sprint 11.52: Gerçek CORS whitelist'i (env boşsa hardcoded fallback dahil) göster.
         aktifCorsOrigins = BakimCORS.AktifOriginler(cfg, app.Environment),
-        });
     });
+}).AllowAnonymous();  // Sprint 11.92: anahtar kontrolü handler içinde
 }
 
 app.MapGet("/api/health", (IClock clock) => Results.Ok(new
