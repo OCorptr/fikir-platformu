@@ -41,6 +41,7 @@ public static class MfaEndpoints
             HassasVeriSifreleme sifreleme,
             EmailOtpStore otpStore,
             IEmailSender epostaGonderici,
+            ILoggerFactory loggerFactory,
             CancellationToken cancellationToken) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -88,7 +89,18 @@ public static class MfaEndpoints
                     kullanici.Email!,
                     "Geleceğin Fikri — MFA Kurulum Doğrulama",
                     $"<p>Merhaba {kullanici.FirstName},</p><p>İki adımlı doğrulama kurulumunu tamamlamak için aşağıdaki 6 haneli kodu uygulamaya girin:</p><h2 style='font-family:monospace;letter-spacing:0.3em;'>{code}</h2><p>Bu kod 5 dakika geçerlidir.</p>");
-                await epostaGonderici.SendAsync(eposta, cancellationToken);
+
+            // S11.92: try/catch ile sar. Ham InvalidOperationException (eksik
+            // SenderAddress, refresh token yok/reddedilmiş) genel 500 maskesine
+            // düşüyordu; kullanıcı ne olduğunu anlayamıyordu.
+            var mailHatasi = await EpostaGonderimGuvenli.Gonder(
+                epostaGonderici, eposta, "mfa-setup-otp", loggerFactory, cancellationToken);
+            if (mailHatasi is not null)
+            {
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                    AuthEventType.MfaSetupStarted, success: false, reason: "email_gonderilemedi");
+                return mailHatasi;
+            }
 
                 await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
                     AuthEventType.MfaSetupStarted, success: true, reason: "method=email");
@@ -176,6 +188,7 @@ public static class MfaEndpoints
             FikirPlatformuDbContext veritabani,
             EmailOtpStore otpStore,
             IEmailSender epostaGonderici,
+            ILoggerFactory loggerFactory,
             CancellationToken cancellationToken) =>
         {
             var userId = http.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -194,7 +207,22 @@ public static class MfaEndpoints
                 kullanici.Email!,
                 "Geleceğin Fikri — Giriş Doğrulama Kodu",
                 $"<p>Merhaba {kullanici.FirstName},</p><p>Hesabınıza giriş yapmak için aşağıdaki 6 haneli kodu uygulamaya girin:</p><h2 style='font-family:monospace;letter-spacing:0.3em;'>{code}</h2><p>Bu kod 5 dakika geçerlidir. Talep etmediyseniz bu e-postayı yok sayabilirsiniz.</p>");
-            await epostaGonderici.SendAsync(eposta, cancellationToken);
+
+            // S11.92: BU SATIR CANLI 500'ÜN KÖK NEDENİYDİ.
+            // SendAsync try/catch dışındaydı → Gmail hatası (eksik SenderAddress,
+            // refresh token yok, token reddedilmiş, timeout) ham exception olarak
+            // kaçıyor, GuvenliHataYonetici genel mesajı dönüyordu. Artık:
+            //   • Sunucu logunda [MAIL] etiketi + istisna tipi + mesaj
+            //   • İstemcide anlamlı Türkçe mesaj + errorCode=MAIL_SEND_FAILED
+            //   • auth_events'e başarısızlık kaydı (denetim izi)
+            var mailHatasi = await EpostaGonderimGuvenli.Gonder(
+                epostaGonderici, eposta, "mfa-login-otp", loggerFactory, cancellationToken);
+            if (mailHatasi is not null)
+            {
+                await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
+                    AuthEventType.MfaLoginFailure, success: false, reason: "email_otp_gonderilemedi");
+                return mailHatasi;
+            }
 
             await AuthEventKaydet(veritabani, http, kullanici.Email, kullanici.Id,
                 AuthEventType.MfaLoginSuccess, success: true, reason: "email_otp_gonderildi");

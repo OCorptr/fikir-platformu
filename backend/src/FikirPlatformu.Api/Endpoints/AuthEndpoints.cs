@@ -28,6 +28,7 @@ public static class AuthEndpoints
             UserManager<ApplicationUser> kullaniciYoneticisi,
             FikirPlatformuDbContext veritabani,
             IEmailSender epostaGonderici,
+            ILoggerFactory loggerFactory,
             HttpContext http) =>
         {
             // CAPTCHA doğrulama (YEĞİTEK gereksinim #2).
@@ -95,11 +96,21 @@ public static class AuthEndpoints
                 "Geleceğin Fikri — E-posta Doğrulama",
                 $"<p>Merhaba {kullanici.FirstName},</p><p>E-posta adresinizi doğrulamak için "
                 + $"<a href='{dogrulamaBaglantisi}'>buraya tıklayın</a>.</p>");
-            await epostaGonderici.SendAsync(eposta, http.RequestAborted);
+
+            // S11.92: Gönderim hatası genel 500'e düşüyordu. Hesap bu satırdan
+            // ÖNCE kaydedildiği için 500 dönersek kullanıcı tekrar kayıt deneyip
+            // "e-posta zaten kayıtlı" hatasına düşerdi. Bu yüzden 202 aynen korunur,
+            // durum mesajda belirtilir + errorCode eklenir.
+            var mailHatasi = await EpostaGonderimGuvenli.Gonder(
+                epostaGonderici, eposta, "kayit-dogrulama", loggerFactory, http.RequestAborted);
 
             return Results.Json(new
             {
-                message = "Kaydınız alındı. E-posta adresinizi doğrulamak için gönderilen bağlantıyı kullanın."
+                message = mailHatasi is null
+                    ? "Kaydınız alındı. E-posta adresinizi doğrulamak için gönderilen bağlantıyı kullanın."
+                    : "Kaydınız alındı ancak doğrulama e-postası gönderilemedi. "
+                      + "Sistem yöneticinize başvurarak hesabınızı doğrulattırabilirsiniz.",
+                errorCode = mailHatasi is null ? null : "MAIL_SEND_FAILED",
             }, statusCode: 202);
         });
 
@@ -512,6 +523,7 @@ grup.MapPost("/logout", async (
             UserManager<ApplicationUser> kullaniciYoneticisi,
             IEmailSender epostaGonderici,
             IConfiguration yapilandirma,
+            ILoggerFactory loggerFactory,
             HttpContext http) =>
         {
             var kullanici = await kullaniciYoneticisi.FindByEmailAsync(istek.Email);
@@ -526,9 +538,13 @@ grup.MapPost("/logout", async (
                     istek.Email,
                     "Geleceğin Fikri — Şifre Sıfırlama",
                     $"<p>Şifrenizi sıfırlamak için <a href='{sifirlamaBaglantisi}'>buraya tıklayın</a>.</p>");
-                await epostaGonderici.SendAsync(eposta, http.RequestAborted);
+                await EpostaGonderimGuvenli.Gonder(
+                    epostaGonderici, eposta, "sifremi-unuttum", loggerFactory, http.RequestAborted);
             }
 
+            // GÖNDERİM BAŞARISIZ OLSA BİLE AYNI CEVAP DÖNER.
+            // Gerekçe: 502 dönersek "bu e-posta kayıtlı" bilgisi sızar (kullanıcı
+            // sayımama — YEĞİTEK test #8). Hata yalnızca sunucu loguna yazılır.
             return Results.Ok(new { message = "Şifre sıfırlama bağlantısı e-posta adresinize gönderildi." });
         });
 

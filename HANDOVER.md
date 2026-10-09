@@ -31,7 +31,23 @@ Kullanıcıya görünen: *"Kod gönderiliyor…"* → *"Kodu tekrar gönder"* �
 | 135 | Refresh token yok (DB `gmail_refresh_tokens` Id=1 boş **veya** env eksik) |
 | 158 | Refresh token reddedildi (geçersiz/expire) |
 
-**Sonraki adım:** Render loglarında `[GMAIL]` satırlarını bul → hangi koşul tutuyor. Ardından **ikinci hata düzeltmesi**: `SendAsync` çağrıları `try/catch` ile sarılıp kullanıcıya anlamlı Türkçe mesaj dönmeli (örn. "E-posta gönderilemedi, sistem yöneticinize bildirin"), genel 500 değil.
+**Sonraki adım:** Render loglarında `[GMAIL]` **ve** `[MAIL]` satırlarını bul → hangi koşul tutuyor.
+
+> 🟡 **Sprint 11.92 — iki düzeltme yapıldı, kök neden HÂLÂ bulunmadı.**
+>
+> 1. **Ekran kilitlenmesi düzeltildi.** `MfaLoginPage.tsx`'te gönderim durumu
+>    TÜRETİLİYORDU (`emailModu && !emailGonderildi`) ve `emailGonderildi` yalnızca
+>    başarıda `true` oluyordu → 500 sonrası buton "Kod gönderiliyor…" metninde
+>    donuyor, kod alanı kalıcı pasifleşiyordu. Artık gerçek state, `finally`'de
+>    sıfırlanıyor; başarısızlıkta ana buton "Kodu tekrar gönder"e dönüşüyor.
+> 2. **Genel 500 kaldırıldı.** `Endpoints/EpostaGonderimGuvenli.cs` — tüm
+>    `SendAsync` çağrıları (MFA kurulum, MFA giriş OTP, kayıt doğrulama, şifre
+>    sıfırlama) try/catch ile sarıldı. Artık **502 + Türkçe mesaj +
+>    `errorCode: MAIL_SEND_FAILED`** dönüyor, sunucu loguna `[MAIL]` + istisna
+>    yazılıyor, `auth_events`'e başarısızlık kaydı giriyor (denetim izi).
+>
+> Yani sonraki denemede hata **hangi koşulun tuttuğunu** logda gösterecek.
+> Teşhis için gerekli tek şey: Render logunda `[MAIL]` / `[GMAIL]` satırı.
 
 **Etkilenen akışlar:** parola sıfırlama, kayıt doğrulama, MFA e-posta kodu. **TOTP MFA etkilenmez** (e-posta kullanmaz).
 

@@ -39,6 +39,16 @@ export function MfaLoginPage() {
   const [calisiyor, setCalisiyor] = useState(false);
   const [emailGonderildi, setEmailGonderildi] = useState(false);
   const [gonderimHatasi, setGonderimHatasi] = useState<string | null>(null);
+  // S11.92 (Onur): "Kod gönderiliyor olarak kalıyor, sorun yoktu önceden."
+  //
+  // KÖK NEDEN: durum TÜRETİLİYORDU — `emailModu && !emailGonderildi`.
+  // `emailGonderildi` yalnızca BAŞARIDA true oluyordu. Gönderim başarısız
+  // olduğunda (500) false kalıyordu → türetilen değer true kalıyordu →
+  // buton "Kod gönderiliyor…" metninde donuyor, submit butonu ve kod alanı
+  // kalıcı pasifleşiyordu. Hata banner'ı görünse bile kullanıcı çıkmaz durumda
+  // kalıyordu. Düzeltme: gönderim durumu artık GERÇEK state, `finally`'de
+  // her zaman sıfırlanıyor.
+  const [otpGonderiliyor, setOtpGonderiliyor] = useState(false);
   const [cooldown, setCooldown] = useState(0); // saniye
   const [providerReady, setProviderReady] = useState(true);
   // Sprint 11.66: needsGmailOAuth bu ekranda artık kullanılmıyor. Gmail token
@@ -114,6 +124,7 @@ export function MfaLoginPage() {
     setHata(null);
     setGonderimHatasi(null);
     setEmailGonderildi(false);
+    setOtpGonderiliyor(false);
     setEkran("giris");
     // Email seçildiyse otomatik OTP gönder.
     if (yontem === "Email") {
@@ -128,6 +139,7 @@ export function MfaLoginPage() {
     setHata(null);
     setGonderimHatasi(null);
     setEmailGonderildi(false);
+    setOtpGonderiliyor(false);
     setCooldown(0);
   }
 
@@ -160,6 +172,7 @@ export function MfaLoginPage() {
 
   async function emailOtpGonder(ilkGonderim: boolean): Promise<boolean> {
     setCalisiyor(true);
+    setOtpGonderiliyor(true);
     setGonderimHatasi(null);
     try {
       const cevap = await mfaSendEmailOtp();
@@ -182,6 +195,9 @@ export function MfaLoginPage() {
       return false;
     } finally {
       setCalisiyor(false);
+      // S11.92: Başarı da BAŞARISIZLIK da yolu buradan çıkıyor — buton
+      // "Kod gönderiliyor…" metninde asla takılı kalmaz.
+      setOtpGonderiliyor(false);
     }
   }
 
@@ -299,11 +315,20 @@ export function MfaLoginPage() {
   // Düzeltme: iki ayrı metin yerine TEK sabit metin. Gönderim sürerken
   // durum yalnızca gönder butonunda görünür, kod alanı pasif kalır.
   const baslik = emailModu ? "📧 E-posta doğrulama" : "📱 Authenticator kodu";
+  // S11.92: Başarısızlıkta "gönderdik" demek yanlış olurdu. Normal akışda tek
+  // sabit metin korunuyor (S11.70 kararı) — yalnızca HATA durumunda dürüst
+  // bir satır gösteriliyor.
   const aciklama = emailModu
-    ? "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin."
+    ? (gonderimHatasi
+        ? "E-posta adresinize kod gönderilemedi. Aşağıdaki hata mesajını okuyun, sonra tekrar gönderin."
+        : "E-posta adresinize 6 haneli kod gönderdik. Kodu aşağıya girin.")
     : "Authenticator uygulamanızda görünen 6 haneli kodu girin.";
-  // Kod henüz gönderilmediyse giriş denemesi anlamsız — input kilitli.
-  const kodGonderiliyor = emailModu && !emailGonderildi;
+  // S11.92: Artık GERÇEK state (aşağıdaki açıklama). Türetilmiş
+  // `!emailGonderildi` başarısızlıkta true kalıp ekranı kilitliyordu.
+  const kodGonderiliyor = emailModu && otpGonderiliyor;
+  // Gönderim başarısız: kullanıcı hiç kod almadı → ana buton tekrar
+  // deneme yoluna dönüşür, kod alanı pasif kalır (uydurma kod girilmesin).
+  const gonderimBasarisiz = emailModu && !emailGonderildi && gonderimHatasi !== null;
 
   return (
     <main className="sayfa-ortak">
@@ -316,7 +341,14 @@ export function MfaLoginPage() {
           Gerekmez — Production SMTP aktifse zaten bu blok render edilmez.
           devCode kullanımı input auto-fill için kullanılır, banner için değil. */}
 
-      <form className="mfa-form" onSubmit={handleOnayla}>
+      <form
+          className="mfa-form"
+          // S11.92: Gönderim başarısız olduğunda ana buton "Kodu tekrar
+          // gönder"e dönüşür — çıkışsız ekran bırakmaz. `required` aynı
+          // koşulda kapatılır, yoksa boş kod alanı submit'i tarayıcıda
+          // engeller ve tıklama hiçbir şey yapmaz.
+          onSubmit={gonderimBasarisiz ? handleTekrarGonder : handleOnayla}
+        >
         <label className="mfa-alan">
           <span>Doğrulama kodu</span>
           <input
@@ -326,8 +358,8 @@ export function MfaLoginPage() {
             maxLength={6}
             autoComplete="one-time-code"
             autoFocus
-            required
-            disabled={kodGonderiliyor}
+            required={!gonderimBasarisiz}
+            disabled={kodGonderiliyor || gonderimBasarisiz}
             value={kod}
             onChange={(e) => setKod(e.target.value.replace(/\D/g, ""))}
             placeholder="123456"
@@ -341,13 +373,19 @@ export function MfaLoginPage() {
         <button
           type="submit"
           className="btn-ana"
-          disabled={calisiyor || kodGonderiliyor}
+          disabled={
+            calisiyor || kodGonderiliyor || (gonderimBasarisiz && cooldown > 0)
+          }
         >
           {kodGonderiliyor
             ? "Kod gönderiliyor…"
             : calisiyor
               ? "Doğrulanıyor…"
-              : "Giriş yap"}
+              : gonderimBasarisiz
+                ? cooldown > 0
+                  ? `Tekrar gönder (${cooldown}sn)`
+                  : "Kodu tekrar gönder"
+                : "Giriş yap"}
         </button>
       </form>
 
