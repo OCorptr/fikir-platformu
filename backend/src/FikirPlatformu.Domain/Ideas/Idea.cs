@@ -144,6 +144,21 @@ public sealed class Idea : Entity
         UpdatedAt = at;
     }
 
+    /// <summary>
+    /// Sprint 11.92 — Bakanlık kategori seçimini geri aldığında Planned → Locked.
+    ///
+    /// <para>Yanlış tıklama düzeltmesi: kategori adayı seçimi fikri `Planned`
+    /// durumuna geçiriyor; geri alındığında fikir il onaylı hâline dönmeli,
+    /// aksi halde bir daha hiçbir dönemde aday olamazdı.</para>
+    /// </summary>
+    public void Unplan(DateTimeOffset at)
+    {
+        if (Status != IdeaSubmissionStatus.Planned)
+            throw new InvalidOperationException("Yalnızca planlanmış fikirlerin seçimi geri alınabilir.");
+        Status = IdeaSubmissionStatus.Locked;
+        UpdatedAt = at;
+    }
+
     /// <summary>İl AR-GE yöneticisi uygulamaya başlattığında Planned → ImplementationInProgress (plan §28).</summary>
     public void StartImplementation(DateTimeOffset at)
     {

@@ -246,6 +246,85 @@ public static class MinistryEndpoints
         }).RequireAuthorization("MinistryOnly");
 
         // =============================================================
+        // Sprint 11.92 — Kategori adayı seçimini GERİ AL.
+        // "Kategori Adayı Seçildi" yanlış tıklandıysa düzeltme yolu.
+        //   • `period_selections` satırı silinir
+        //   • fikir Planned → Locked döner (yeniden aday olabilir)
+        //   • bu fikir kazanan ise kazananlık da düşer (tutarsızlık olmasın)
+        // =============================================================
+        grup.MapDelete("/periods/{id:guid}/select", async (
+            Guid id,
+            int categoryId,
+            HttpContext http,
+            FikirPlatformuDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            var userId = http.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userId)) return Results.Unauthorized();
+
+            var secim = await db.PeriodSelections
+                .FirstOrDefaultAsync(s => s.PeriodId == id && s.CategoryId == categoryId, cancellationToken);
+            if (secim is null)
+            {
+                return Results.Ok(new { message = "Bu kategori için seçilmiş bir aday yok." });
+            }
+
+            var fikir = await db.Ideas.FirstOrDefaultAsync(f => f.Id == secim.IdeaId, cancellationToken);
+            if (fikir is null)
+            {
+                return Results.Json(new { message = "Fikir bulunamadı." }, statusCode: 404);
+            }
+
+            // Fikir uygulama aşamasına geçtiyse seçim geri alınamaz (plan §28).
+            if (fikir.Status is IdeaSubmissionStatus.ImplementationInProgress
+                or IdeaSubmissionStatus.ImplementationCompleted)
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["ideaId"] = ["Uygulama başlamış fikrin kategori seçimi geri alınamaz."]
+                });
+            }
+
+            db.PeriodSelections.Remove(secim);
+            if (fikir.Status == IdeaSubmissionStatus.Planned) fikir.Unplan(DateTimeOffset.UtcNow);
+
+            // Kazanan bu fikirse, kazananlık da düşmeli.
+            var kazananMi = await db.PeriodWinners
+                .AnyAsync(w => w.PeriodId == id && w.IdeaId == fikir.Id, cancellationToken);
+            if (kazananMi)
+            {
+                var kazanan = await db.PeriodWinners
+                    .FirstAsync(w => w.PeriodId == id && w.IdeaId == fikir.Id, cancellationToken);
+                db.PeriodWinners.Remove(kazanan);
+            }
+
+            db.AuthEvents.Add(new Domain.Auth.AuthEvent
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Email = KisiselVeriYardimci.EmailMaskele(http.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value),
+                IpAddress = KisiselVeriYardimci.IpMaskele(http.Connection.RemoteIpAddress?.ToString()),
+                UserAgent = http.Request.Headers.UserAgent.ToString(),
+                EventType = Domain.Auth.AuthEventType.UserUpdated,
+                Success = true,
+                FailureReason = $"kategori-adayi-iptal: {fikir.Id}",
+                CreatedAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync(cancellationToken);
+
+            return Results.Ok(new
+            {
+                message = kazananMi
+                    ? "Kategori adayı geri alındı ve bu fikir dönemin fikri olmaktan çıkarıldı."
+                    : "Kategori adayı geri alındı. Fikir yeniden aday olabilir.",
+                periodId = id,
+                categoryId,
+                ideaId = fikir.Id,
+                kazananDuzeltildi = kazananMi,
+            });
+        }).RequireAuthorization("MinistryOnly");
+
+        // =============================================================
         // Sprint 11.92 — Kazanan seçimini İPTAL ET.
         // Yanlış tıklama ihtimaline karşı geri al: `period_winners` satırı silinir,
         // ana sayfa kartı düşer. Aday seçimleri (`period_selections`) KORUNUR —

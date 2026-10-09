@@ -62,6 +62,21 @@ export async function selectPeriodWinner(
   });
 }
 
+/**
+ * Sprint 11.92 — Kategori adayı seçimini geri al.
+ * Fikir `Planned → Locked` döner, yeniden aday olabilir. Bu fikir dönemin
+ * fikriyse kazananlık da düşer.
+ */
+export async function clearPeriodSelection(
+  periodId: string,
+  categoryId: number,
+): Promise<{ message: string; periodId: string; categoryId: number; kazananDuzeltildi: boolean }> {
+  return apiRequest(
+    `/api/ministry/periods/${periodId}/select?categoryId=${categoryId}`,
+    { method: "DELETE" },
+  );
+}
+
 /** Sprint 11.92 — Dönemin fikri seçimini geri al (yanlış tıklama düzeltme). */
 export async function clearPeriodWinner(
   periodId: string,

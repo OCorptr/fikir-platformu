@@ -9,6 +9,7 @@ import { AdminLayout } from "../components/AdminLayout";
 import { ApiHttpError } from "../services/api";
 import { me } from "../services/auth";
 import {
+  clearPeriodSelection,
   clearPeriodWinner,
   getPeriodCandidates,
   getPeriodSelected,
@@ -57,6 +58,7 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
   const [secililer, setSecililer] = useState<SelectedIdea[]>([]);
   const [kazananFikirId, setKazananFikirId] = useState<string | null>(null);
   const [kazananCalisiyor, setKazananCalisiyor] = useState(false);
+  const [secimCalisiyor, setSecimCalisiyor] = useState(false);
 
   // Dönemler sekmesinde kullanıcının seçtiği dönem (URL'e yazılmaz, state'te tutulur)
   const [seciliPeriodId, setSeciliPeriodId] = useState<string | null>(null);
@@ -228,6 +230,35 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
     }
   }
 
+  /**
+   * Sprint 11.92 — Kategori adayı seçimini geri al ("Ayın Fikri seçmeden önce").
+   * Fikir Locked'a döner, yeniden aday olabilir; bu fikir kazandaysa
+   * kazananlık da düşer.
+   */
+  async function kategoriSecimiGeriAl(categoryId: number, ideaId: string) {
+    const hedef = gorunum === "adaylar"
+      ? aktifDonem
+      : periods.find((p) => p.id === seciliPeriodId) ?? null;
+    if (!hedef) return;
+    if (!confirm(
+      "Kategori adayı seçimini geri almak istiyor musun?\n\n" +
+      "Fikir il onaylı duruma döner ve yeniden aday olabilir.\n" +
+      "Bu fikir dönemin fikriyse, o seçim de düşer.",
+    )) return;
+
+    setSecimCalisiyor(true);
+    setHata(null);
+    try {
+      const sonuc = await clearPeriodSelection(hedef.id, categoryId);
+      if (sonuc.kazananDuzeltildi) setKazananFikirId(null);
+      await secimleriTazele(hedef.id);
+    } catch (e) {
+      setHata(mesajCikar(e));
+    } finally {
+      setSecimCalisiyor(false);
+    }
+  }
+
   const baslik = gorunum === "adaylar" ? "Aktif Adaylar" : "Dönemler";
   const rozetDonem = gorunum === "adaylar"
     ? aktifDonem
@@ -292,7 +323,7 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                     type="button"
                     className="btn-ikincil btn-aday btn-iptal"
                     onClick={() => kazananIptal(i.id)}
-                    disabled={kazananCalisiyor}
+                    disabled={kazananCalisiyor || secimCalisiyor}
                     title="Yanlış seçildiyse geri al"
                   >
                     {kazananCalisiyor ? "İptal ediliyor…" : "❌ Seçimi Geri Al"}
@@ -302,12 +333,26 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                     type="button"
                     className="btn-ikincil btn-aday"
                     onClick={() => kazananSec(i.id)}
-                    disabled={!hedef || hedef.status !== "Open" || kazananCalisiyor}
+                    disabled={!hedef || hedef.status !== "Open" || kazananCalisiyor || secimCalisiyor}
                     title="Bu dönemin tek kazananı — ana sayfada yayınlanır"
                   >
                     {kazananCalisiyor ? "Seçiliyor…" : "👑 Ayın Fikri Seç"}
                   </button>
                 )
+              )}
+
+              {/* Sprint 11.92: "Ayın Fikri seçmeden önce" yanlış kategori adayı
+                  seçildiyse düzeltme yolu. Kazanan da bu fikir değilse. */}
+              {i.isSelected && i.id !== kazananFikirId && (
+                <button
+                  type="button"
+                  className="btn-ikincil btn-aday btn-iptal"
+                  onClick={() => kategoriSecimiGeriAl(g.categoryId, i.id)}
+                  disabled={kazananCalisiyor || secimCalisiyor}
+                  title="Kategori adayı seçimini geri al"
+                >
+                  {secimCalisiyor ? "Geri alınıyor…" : "↩︎ Aday Seçimini Geri Al"}
+                </button>
               )}
             </div>
           </div>

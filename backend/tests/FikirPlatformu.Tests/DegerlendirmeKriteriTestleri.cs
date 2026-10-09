@@ -152,6 +152,37 @@ public class DegerlendirmeKriteriTestleri
         Assert.Equal(IdeaSubmissionStatus.Planned, fikir.Status);
     }
 
+    [Fact]
+    public void KategoriSecimiGeriAlinca_FikirYenidenAdayOlabiliyor()
+    {
+        // Sprint 11.92: bakanlık "Kategori Adayı Seçildi" seçimini geri alabiliyor.
+        // Fikir Locked'a dönmeli, aksi halde bir daha hiçbir dönemde aday olamazdı.
+        var fikir = Idea.CreateDraft(Guid.NewGuid(), 35, 3, "Okul bahçesine ağaç dikelim.", DateTimeOffset.UtcNow);
+        fikir.Submit(35, DateTimeOffset.UtcNow.AddDays(1));
+        fikir.MoveToInEvaluation(DateTimeOffset.UtcNow.AddDays(3));
+        fikir.CompleteEvaluation(DateTimeOffset.UtcNow.AddDays(4));
+        fikir.Approve(DateTimeOffset.UtcNow.AddDays(5));
+        fikir.Plan(DateTimeOffset.UtcNow.AddDays(7));
+        Assert.Equal(IdeaSubmissionStatus.Planned, fikir.Status);
+
+        fikir.Unplan(DateTimeOffset.UtcNow.AddDays(8));
+
+        Assert.Equal(IdeaSubmissionStatus.Locked, fikir.Status);
+        // Locked'tan tekrar planlanabilir → yeniden aday olabilir.
+        fikir.Plan(DateTimeOffset.UtcNow.AddDays(9));
+        Assert.Equal(IdeaSubmissionStatus.Planned, fikir.Status);
+    }
+
+    [Fact]
+    public void SadecePlanlanmisFikir_GeriAlinabilir()
+    {
+        var fikir = Idea.CreateDraft(Guid.NewGuid(), 35, 3, "Test fikri", DateTimeOffset.UtcNow);
+        fikir.Submit(35, DateTimeOffset.UtcNow);
+
+        // Submitted durumundayken geri alma denemeli hata vermeli.
+        Assert.Throws<InvalidOperationException>(() => fikir.Unplan(DateTimeOffset.UtcNow));
+    }
+
     /// <summary>
     /// Servisin kriter validasyonunu tek başına sınar (DB gerektirmez).
     /// Servis sırası: NoScores → InvalidScore → MissingCriteria → CommentTooLong.
