@@ -935,8 +935,10 @@ html.koyu-mod .cta-fikir {
 .af-kart {
   background: #fff; border-radius: 1.5rem; text-align: center;
   padding: 1.2rem 1rem 1.1rem; width: 19rem;
-  /* Sabit yükseklik: metin uzunluğu kartı büyütmesin/küçültmesin. */
-  height: 22rem; overflow: hidden;
+  /* Sabit yükseklik: metin uzunluğu kartı büyütmesin/küçültmesin.
+     Değerler bilinçli olarak DAR: Onur "kartlar çok büyük, ekrandan
+     taşıyor" dedi. Yan kart 15.5rem, orta kart 17.5rem. */
+  height: 15.5rem; overflow: hidden;
   box-shadow: 0 0.8rem 2rem rgba(30, 60, 120, 0.14);
   display: flex; flex-direction: column; justify-content: center;
   transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
@@ -953,6 +955,7 @@ html.koyu-mod .cta-fikir {
 }
 .af-orta {
   width: 22rem; z-index: 2;
+  height: 17.5rem;
   background: linear-gradient(165deg, #FFF3C4 0%, #FFD34D 45%, #F6A81C 100%);
   border: 0.28rem solid #fff; border-radius: 1.8rem;
   padding: 2.2rem 1.3rem 1.1rem;
@@ -1063,11 +1066,20 @@ html.animasyon-durdur .af-sahne.kaydir .af-kart { animation: none; }
   font-size: 1rem; line-height: 1.45; color: #3D2E00; margin-bottom: 0.3rem;
   /* Sprint 11.92: uzun metin kartı büyütmesin — 6 satır + "…".
      Tam metin ortadaki karta tıklayınca (lightbox) görünür. */
-  display: -webkit-box; -webkit-line-clamp: 6; -webkit-box-orient: vertical;
+  /* 4 satır + "…" — kart sabit yükseklikte, taşma yok. */
+  display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical;
   overflow: hidden;
 }
-/* Sprint 11.92: büyütme (lightbox) ekranında TAM metin görünür — kırpma yok. */
-.af-lightbox .af-soz { -webkit-line-clamp: unset; display: block; overflow: visible; }
+/* Sprint 11.92: büyütme (lightbox) ekranında TAM metin görünür.
+   Sabit kart yüksekliği ve kırpma KALDIRILIR; uzun metin kaydırılır.
+   (Önceden 22rem + overflow:hidden vardı, 1500 karakter burada da kesiliyordu.) */
+.af-lightbox .af-kart {
+  height: auto; max-height: 78vh; overflow-y: auto;
+  align-items: center; text-align: center;
+}
+.af-lightbox .af-soz {
+  -webkit-line-clamp: unset; display: block; overflow: visible;
+}
 
 html.koyu-mod .af-orta .af-ad { color: #DCE7F5; text-shadow: none; }
 html.koyu-mod .af-orta .af-okul { color: #9FB4CC; }
