@@ -124,6 +124,37 @@ kısımları düzelt" ve test için 4 dönemlik kazanan + her tema için fikir �
 `GET /api/public/ayin-fikirleri` artık `{ aktifDonem, donemler[] }` döner; her dönem
 kaydı `{ id, etiket, baslangic, bitis, durum, kazanan, secimTarihi }`.
 
+### Demo veri üreteci — 9 Eki 2026'da BAŞARIYLA ÇALIŞTIRILDI
+
+**Üretilen veri (4 dönem × 10 kategori):** 20 öğrenci · 40 değerlendirici ·
+20 il yöneticisi · **80 fikir** · **40 bakanlık adayı** (4×10) · **4 kazanan**.
+
+Çalıştırma sırasında çıkan **4 gerçek hata** (hepsi düzeltildi):
+
+| # | Hata | Kök neden |
+|---|---|---|
+| 1 | `temizle=true` hiçbir işe yaramıyordu | Erken dönüş `if (mevcutDemo)` temizleme kontrolünden **önce** geliyordu |
+| 2 | Hata hep `"başlatma"` adımında raporlanıyordu | `adim` bir `string` — metot çağrısında **kopyalanıyor**, içerideki atama dışarıyı güncellemiyor. `AdimKutusu` (referans tipi) eklendi |
+| 3 | **Render 502 / istek zaman aşımı** | 263 kullanıcı `UserManager.CreateAsync` ile tek tek oluşturuluyordu (her biri PBKDF2 + uzak DB turu). Çözüm: parola hash'i **bir kez** hesaplanıp paylaşılıyor, kullanıcı + roller toplu `AddRange` ile yazılıyor. Değerlendirici sayısı da 81 il yerine **fikir yazan öğrencilerin illeriyle** sınırlandı (243 → 60 hesap) |
+| 4 | `MySqlException: FK ideas.student_id → student_profiles.id` | `Idea.StudentId` **ApplicationUser.Id değil, StudentProfile.Id**. Aynı tuzak `PublicEndpoints` kart sorgusunda da vardı (`kazanan` hep `null` dönüyordu) — ikisi de düzeltildi |
+
+> 🔑 **Ders (kalıcı):** `Idea.StudentId` = **öğrenci profilinin** id'si.
+> Kullanıcıya ulaşmak için `StudentProfile.ApplicationUserId` gerekir.
+
+> ⚠️ Kategori anahtarları `idea_categories.name` ile **birebir** eşleşmeli.
+> Yazım hatası (`"Bilim ve Teknoleji"`) o kategori için jenerik metne düşmeye
+> yol açtı; canlı kategori listesiyle eşleştirildi.
+
+**Giriş bilgisi (tek seferlik, demo):**
+`demo.ogrenci01@demo.local` · parola `j8qpT5M2HEVqPH$@` (her seed'de yeniden üretilir)
+
+**Bakım ucu artık temizlenmiş iç hata mesajı döndürüyor** (bağlantı dizesi/parola
+kalıpları `[gizlendi]`'e çevrilir) — 500'ün sebebini tahmin etmeye gerek kalmadı.
+`AdminMaintenance__Secret` olmadan 403 döner.
+
+**Yayın öncesi temizleme:**
+`POST /api/__maintenance/demo-seed?token=…&temizle=true`
+
 ### İl onayı artık ADAY HAVUZU sayfasında
 
 **Onur talebi (9 Eki 2026):** "İl AR-GE sayfasında puanlama yaptıktan sonra sağ altta

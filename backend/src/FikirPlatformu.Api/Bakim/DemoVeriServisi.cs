@@ -78,7 +78,10 @@ public static class DemoVeriServisi
             "Okul bahçesine koşu parkuru çizelim ve haftalık öğrenci koşusu düzenleyelim.",
             "Sınıflara su içme hatırlatıcı panolar asıp düzenli su tüketimi takibi yapalım.",
         ],
-        ["Bilim ve Teknoleji"] =
+        // ⚠️ Anahtarlar DB'deki `idea_categories.name` ile BİREBİR aynı olmalı.
+        // Yazım hatası (ör. "Teknoleji") o kategori için jenerik metne düşmeye
+        // yol açar — bu yüzden canlı kategori listesiyle eşleştirildi.
+        ["Bilim ve Teknoloji"] =
         [
             "Laboratuvarımıza küçük bir teleskop alıp gökyüzü geceleri düzenleyelim.",
             "Okul bahçesine hava kalitesi ölçen bir istasyon kurup verileri panoda yayınlayalım.",
