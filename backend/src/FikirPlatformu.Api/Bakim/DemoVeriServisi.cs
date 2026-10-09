@@ -893,6 +893,157 @@ public static class DemoVeriServisi
     }
 
     /// <summary>
+    /// Sprint 11.92 — **GEÇMİŞ DÖNEM TEST KAYDI.**
+    ///
+    /// Onur: "1'er kayıtta diğer 2 döneme de atar mısın test amaçlı görmek için."
+    /// Aktif dönemin dışındaki iki döneme (2026 I ve II) birer fikir eklenir ve tam
+    /// zincirden geçirilir: Submitted → EvaluationCompleted → Locked (il onayı) →
+    /// Plan (bakanlık adayı) → PeriodWinner. Böylece ana sayfada 3 kart (aktif +
+    /// geçmiş 2) ve arşivde tüm dönemler görünür olur.
+    /// </summary>
+    public static async Task<object> GecmisDonemKayitlari(
+        IServiceProvider servisler,
+        CancellationToken cancellationToken)
+    {
+        using var kapsam = servisler.CreateScope();
+        var sp = kapsam.ServiceProvider;
+        var db = sp.GetRequiredService<FikirPlatformuDbContext>();
+        var um = sp.GetRequiredService<UserManager<ApplicationUser>>();
+        var rm = sp.GetRequiredService<RoleManager<IdentityRole>>();
+
+        try
+        {
+            if (!await rm.RoleExistsAsync("Student")) await rm.CreateAsync(new IdentityRole("Student"));
+            var ogrenciRolu = await rm.FindByNameAsync("Student");
+            if (ogrenciRolu is null) return new { calistirildi = false, sebep = "Student rolü yok." };
+
+            var kategoriler = await db.IdeaCategories.AsNoTracking()
+                .Where(c => c.IsActive).OrderBy(c => c.Id).ToListAsync(cancellationToken);
+            var iller = await db.Provinces.AsNoTracking().OrderBy(p => p.Id).ToListAsync(cancellationToken);
+
+            // Aktif dönemin DIŞINDAki, kaydı olmayan ilk iki dönem.
+            var simdi = DateTimeOffset.UtcNow;
+            var donemler = await db.Periods.AsNoTracking()
+                .OrderByDescending(d => d.StartAt)
+                .ToListAsync(cancellationToken);
+            var kazananliDonemler = (await db.PeriodWinners.AsNoTracking()
+                .Select(w => w.PeriodId)
+                .ToListAsync(cancellationToken))
+                .ToHashSet();
+
+            var hedefDonemler = donemler
+                .Where(d => d.EndAt <= simdi && !kazananliDonemler.Contains(d.Id))
+                .OrderByDescending(d => d.StartAt)
+                .Take(2)
+                .ToList();
+
+            if (hedefDonemler.Count == 0)
+            {
+                return new { calistirildi = false, sebep = "Kazananı olmayan geçmiş dönem bulunamadı." };
+            }
+
+            var sifre = RastgeleSifreUret();
+            var (hash, damga) = ParolaHashUret(sifre);
+            var roller = new List<IdentityUserRole<string>>();
+            var eklenen = new List<string>();
+
+            for (var i = 0; i < hedefDonemler.Count; i++)
+            {
+                var donem = hedefDonemler[i];
+                var il = iller[(i + 1) % iller.Count];
+                var kategori = kategoriler[(i * 3) % kategoriler.Count];
+                var sablonlar = KategoriFikirleri.TryGetValue(kategori.Name, out var s)
+                    ? s
+                    : ["Bu kategoride okulumuz için bir fikir üretelim."];
+
+                var ogrenci = new ApplicationUser
+                {
+                    Id = Guid.NewGuid().ToString(),
+                    UserName = $"{KullaniciOneki}gecmis{i + 1:00}@demo.local",
+                    Email = $"{KullaniciOneki}gecmis{i + 1:00}@demo.local",
+                    NormalizedUserName = $"{KullaniciOneki}gecmis{i + 1:00}@demo.local".ToUpperInvariant(),
+                    NormalizedEmail = $"{KullaniciOneki}gecmis{i + 1:00}@demo.local".ToUpperInvariant(),
+                    FirstName = Adlar[(i + 9) % Adlar.Length],
+                    LastName = Soyadlar[(i * 5) % Soyadlar.Length],
+                    EmailConfirmed = true,
+                    PasswordHash = hash,
+                    SecurityStamp = damga,
+                };
+                db.Users.Add(ogrenci);
+                roller.Add(new IdentityUserRole<string> { UserId = ogrenci.Id, RoleId = ogrenciRolu.Id });
+
+                var profilId = Guid.NewGuid();
+                db.StudentProfiles.Add(new StudentProfile
+                {
+                    Id = profilId,
+                    ApplicationUserId = ogrenci.Id,
+                    ProvinceId = il.Id,
+                    School = Okullar[(i + 3) % Okullar.Length],
+                    Grade = 7 + (i % 4),
+                    StudentNumber = $"2025{(i + 7):0000}",
+                    CreatedAt = donem.StartAt,
+                    UpdatedAt = donem.StartAt,
+                });
+
+                // SubmittedAt dönemin İÇİNDE olmalı (bakanlık aday havuzu şartı).
+                var gonderim = donem.StartAt.AddDays(20 + i * 5);
+                var fikir = Idea.CreateDraft(profilId, il.Id, kategori.Id, sablonlar[i % sablonlar.Length], gonderim);
+                fikir.Submit(il.Id, gonderim);
+                fikir.MoveToInEvaluation(gonderim.AddDays(3));
+                fikir.CompleteEvaluation(gonderim.AddDays(4));
+                fikir.Approve(gonderim.AddDays(5));          // il onayı (Locked)
+                fikir.Plan(gonderim.AddDays(7));              // bakanlık adayı (Planned)
+                db.Ideas.Add(fikir);
+
+                // İl onayı + aday seçimi denetim kaydı
+                db.AuthEvents.Add(new FikirPlatformu.Domain.Auth.AuthEvent
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = ogrenci.Id,
+                    UserAgent = "demo-seed",
+                    EventType = FikirPlatformu.Domain.Auth.AuthEventType.UserUpdated,
+                    Success = true,
+                    FailureReason = $"gecmis-donem-demo: {donem.Label}",
+                    CreatedAt = donem.StartAt.UtcDateTime,
+                });
+
+                db.PeriodSelections.Add(new PeriodSelection
+                {
+                    PeriodId = donem.Id,
+                    CategoryId = kategori.Id,
+                    IdeaId = fikir.Id,
+                    SelectedByUserId = ogrenci.Id,
+                    SelectedAt = donem.StartAt.AddDays(60),
+                });
+
+                db.PeriodWinners.Add(new PeriodWinner
+                {
+                    PeriodId = donem.Id,
+                    IdeaId = fikir.Id,
+                    SelectedByUserId = ogrenci.Id,
+                    SelectedAt = donem.StartAt.AddDays(75),
+                });
+
+                eklenen.Add($"{donem.Label} → {kategori.Name} / {il.Name} / {ogrenci.FirstName} {ogrenci.LastName}");
+            }
+
+            db.UserRoles.AddRange(roller);
+            await db.SaveChangesAsync(cancellationToken);
+
+            return new
+            {
+                calistirildi = true,
+                eklenen,
+                demoSifre = sifre,
+            };
+        }
+        catch (Exception ex)
+        {
+            throw new DemoSeedAdimException("geçmiş dönem kayıtları", ex);
+        }
+    }
+
+    /// <summary>
     /// Demo üretimi sırasında hangi adımda hata olduğunu taşır.
     /// </summary>
     public sealed class DemoSeedAdimException(string adim, Exception icHata)

@@ -83,6 +83,29 @@ public static class BakimDemoEndpoints
                 }
             }
 
+            // Sprint 11.92: `mod=gecmis` → aktif dönem dışındaki iki döneme
+            // birer test kaydı (bakanlık kazananı dahil) ekler.
+            if (http.Request.Query["mod"].ToString() == "gecmis")
+            {
+                try
+                {
+                    var g = await DemoVeriServisi.GecmisDonemKayitlari(servisler, cancellationToken);
+                    return Results.Ok(g);
+                }
+                catch (Exception ex)
+                {
+                    var kok = ex;
+                    while (kok.InnerException is not null) kok = kok.InnerException;
+                    return Results.Json(new
+                    {
+                        calistirildi = false,
+                        hataTipi = ex.GetType().Name,
+                        mesaj = ex.Message,
+                        kokMesaj = kok.Message,
+                    }, statusCode: 500);
+                }
+            }
+
             try
             {
                 if (sifreModu)

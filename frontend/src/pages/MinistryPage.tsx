@@ -29,8 +29,29 @@ import {
 } from "../types";
 import { ayinFikirleriGetir } from "../services/ayinFikirleri";
 
-const KATEGORI_EMOJI: Record<string, string> = {
-  "Kültür ve Sanat": "🎨",
+/**
+ * Sprint 11.92 (Onur): Dönem rozeti ARTIK TARİHTEN türetiliyor.
+ *
+ * Sorun: "2026 III. Dönem (Temmuz–Eylül) 🟢 Açık" — dönem 1 Ekim'de bitmiş
+ * ama DB'deki `Status` elle `Open` kalmıştı. İki dönem birden "Açık" görünüyordu.
+ * `Status` elle yönetilen bir alan; gösterim için tarih güvenilir kaynak.
+ */
+function donumDurumu(p: Period): { ikon: string; etiket: string; sinif: "yesil" | "mavi" | "turuncu" } {
+  const simdi = Date.now();
+  const bas = new Date(p.startAt).getTime();
+  const bit = new Date(p.endAt).getTime();
+  if (bas > simdi) return { ikon: "⏳", etiket: "Yaklaşıyor", sinif: "mavi" };
+  // Bitiş tarihi DAHİL DEĞİLDİR (1 Temmuz 2026 → Haziran bitmiş).
+  if (bit <= simdi) return { ikon: "✔", etiket: "Tamamlandı", sinif: "turuncu" };
+  return { ikon: "🟢", etiket: "Açık", sinif: "yesil" };
+}
+
+function donumTarihteAcikMi(p: Period): boolean {
+  const simdi = Date.now();
+  return new Date(p.startAt).getTime() <= simdi && simdi < new Date(p.endAt).getTime();
+}
+
+const KATEGORI_EMOJI: Record<string, string> = {  "Kültür ve Sanat": "🎨",
   "Spor ve Sağlıklı Yaşam": "⚽",
   "Bilim ve Teknoloji": "🔬",
   "Çevre ve Sürdürülebilirlik": "🌱",
@@ -86,11 +107,10 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
       .then((liste) => {
         setPeriods(liste);
         const simdi = Date.now();
-        const aktifTarihle = liste.find((p) => {
-          const start = new Date(p.startAt).getTime();
-          const end = new Date(p.endAt).getTime();
-          return p.status === "Open" && start <= simdi && simdi < end;
-        });
+        // Sprint 11.92 (Onur): "2026 III. Dönem (Temmuz–Eylül) 🟢 Açık neden
+        // görünüyor, ekim ayındayız artık." → Rozet ARTIK TARİHTEN türetiliyor.
+        // DB'deki `Status` elle tutuluyor ve geçmiş dönemler `Open` kalmış.
+        const aktifTarihle = liste.find((p) => donumTarihteAcikMi(p));
         const ilk = aktifTarihle ?? liste.find((p) => p.status === "Open") ?? liste[0] ?? null;
         setAktifDonem(ilk);
         setSeciliPeriodId((prev) => prev ?? ilk?.id ?? null);
@@ -385,7 +405,10 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                   <div style={{ marginBottom: "0.6rem", fontWeight: 800, color: "var(--metin-ana)", fontSize: "1.05rem" }}>
                     {donemEtiketi(aktifDonem)}
                     <span className={`durum ${aktifDonem.status === "Open" ? "yesil" : "turuncu"}`} style={{ marginLeft: "0.6rem" }}>
-                      {aktifDonem.status === "Open" ? "🟢 Açık" : `🔒 ${PERIOD_STATUS_LABELS[aktifDonem.status]}`}
+                      {(() => {
+                        const d = donumDurumu(aktifDonem);
+                        return `${d.ikon} ${d.etiket}`;
+                      })()}
                     </span>
                   </div>
                   {yukleniyor && !adaylar && (
@@ -425,8 +448,11 @@ export function MinistryPage({ gorunum }: MinistryPageProps) {
                   return (
                     <div style={{ marginBottom: "0.4rem", fontWeight: 800, color: "var(--metin-ana)", fontSize: "1.05rem" }}>
                       {donemEtiketi(p)}
-                      <span className={`durum ${p.status === "Open" ? "yesil" : "turuncu"}`} style={{ marginLeft: "0.6rem" }}>
-                        {p.status === "Open" ? "🟢 Açık" : `🔒 ${PERIOD_STATUS_LABELS[p.status]}`}
+                      <span className={`durum ${donumDurumu(p).sinif}`} style={{ marginLeft: "0.6rem" }}>
+                        {(() => {
+                          const d = donumDurumu(p);
+                          return `${d.ikon} ${d.etiket}`;
+                        })()}
                       </span>
                     </div>
                   );
