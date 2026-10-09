@@ -183,6 +183,13 @@ export interface InboxEntry {
   lastEvaluatedAt: string | null;
   averageScore: number | null;
   isMinistrySelected: boolean;
+  /**
+   * Sprint 11.92: fikrin durumu. "Hayata Geçir" butonu yalnızca
+   * `Locked` (il onaylı, henüz uygulamaya geçmemiş) fikirlerde görünür.
+   */
+  status: "Draft" | "Submitted" | "InEvaluation" | "EvaluationCompleted" | "Locked"
+    | "Planned" | "ImplementationInProgress" | "ImplementationCompleted"
+    | "ImplementationFailed" | "Deleted";
 }
 
 // Aday eşiği — plan §26: ortalama puan eşiği geçen fikirler bakanlığa aday olur.

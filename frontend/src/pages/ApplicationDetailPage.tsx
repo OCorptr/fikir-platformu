@@ -76,8 +76,8 @@ export function ApplicationDetailPage() {
   // Sprint 11.92 (Onur): "Bazen ayın fikri seçilmese bile o fikir hayata
   // geçirilebilir, arşedeki bir projeyle paralel bir şeyler yapılabilir."
   const [yeniProje, setYeniProje] = useState("");
-  // Aday olmayan (Locked) fikirde önce "Hayata Geçir" butonu, sonra form.
-  const [raporFormuAcik, setRaporFormuAcik] = useState(false);
+  // Sprint 11.92: Aday olmayan (Locked) fikir için "Hayata Geçir" butonu
+  // Gelen Fikirler sayfasına taşındı; burada yalnızca uygulama raporu güncellenir.
 
   // Sprint 11.92: fikir metni uzunsa yarısı gösterilir (Onur talebi).
   // Tam metin gizlenmez; "Devamını oku" ile açılır.
@@ -369,30 +369,11 @@ export function ApplicationDetailPage() {
                 )}
               </div>
 
-              {/* Sprint 11.92 (Onur): "Hayata Geçir".
-                  Ayın fikri seçilmemiş, il onaylı (Locked) bir fikir de
-                  uygulamaya alınabilir — okulun hâlihazırda yürüttüğü bir proje
-                  kapsamında paralel yürütülür. Bakanlık adaylığı gerekmez. */}
-              {managerMi && detay.idea.status === "Locked" && !raporFormuAcik && (
-                <div className="detay-uygulama-form">
-                  <p className="meta" style={{ marginBottom: "0.7rem" }}>
-                    Bu fikir bakanlık adayı olmadan da hayata geçirilebilir.
-                    Hangi proje kapsamında uygulanıyorsa aşağıda yazabilirsiniz.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn-ana"
-                    onClick={() => {
-                      setYeniDurum("InProgress");
-                      setRaporFormuAcik(true);
-                    }}
-                  >
-                    🚀 Hayata Geçir
-                  </button>
-                </div>
-              )}
+              {/* Sprint 11.92 (Onur): "Hayata Geçir" butonu GELEN FİKİRLER
+                  sayfasına taşındı — "yanlış olmuş o kısım". Buradaki form yalnızca
+                  fikir zaten uygulamaya alındıysa durum/not güncellemek içindir. */}
 
-              {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed" || (detay.idea.status === "Locked" && raporFormuAcik)) && (
+              {managerMi && (detay.idea.status === "Planned" || detay.idea.status === "ImplementationInProgress" || detay.idea.status === "ImplementationCompleted" || detay.idea.status === "ImplementationFailed") && (
                 <>
                   <div className="bolum-basligi turkuaz" style={{ marginTop: "1.4rem" }}>Uygulama Raporu</div>
                   <div className="detay-uygulama-form">

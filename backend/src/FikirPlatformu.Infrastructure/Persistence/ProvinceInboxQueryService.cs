@@ -27,7 +27,15 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             where (provinceId == null || fikir.ProvinceId == provinceId)
                 && (fikir.Status == IdeaSubmissionStatus.Submitted
                     || fikir.Status == IdeaSubmissionStatus.InEvaluation
-                    || fikir.Status == IdeaSubmissionStatus.EvaluationCompleted)
+                    || fikir.Status == IdeaSubmissionStatus.EvaluationCompleted
+                    // Sprint 11.92 (Onur): "Hayata Geçir" gelen kutusundan yapılacak.
+                    // İl onaylanan (Locked) fikirler ÖNCEDEN listeden düşüyordu —
+                    // onaylayınca fikir kayboluyor, hayata geçirme yolu görünmüyordu.
+                    || fikir.Status == IdeaSubmissionStatus.Locked
+                    || fikir.Status == IdeaSubmissionStatus.Planned
+                    || fikir.Status == IdeaSubmissionStatus.ImplementationInProgress
+                    || fikir.Status == IdeaSubmissionStatus.ImplementationCompleted
+                    || fikir.Status == IdeaSubmissionStatus.ImplementationFailed)
             join profil in db.StudentProfiles.AsNoTracking() on fikir.StudentId equals profil.Id
             join kullanici in db.Users.AsNoTracking() on profil.ApplicationUserId equals kullanici.Id
             join il in db.Provinces.AsNoTracking() on profil.ProvinceId equals il.Id
@@ -38,6 +46,7 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             {
                 fikir.Id,
                 fikir.CategoryId,
+                fikir.Status,
                 CategoryName = kategori.Name,
                 fikir.ProvinceId,
                 ProvinceName = fikirIl.Name,
@@ -120,6 +129,9 @@ public sealed class ProvinceInboxQueryService(FikirPlatformuDbContext db) : IPro
             evalMap.TryGetValue(r.Id, out var ev) ? ev.Count : 0,
             evalMap.TryGetValue(r.Id, out var ev2) ? ev2.LastAt : null,
             evalMap.TryGetValue(r.Id, out var ev3) && ev3.Avg.HasValue ? Math.Round(ev3.Avg.Value, 2) : (double?)null,
-            secilmisSet.Contains(r.Id))).ToList();
+            secilmisSet.Contains(r.Id),
+            // Sprint 11.92: gelen kutusunda "Hayata Geçir" butonu hangi
+            // fikirlerde çıkacak? Durum bilgisi gerekiyordu.
+            r.Status)).ToList();
     }
 }

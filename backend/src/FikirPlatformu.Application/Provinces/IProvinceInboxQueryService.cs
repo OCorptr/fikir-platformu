@@ -19,7 +19,13 @@ public sealed record InboxEntry(
     int EvaluationCount,
     DateTimeOffset? LastEvaluatedAt,
     double? AverageScore,
-    bool IsMinistrySelected);
+    bool IsMinistrySelected,
+    /// <summary>
+    /// Sprint 11.92: fikrin durumu. Gelen kutusunda "Hayata Geçir" butonu
+    /// yalnızca il onaylı (Locked) ve henüz uygulamaya geçmemiş fikirlerde
+    /// görünür.
+    /// </summary>
+    FikirPlatformu.Domain.Ideas.IdeaSubmissionStatus Status);
 
 public interface IProvinceInboxQueryService
 {
