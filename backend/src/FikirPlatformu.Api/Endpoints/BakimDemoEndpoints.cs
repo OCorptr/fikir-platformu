@@ -47,8 +47,25 @@ public static class BakimDemoEndpoints
             // (hesapları silmez, fikirleri/seçimleri korur).
             var sifreModu = http.Request.Query["mod"].ToString() == "sifre";
 
+            // Sprint 11.92: `mod=inboxtest` → inbox sorgusunu doğrudan çalıştırıp
+            // hatayı döner (teşhis). Uç gizli anahtarla korumalı, bu yüzden iç
+            // hata metnini yanıta koymak güvenlidir.
+            var inboxTestModu = http.Request.Query["mod"].ToString() == "inboxtest";
+
             try
             {
+                if (inboxTestModu)
+                {
+                    var asama = http.Request.Query["asama"].ToString() == "kararli"
+                        ? FikirPlatformu.Application.Provinces.InboxAsama.Kararli
+                        : FikirPlatformu.Application.Provinces.InboxAsama.Gelen;
+                    using var scope = servisler.CreateScope();
+                    var svc = scope.ServiceProvider
+                        .GetRequiredService<FikirPlatformu.Application.Provinces.IProvinceInboxQueryService>();
+                    var liste = await svc.ListAsync(null, "teşhis", asama, cancellationToken);
+                    return Results.Ok(new { basarili = true, adet = liste.Count });
+                }
+
                 if (sifreModu)
                 {
                     log.LogWarning("[DEMO] Demo şifreleri düzeltiliyor.");
