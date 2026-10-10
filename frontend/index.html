@@ -8,15 +8,17 @@
     <meta http-equiv="Expires" content="0" />
     <meta name="description" content="Geleceğin Fikri Platformu" />
     <!-- Sprint 11.92: İKİNCİ SAVUNMA KATMANI.
-         Ana politika Render static-site başlığında (render.yaml). O başlık
-         dashboard'dan elle yönetildiği için meta ile de gönderiyoruz:
-         başlık güncellenmezse burası devreye girer ve ZAP'ın
-         "script-src unsafe-inline / unsafe-eval" uyarıları kapanır.
-         Not: `frame-ancestors` ve `report-uri` meta etiketinde ÇALIŞMAZ
-         (HTTP başlığı gerektirir) — onlar sunucu başlığında kalıyor. -->
+         Ana politika Render static-site başlığında (render.yaml → dashboard).
+         ⚠️ ZAP 21:32 taramasında `script-src unsafe-eval` hâlâ sitede göründü:
+         dashboard başlıkları ELLE yönetiliyor, render.yaml yansımıyor.
+         Bu meta, başlık güncellenene kadar ikinci katman olur.
+
+         ⚠️ `frame-ancestors` ve `report-uri` META İÇİNDE GEÇERSİZDİR
+         (HTTP başlığı gerektirir) — ZAP "Meta Policy Invalid Directive"
+         uyarısı verdi. Bu yüzden burada YOK; sunucu başlığında kalıyor. -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://fikir-platformu.onrender.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://fikir-platformu.onrender.com; base-uri 'self'; form-action 'self'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <title>Geleceğin Fikri Platformu</title>
