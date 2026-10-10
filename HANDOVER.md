@@ -339,6 +339,68 @@ karakter" gibi yanlış parola bilgisi de gitti.
 
 ---
 
+## 🔐 Sprint 11.92 (10 Eki 2026) — Güvenlik taraması ve düzeltmeleri
+
+### Tarama sonuçları (4 araç, hepsi kurulup çalıştırıldı)
+
+| Araç | Kapsam | Sonuç |
+|---|---|---|
+| **Semgrep CE** (`p/security-audit` + `p/owasp-top-ten`) | backend + frontend kaynak kod | **0 bulgu** |
+| **Nuclei** v3.11.1 | canlı site (2 deneme) | **0 bulgu** |
+| `dotnet list package --vulnerable` | NuGet + transitive | **0 CVE** |
+| `npm audit --prod` | frontend | **0 CVE** |
+| **Gitleaks** 8.30.1 | 421 commit, git geçmişi | 🔴 **2 gerçek sızıntı** |
+| **OWASP ZAP** 2.17 | canlı site (pasif) | 6 uyarı → **1** (kabul edilmiş risk) |
+
+> 🛠 **Kurulum notu:** Semgrep `pip install semgrep` → PATH'e değil
+> `C:\Users\OpusGate\AppData\Local\Python\pythoncore-3.14-64\Scripts\` altına kuruluyor.
+> ZAP'ta **JRE paketlenmemiş** → `zap.bat` kendi klasöründen çalışmalı ve
+> `JAVA_HOME` kurulu JDK'yı göstermeli. Ajax/Client Spider tarayıcı istiyor.
+
+### Kapatılan yapılandırma açıkları (tamamı canlıda doğrulandı)
+
+| # | Açık | Düzeltme |
+|---|---|---|
+| 1 | **Bakım anahtarı URL'de** — `?token=SECRET` web loglarına, tarayıcı geçmişine, `Referer`'a düşüyordu (OWASP ASVS 8.3.1) | Anahtar artık **`X-Maintenance-Token` başlığında**; sorgu dizesi kabul edilmiyor |
+| 2 | **Bakım uçları üretimde açıktı** — `admin-reset` sistem yöneticisi parolasını sıfırlayabiliyordu | `BakimModu=Acik` tanımlı değilse uçlar **hiç map edilmiyor** |
+| 3 | **Fail-closed yetkilendirme yoktu** — yetkilendirme yazılmayan uç sessizce açıktı | `options.FallbackPolicy = RequireAuthenticatedUser()` |
+| 4 | **CSRF** — `SameSite=None` + antiforgery yok, koruma yalnızca "gövde hep JSON" varsayımına dayanıyordu | Durum değiştiren metotlarda `Origin` beyaz liste kontrolü (403) |
+| 5 | **CSP `unsafe-inline` + `unsafe-eval`** | Tema script'i `public/assets/js/tema.js` yapıldı → `script-src 'self'` |
+| 6 | **HTML önbellekleniyordu** — `/index.html` kuralı `/` isteğine uygulanmıyordu, Render varsayılanı `s-maxage=300` gidiyordu | `Cache-Control: no-cache, no-store, must-revalidate, private` |
+| 7 | **`robots.txt` 404** | `frontend/public/robots.txt` eklendi |
+| 8 | **CSP meta katmanı** | `index.html`'e CSP `<meta>` (dashboard başlığı güncellenmezse ikinci katman). ⚠️ `frame-ancestors`/`report-uri` meta'da **geçersiz** — kaldırıldı |
+
+### Kalan kabul edilmiş risk
+
+**`CSP: style-src unsafe-inline`** — React'te yüzlerce `style={{}}` kullanımı var; kaldırılırsa sayfa çöker.
+Tarayıcılarda CSS enjeksiyonu JavaScript çalıştırmadığı için fiilen istismar edilemez.
+Gerçek çözüm: inline stilleri CSS sınıfına taşımak → **ayrı sprint**.
+
+### Proje kuralları (gelecekte unutulmasın)
+
+- **Yeni uç eklerken**: grupta yetkilendirme yoksa fail-closed politikası 401 döndürür.
+  Açık olması gerekiyorsa `.AllowAnonymous()` ekle. Açık uçlar: `/api/auth`,
+  `/api/auth/captcha`, `/api/reference`, `/api/public`, `/api/health`, MFA `/cancel`.
+- **Sır ASLA URL'de olmaz** — başlıkta (`X-Maintenance-Token`).
+- **MEB'e taşırken**: `BakimModu` ve `AdminMaintenance__Secret` **tanımlanmayacak**.
+  (Sprint 11.92: Render'dan `AdminMaintenance__Secret` silindi — bu sohbete girdiği için.)
+
+### `.gitleaks.toml` — neden var?
+
+Varsayılan gitleaks kuralları **bu projedeki gerçek sızıntıları görmedi**
+("no leaks found"). Dokümandaki düz metin Türkçe parolalar (kurulum parolası,
+test öğrenci şifresi) biçim kalıbına girmediği için 421 commit tarandı ve
+sıfır bulundu. Projeye özel kurallar yazıldı → **6 bulgu** (2 gerçek + 1 sahte pozitif).
+
+**Kalan iki sızıntı git GEÇMİŞİNDE** (dosyadan silmek yetmez):
+- `HANDOVER.md` (test öğrenci şifresi) — commit `69b14dd`
+- `DEPLOYMENT.md` (parola/token) — commit `c8772a3`
+
+Temizleme `git filter-repo` ile yapılır → **commit geçmişini yeniden yazar,
+GitHub'a zorla push gerekir.** Teslim öncesi yapılmalı.
+
+---
+
 ## 📌 HEAD
 
 - **Commit:** `2aac7fe` (Sprint 11.88 — `architecture.md` bayat `needsGmailOAuth` dalı düzeltildi)
