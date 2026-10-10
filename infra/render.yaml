@@ -1,4 +1,4 @@
-﻿# Render Blueprint (Infrastructure-as-Code).
+# Render Blueprint (Infrastructure-as-Code).
 # Render Dashboard'dan NEW + Blueprint + "Connect repo" ile bu dosyayi
 # gosterince iki service otomatik olusturulur:
 #   1) fikir-platformu (backend) — Docker, TiDB Cloud baglantisi
@@ -74,7 +74,7 @@ services:
         name: Content-Security-Policy
         value: >-
           default-src 'self';
-          script-src 'self' 'unsafe-inline' 'unsafe-eval';
+          script-src 'self';
           style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
           font-src 'self' https://fonts.gstatic.com data:;
           img-src 'self' data: blob:;

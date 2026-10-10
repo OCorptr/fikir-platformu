@@ -11,12 +11,9 @@
     <link rel="stylesheet" href="/assets/css/fonts.css" />
     <link rel="stylesheet" href="/assets/css/stil.css" />
     <link rel="stylesheet" href="/assets/css/admin-panel.css" />
-    <script>
-      try {
-        if (localStorage.getItem("gf-tema") === "koyu")
-          document.documentElement.classList.add("koyu-mod");
-      } catch (e) {}
-    </script>
+    <!-- Sprint 11.92: Tema script'i artık HARİCİ dosyada. CSP'nin
+         script-src 'unsafe-inline' + 'unsafe-eval' ihtiyacını kaldırır. -->
+    <script src="/assets/js/tema.js"></script>
   </head>
   <body>
     <div id="root"></div>
