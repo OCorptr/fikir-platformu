@@ -95,6 +95,15 @@ services:
       - path: /*
         name: Strict-Transport-Security
         value: max-age=31536000; includeSubDomains; preload
+      # Sprint 11.92 (ZAP 10035/10011): SPA ana sayfası HTML döndürdüğü için
+      # `/index.html` kuralı `/` isteğine UYGULANMIYOR ve Render'ın varsayılanı
+      # (`public, max-age=0, s-maxage=300`) geçerli kalıyordu. HTML asla
+      # önbelleğe alınmamalı; `private` de farklı kullanıcıya servis edilmesini
+      # engeller. `/assets/*` kuralı daha SPESİFİK olduğu için hash'li
+      # varlıkların uzun önbelleği bozulmaz.
+      - path: /*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate, private
       # Hash'li varlıklar immutable, HTML her seferinde yenilenir
       - path: /assets/*
         name: Cache-Control

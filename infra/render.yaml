@@ -97,6 +97,14 @@ services:
       - path: /*
         name: Strict-Transport-Security
         value: max-age=31536000; includeSubDomains; preload
+      # Sprint 11.92 (ZAP 10035/10011): SPA her rota için HTML dondurdugu icin
+      # `/index.html` kurali istege UYGULANMIYOR ve Render varsayilani
+      # (`public, max-age=0, s-maxage=300`) gecerli kaliyordu. HTML
+      # onbellege alinmamali; `private` farkli kullaniciya servisini engeller.
+      # `/assets/*` daha SPESIFIK oldugu icin hash'li varlik onbellegi bozulmaz.
+      - path: /*
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate, private
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
