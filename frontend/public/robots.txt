@@ -1,0 +1,16 @@
+# Geleceğin Fikri Platformu — robots.txt
+# Sprint 11.92: ZAP taramasında robots.txt 404 bulundu (teslim öncesi eksiklik).
+#
+# Kurallar:
+#  · Arama motorları siteyi indeksleyebilir (kamu platformu, istenen davranış).
+#  · API uçları indekslenmez — kimlik doğrulama gerektirir ve arama sonuçlarında
+#    anlamsız 401/404 sayfaları çıkmasın.
+#  · Yönetim panelleri indekslenmez (gizlilik + gereksiz tarama yükü).
+
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Disallow: /il-panel/
+Disallow: /bakanlik/
+
+Allow: /
