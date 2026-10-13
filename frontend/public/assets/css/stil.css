@@ -289,6 +289,24 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 }
 
 .sfu-kart .ss-alan input { width: 100%; }
+/* Onur (11.93): "E-POSTA ADRESİNİZ" soluk griydi, hangi alana e-posta girileceği
+   belli olmuyordu. Genel temadaki koyu lacivert + kalın, input da belirginleşti. */
+.sfu-kart .ss-etiket {
+  color: #16355C;
+  font-size: 0.84rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+.sfu-kart .ss-alan input:not(.ss-input-sarmal input) {
+  border: 0.14rem solid #C3D5E4;
+  border-radius: 0.75rem;
+  background: #FCFEFF;
+}
+.sfu-kart .ss-alan input:not(.ss-input-sarmal input):focus-visible {
+  border-color: #1FA0A4;
+  outline: 2px solid #1FA0A4;
+  outline-offset: 1px;
+}
 .sfu-btn { width: 100%; }
 
 .sfu-guvenlik {
@@ -303,6 +321,12 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 }
 
 html.koyu-mod .sfu-kart { background: #1B2C49; border-color: #2E4364; }
+html.koyu-mod .sfu-kart .ss-etiket { color: #9CC3EA; }
+html.koyu-mod .sfu-kart .ss-alan input:not(.ss-input-sarmal input) {
+  background: #16273F;
+  border-color: #3A5578;
+  color: #E8EFF8;
+}
 html.koyu-mod .sfu-ust h1 { color: #DCE7F5; }
 html.koyu-mod .sfu-ust .ss-alt { color: #9FB4CC; }
 html.koyu-mod .sfu-adimlar li { background: #16273F; border-color: #2E4364; }
