@@ -445,7 +445,10 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
               </div>
             </div>
 
-            <div className="auth-iki-sutun">
+            {/* Sprint 11.93 — yerleşim:
+                · İl / Sınıf / Okul No → yan yana (3 kolon)
+                · Okul Adı → tek başına tam satır (okul adı uzun olabiliyor) */}
+            <div className="auth-uc-sutun">
               <div className="alan">
                 <span>İl</span>
                 <select
@@ -463,19 +466,6 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   ))}
                 </select>
               </div>
-              <div className="alan">
-                <span>Okul Adı</span>
-                <input
-                  className="tema-input"
-                  value={kayitOkul}
-                  onChange={(e) => setKayitOkul(e.target.value)}
-                  placeholder=""
-                  maxLength={80}
-                />
-              </div>
-            </div>
-
-            <div className="auth-iki-sutun">
               <div className="alan">
                 <span>Sınıf</span>
                 <select
@@ -511,6 +501,16 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   maxLength={12}
                 />
               </div>
+            </div>
+
+            <div className="alan">
+              <span>Okul Adı</span>
+              <input
+                className="tema-input"
+                value={kayitOkul}
+                onChange={(e) => setKayitOkul(e.target.value)}
+                maxLength={80}
+              />
             </div>
 
             <div className="auth-iki-sutun">

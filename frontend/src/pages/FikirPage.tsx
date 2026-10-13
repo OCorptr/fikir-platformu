@@ -339,7 +339,7 @@ export default function FikirPage() {
   if (!ben) {
     return (
       <main className="fikir-hero">
-        <div className="fikir-sol">
+        <div className="fikir-sol fikir-sol-kayit">
           <div className="balon-kapsa">
             <div className="balon">{balonYazisi(authMod)}</div>
           </div>
