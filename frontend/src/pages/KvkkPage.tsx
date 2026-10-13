@@ -53,8 +53,6 @@ export function KvkkPage() {
           Atatürk Bulvarı No: 98, 06534 Bakanlıklar / Ankara
           <br />
           Telefon: +90 312 413 26 80 · +90 312 413 26 81 · +90 312 413 18 38
-          <br />
-          E-posta: sgb@meb.gov.tr
         </p>
         <p className="kvkk-not">
           Bu bilgiler KVKK 10. madde gereği aydınlatma metninde bulunmak zorundadır.
