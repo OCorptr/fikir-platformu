@@ -129,7 +129,6 @@ export function SifremiUnuttumPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={calisiyor || gonderildi}
-                placeholder="ornek@okul.meb.gov.tr"
               />
             </label>
             <button
