@@ -1038,7 +1038,7 @@ input[type="range"] {
 @media (max-width: 860px) {
   .fikir-sol-kayit {
     position: fixed;
-    top: 0.35rem;
+    top: 4.9rem;
     left: 0.5rem;
     right: 0.5rem;
     z-index: 101;
