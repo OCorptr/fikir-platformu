@@ -23,9 +23,22 @@ import { AdminLayout } from "../components/AdminLayout";
 /** Aydınlatma metninin sürümü — rıza kayıtlarında bu sürüm saklanır. */
 export const KVKK_METIN_VERSIYONU = "2026-09-10";
 
-export function KvkkPage() {
+/**
+ * Sprint 11.93 (Onur): KVKK metinleri artık AYRI SAYFA değil — kayıt modalının
+ * İÇİNDE bir pencere (pane) olarak açılıyor. Daha önce `<a target="_blank">`
+ * ile yeni sekme açılıyordu; kullanıcı kayıt ekranını kaybediyor, geri
+ * dönünce formu doldurmuş haliyle bulamıyordu. Tipik KVKK uygulamalarında
+ * metin tıklandığı yerde açılır.
+ *
+ * `variant="pane"` → modal içi pencere (kapat butonlu, kendi kaydırması var).
+ * `variant="sayfa"` → doğrudan /kvkk adresine girilirse tam sayfa.
+ *
+ * /kvkk rotası SİLİNMEDİ: e-posta/SMS ile paylaşılan doğrudan bağlantılar
+ * ve hukuki metin arşivi için adres çalışmaya devam eder.
+ */
+export function KvkkMetinleri({ variant }: { variant: "pane" | "sayfa" }) {
   return (
-    <div className="kvkk-sayfa">
+    <div className={variant === "pane" ? "kvkk-sayfa kvkk-pane-ic" : "kvkk-sayfa"}>
       <header className="kvkk-ust">
         <h1>Kişisel Verilerin İşlenmesi</h1>
         <p className="kvkk-alt">
@@ -33,7 +46,9 @@ export function KvkkPage() {
           <b>Açık Rıza Metni</b>. İkisi farklı konuları anlatır ve birbirinin yerine
           geçmez. Metin sürümü: <b>{KVKK_METIN_VERSIYONU}</b>
         </p>
-        <Link to="/" className="btn-ikincil">← Anasayfaya dön</Link>
+        {variant === "sayfa" && (
+          <Link to="/" className="btn-ikincil">← Anasayfaya dön</Link>
+        )}
       </header>
 
       {/* ============ 1. AYDINLATMA METNİ ============ */}
@@ -168,4 +183,9 @@ export function KvkkPage() {
       </footer>
     </div>
   );
+}
+
+/** Doğrudan /kvkk adresi — tam sayfa sürüm. */
+export function KvkkPage() {
+  return <KvkkMetinleri variant="sayfa" />;
 }

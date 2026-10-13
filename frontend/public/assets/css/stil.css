@@ -1186,6 +1186,63 @@ html.koyu-mod .cta-fikir {
 .kvkk-not { display: block; font-size: 0.85rem; color: #6B7C90; font-style: italic; margin-top: 0.3rem; }
 .kvkk-alt-not { text-align: center; color: #7A8CA0; font-size: 0.85rem; margin-top: 1.5rem; }
 
+/* ============================================================
+   KVKK METİN PENCERESİ — Sprint 11.93 (Onur)
+   Metinler artık kayıt modalının İÇİNDE açılıyor. Önce
+   `<a target="_blank">` ile yeni sekmeye atılıyordu; kullanıcı kayıt
+   formunu kaybediyor, geri dönünce doldurduğu alanları bulamıyordu.
+   /kvkk adresi tam sayfa sürüm olarak çalışmaya devam eder
+   (paylaşılan doğrudan bağlantılar + hukuki metin arşivi).
+   ============================================================ */
+.kvkk-pane {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(15, 35, 70, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.2rem;
+}
+.kvkk-pane-kart {
+  position: relative;
+  width: min(46rem, 100%);
+  max-height: calc(100svh - 2.4rem);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 1.2rem;
+  box-shadow: 0 1.6rem 4rem rgba(15, 35, 70, 0.4);
+  padding: 1.6rem 1.8rem 2rem;
+}
+.kvkk-pane-kapat {
+  position: absolute;
+  top: 0.9rem;
+  right: 0.9rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  border: none;
+  background: #EEF4FB;
+  color: #16355C;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 2;
+}
+.kvkk-pane-kapat:hover { background: #DCE9F7; }
+.kvkk-pane-kapat:focus-visible { outline: 2px solid #1FA0A4; outline-offset: 2px; }
+.kvkk-pane-ic .kvkk-ust { padding-right: 3rem; }
+.kvkk-pane-ic .kvkk-ust h1 { font-size: 1.4rem; }
+.kvkk-pane-ic .kvkk-alt-not { margin-top: 1rem; }
+html.koyu-mod .kvkk-pane-kart { background: #16273F; }
+html.koyu-mod .kvkk-pane-kapat { background: #223757; color: #DCE7F5; }
+
+@media (max-width: 640px) {
+  .kvkk-pane { padding: 0.5rem; }
+  .kvkk-pane-kart { padding: 1.2rem 1.1rem 1.5rem; border-radius: 0.9rem; }
+}
+
 html.koyu-mod .kvkk-bolum,
 html.koyu-mod .kvkk-sayfa { background: #1B2C49; border-color: #2E4364; color: #D5E2F0; }
 html.koyu-mod .kvkk-blok { background: #1B2C49; border-color: #2E4364; }

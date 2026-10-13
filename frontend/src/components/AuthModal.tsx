@@ -9,6 +9,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ApiHttpError } from "../services/api";
 import { contextFromPath, login, register, logout, me, type LoginContext } from "../services/auth";
+import { KvkkMetinleri } from "../pages/KvkkPage";
 import { getProvinces } from "../services/references";
 import { sifreKuralHatasi } from "../services/sifreKurallari";
 import { sessionForContext } from "../types";
@@ -73,6 +74,8 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   const [meRoller, setMeRoller] = useState<string[]>([]);
   const meRollerEtiketi = rolEtiketi(meRoller);
   const [yetkiliOturumYukleniyor, setYetkiliOturumYukleniyor] = useState(false);
+  // Sprint 11.93 — KVKK metin penceresi. Önce yeni sekmede açılıyordu.
+  const [kvkkAcik, setKvkkAcik] = useState(false);
 
   // Cross-context guard: Modal her açılışında /me çağırır. Province/ministry
   // session varsa öğrenci login yapılamaz — banner + logout butonu göster.
@@ -412,7 +415,10 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
               <button
                 type="button"
                 className="link-button"
-                onClick={() => navigate("/sifremi-unuttum")}
+                /* Sprint 11.93 — useNavigate() Modal context'inde pushState'i tetiklemiyor
+     (bkz. components/YetkiliPanelSecim.tsx:fullPageNav). Tam sayfa yüklemesi
+     gerekiyor. */
+                onClick={() => { window.location.href = "/sifremi-unuttum"; }}
               >
                 Şifremi Unuttum
               </button>
@@ -559,9 +565,13 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   required
                 />
                 <span>
-                  <a href="/kvkk" target="_blank" rel="noreferrer">
+                  <button
+                    type="button"
+                    className="metin-link"
+                    onClick={() => setKvkkAcik(true)}
+                  >
                     <b>Aydınlatma Metni</b>
-                  </a>{" "}
+                  </button>{" "}
                   başlığında anlatılan bilgileri okudum. Bu bir onay değil, sadece
                   bilgilendirmedir.
                 </span>
@@ -579,9 +589,13 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
                   olarak ilan edilen fikirlerde adım maskelenmiş biçimde (<i>örn. “Elif Y.”</i>)
                   ve yazdığım fikir metnim ana sayfada yayımlansın. Onaylamazsan bu
                   platforma üye olamazsın.{" "}
-                  <a href="/kvkk#acik-riza" target="_blank" rel="noreferrer">
+                  <button
+                    type="button"
+                    className="metin-link"
+                    onClick={() => setKvkkAcik(true)}
+                  >
                     Ayrıntılı açık rıza metni
-                  </a>
+                  </button>
                 </span>
               </label>
             </fieldset>
@@ -623,6 +637,30 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
           </div>
         )}
       </div>
+
+      {/* Sprint 11.93 — KVKK metin penceresi. Kayıt formu arkada kalır, metni
+          okuyup kapatınca aynı yerde doldurulmuş forma dönersin. */}
+      {kvkkAcik && (
+        <div
+          className="kvkk-pane"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Kişisel verilerin işlenmesi metinleri"
+          onClick={(e) => { if (e.target === e.currentTarget) setKvkkAcik(false); }}
+        >
+          <div className="kvkk-pane-kart">
+            <button
+              type="button"
+              className="kvkk-pane-kapat"
+              onClick={() => setKvkkAcik(false)}
+              aria-label="Metni kapat"
+            >
+              ✕
+            </button>
+            <KvkkMetinleri variant="pane" />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
