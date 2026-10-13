@@ -36,7 +36,7 @@ export function SifremiUnuttumPage() {
         body: { email: email.trim() },
       });
       setMesaj(
-        "Eğer bu e-posta bir hesaba kayıtlıysa, şifre sıfırlama bağlantısı gönderildi. Lütfen e-postanızı (ve spam) klasörünü kontrol edin. Bağlantı 1 saat geçerlidir.",
+        "Eğer bu e-posta bir hesaba kayıtlıysa, şifre sıfırlama bağlantısı gönderildi. Lütfen e-postanızı ve spam klasörünü kontrol edin. Bağlantı 1 saat geçerlidir.",
       );
     } catch (err) {
       setHata(
@@ -97,14 +97,14 @@ export function SifremiUnuttumPage() {
               <span className="sfu-adim-no">2</span>
               <span className="sfu-adim-metin">
                 <b>Postanızı kontrol edin</b>
-                <small>Spam klasörünü de bakın</small>
+                <small>Spam klasörünü de bakın.</small>
               </span>
             </li>
             <li>
               <span className="sfu-adim-no">3</span>
               <span className="sfu-adim-metin">
                 <b>Yeni şifrenizi belirleyin</b>
-                <small>Bağlantı 1 saat geçerli</small>
+                <small>Bağlantı 1 saat geçerli.</small>
               </span>
             </li>
           </ol>
