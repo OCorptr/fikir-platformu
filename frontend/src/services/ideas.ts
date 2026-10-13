@@ -8,8 +8,9 @@ import type {
   SubmitResponse,
 } from "../types";
 
-// ===== Sprint 11.92 — KVKK yayım rızası (ver/geri çek) =====
-// Kanun 3. madde gereği açık rıza HER ZAMAN geri alınabilir.
+// ===== Sprint 11.92 — KVKK yayım rızası =====
+// Kayıt sırasında verilir. Onur (S11.93) kararı: arayüzde geri çekme
+// seçeneği sunulmuyor.
 
 export async function getPublishConsent(signal?: AbortSignal): Promise<{ yayimRizasiVar: boolean }> {
   return apiRequest<{ yayimRizasiVar: boolean }>("/api/student/ideas/yayim-risasi", { signal });

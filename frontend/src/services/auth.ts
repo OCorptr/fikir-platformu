@@ -21,7 +21,7 @@ export async function register(payload: {
   // ===== KVKK (Sprint 11.92) =====
   /** Aydınlatma Metni okundu (onay DEĞİL — KVKK 2026/347 sayılı kararı). Zorunlu. */
   aydinlatmaOkundu: boolean;
-  /** Yayımlamaya yönelik AYRI, isteğe bağlı, geri alınabilir açık rıza. */
+  /** Yayımlamaya yönelik AYRI ve zorunlu açık rıza (üyeliğin ön koşulu). */
   yayimRizasi?: boolean;
 }): Promise<RegisterResponse> {
   return apiRequest<RegisterResponse>("/api/auth/register", {

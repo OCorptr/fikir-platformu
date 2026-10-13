@@ -116,7 +116,7 @@ export function KvkkPage() {
       </section>
 
       {/* ============ 2. AÇIK RIZA METNİ ============ */}
-      {/* Yalnızca bu konuya ilişkin, isteğe bağlı ve geri alınabilir rıza. */}
+      {/* Yalnızca bu konuya ilişkin, üyeliğin ön koşulu olan ayrı açık rıza. */}
       <section className="kvkk-bolum kvkk-riza" id="acik-riza">
         <h2>2. Açık Rıza Metni — Fikrinizin Yayımlanması</h2>
         <p>
@@ -155,18 +155,10 @@ export function KvkkPage() {
           Platforma yalnızca yayımlama iznini vererek üye olabilirsin.
         </p>
 
-        <h3>Onayı geri çekebilir miyim?</h3>
-        <p>
-          <b>Evet, istediğin zaman.</b> Onayı geri çektiğinde bilgilerin ana
-          sayfadan kaldırılır. Bu durumda hesabın ve değerlendirmelerin devam eder,
-          yalnızca kamuya açık gösterim kapanır. Geri çekme talebinizi
-          <b>[veri sorumlusu iletişim bilgisi]</b> üzerinden iletebilirsiniz.
-        </p>
-
         <h3>Onay ne kadar süre geçerli?</h3>
         <p>
-          Onayınız, <b>“Ayın Fikri” seçildiği sürece</b> ve siz geri çekmedikçe
-          geçerlidir. Dönem bittiğinde ilgili kayıt yayımlamadan kaldırılır.
+          Onayınız, <b>“Ayın Fikri” seçildiği sürece</b> geçerlidir. Dönem
+          bittiğinde ilgili kayıt yayımlamadan kaldırılır.
         </p>
       </section>
 

@@ -63,7 +63,7 @@ export function AuthModal({ acik, onAuthed, sadeceGiris = false, context: contex
   // ===== Sprint 11.92 — KVKK =====
   // Aydınlatma "okudum" geri bildirimi (onay DEĞİL — KVKK 2026/347 kararı).
   const [aydinlatmaOkundu, setAydinlatmaOkundu] = useState(false);
-  // Yayımlamaya yönelik AYRI, opsiyonel ve geri alınabilir açık rıza.
+  // Yayımlamaya yönelik AYRI ve zorunlu açık rıza (Onur kararı: üyeliğin ön koşulu).
   const [yayimRizasi, setYayimRizasi] = useState(false);
 
   const [hata, setHata] = useState<string | null>(null);
