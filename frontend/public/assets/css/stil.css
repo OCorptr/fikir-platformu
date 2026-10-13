@@ -161,6 +161,182 @@ h1, h2, h3, .baloo { font-family: 'Baloo 2', 'Nunito', sans-serif; }
 .not-script .alti { position: relative; display: inline-block; }
 .not-script .alti svg { position: absolute; left: -3%; bottom: -0.55rem; width: 106%; height: 0.75rem; }
 
+/* ============================================================
+   ŞİFREMİ UNUTTUM — Sprint 11.93 (Onur: "çok basit, temaya uygun değil")
+   Önceki hâl `auth-modal-kart`'ı tek başına kullanıyordu; o class yalnızca
+   `.af-lightbox > .auth-modal-kart` altında stillendiği için sayfa hiç kural
+   almıyor, çıplak HTML olarak çiziliyordu.
+   Burada genel platform teması (index gradyanı + Genç AR-GE maskotu + konuşma
+   balonu) ile şifre akışının kart dili (ss-*) birleştirildi.
+   ============================================================ */
+.sfu-sayfa { overflow-y: auto; }
+.sfu-kutu {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 3rem;
+  align-items: center;
+  width: min(72rem, 100%);
+  margin: 0 auto;
+  padding: 3rem 4rem 4rem;
+  position: relative;
+  z-index: 2;
+}
+.sfu-sol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-self: center;
+}
+.sfu-sol .maskot-fikir { width: 15rem; }
+.sfu-balon { font-size: 1.7rem; max-width: 24rem; }
+
+.sfu-kart {
+  width: min(30rem, 100%);
+  justify-self: start;
+  padding: 1.8rem 1.9rem 1.5rem;
+  border-radius: 1.4rem;
+  box-shadow: 0 1.4rem 3.4rem rgba(30, 60, 120, 0.18);
+  border: 0.22rem solid #fff;
+}
+.sfu-ust { display: flex; align-items: flex-start; gap: 0.9rem; margin-bottom: 1.3rem; }
+.sfu-ikon {
+  flex: 0 0 auto;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.5rem;
+  background: linear-gradient(150deg, #1FA0A4 0%, #1783A8 100%);
+  box-shadow: 0 0.5rem 1.2rem rgba(31, 160, 164, 0.35);
+}
+.sfu-ust h1 {
+  margin: 0 0 0.25rem 0;
+  font-family: "Rammetto One", "Caveat", system-ui, sans-serif;
+  font-size: 1.75rem;
+  color: #16355C;
+}
+.sfu-ust .ss-alt { line-height: 1.5; font-size: 0.92rem; color: #4A5E76; }
+
+/* 3 adımlı yol haritası */
+.sfu-adimlar {
+  list-style: none;
+  margin: 0 0 1.2rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.sfu-adimlar li {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.8rem;
+  background: #F4F8FC;
+  border: 0.1rem solid #E2EBF3;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+.sfu-adimlar li.aktif {
+  background: #E9F7F8;
+  border-color: #1FA0A4;
+}
+.sfu-adimlar li.bitti {
+  background: #EAF7EF;
+  border-color: #7FC79B;
+}
+.sfu-adim-no {
+  flex: 0 0 auto;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+  background: #A9BDD0;
+}
+.sfu-adimlar li.aktif .sfu-adim-no { background: #1FA0A4; }
+.sfu-adimlar li.bitti .sfu-adim-no { background: #4E9E70; }
+.sfu-adim-metin { display: flex; flex-direction: column; min-width: 0; }
+.sfu-adim-metin b { font-size: 0.92rem; color: #16355C; }
+.sfu-adim-metin small { font-size: 0.78rem; color: #5B7085; }
+
+.sfu-mesaj {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: #EAF7EF;
+  border: 0.1rem solid #7FC79B;
+  border-radius: 0.8rem;
+  padding: 0.75rem 0.85rem;
+  margin-bottom: 1rem;
+}
+.sfu-mesaj p { margin: 0; font-size: 0.86rem; line-height: 1.5; color: #1E5B39; }
+.sfu-mesaj-ikon {
+  flex: 0 0 auto;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fff;
+  background: #4E9E70;
+}
+
+.sfu-kart .ss-alan input { width: 100%; }
+.sfu-btn { width: 100%; }
+
+.sfu-guvenlik {
+  margin: 1rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.7rem;
+  background: #FFF8E6;
+  border: 0.1rem solid #F0D48A;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #6B5A1E;
+}
+
+html.koyu-mod .sfu-kart { background: #1B2C49; border-color: #2E4364; }
+html.koyu-mod .sfu-ust h1 { color: #DCE7F5; }
+html.koyu-mod .sfu-ust .ss-alt { color: #9FB4CC; }
+html.koyu-mod .sfu-adimlar li { background: #16273F; border-color: #2E4364; }
+html.koyu-mod .sfu-adim-metin b { color: #C6D6E8; }
+html.koyu-mod .sfu-adim-metin small { color: #9FB4CC; }
+html.koyu-mod .sfu-adimlar li.aktif { background: #16333A; border-color: #1FA0A4; }
+html.koyu-mod .sfu-mesaj { background: #16301F; border-color: #3F7F58; }
+html.koyu-mod .sfu-mesaj p { color: #BFE3CC; }
+html.koyu-mod .sfu-guvenlik { background: #2A2415; border-color: #6B5A2E; color: #E8D6A8; }
+html.koyu-mod .ss-hata-mesaj { background: #3A1D22; border-color: #7F3A44; color: #F2C4CB; }
+
+@media (max-width: 860px) {
+  .sfu-kutu {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    padding: 1rem 1.4rem 2rem;
+    align-items: start;
+    /* Grid varsayılanı satırları esnetir (align-content: stretch) — tek kolonda
+       maske ile kart arasına ~150px ölü boşluk giriyordu. */
+    align-content: start;
+  }
+  .sfu-sol { order: -1; flex-direction: row; gap: 0.6rem; align-items: center; }
+  .sfu-sol .balon-kapsa { flex: 1; min-width: 0; }
+  .sfu-sol .maskot-fikir { width: 6.5rem; flex: 0 0 auto; }
+  .sfu-balon { font-size: 1.35rem; max-width: none; padding: 0.75rem 1rem; min-height: 0; text-align: left; }
+  .sfu-balon::after { left: 92%; }
+  .sfu-kart { justify-self: center; width: min(30rem, 100%); padding: 1.4rem 1.3rem 1.2rem; }
+  .sfu-ust h1 { font-size: 1.45rem; }
+  .sfu-adim-metin small { font-size: 0.72rem; }
+  /* .btn-ana mobilde order:-1 alıyor (butonu forma üstte çeker) — bu formda
+     buton alanın ALTINDA kalmalı. İki class'lı seçici tek class'a yanyor. */
+  .sfu-kart .sfu-btn { order: 0; margin-left: 0; }
+}
+
 
 
 .secim { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.4rem 3rem 0.2rem; position: relative; z-index: 2; }
