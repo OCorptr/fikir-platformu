@@ -338,7 +338,10 @@ export default function FikirPage() {
   // Kimlik yoksa FORM GÖSTERİLMEZ — sadece AuthModal arka planda açılır.
   if (!ben) {
     return (
-      <main className="fikir-hero">
+      // Sprint 11.93 (Onur): maske+balon, hangi sekme AÇIKSA onun panelinin hemen
+      // üstünde durur. Giriş paneli kısa (219px), Kayıt paneli uzun (129px) — balon
+      // ikisini de takip eder. Sınıf authMod'u taşır.
+      <main className={`fikir-hero fikir-hero-mod-${authMod}`}>
         <div className="fikir-sol fikir-sol-kayit">
           <div className="balon-kapsa">
             <div className="balon">{balonYazisi(authMod)}</div>

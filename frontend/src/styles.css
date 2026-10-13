@@ -1036,15 +1036,32 @@ input[type="range"] {
    kartinin 374px'ini kapliyordu. Sabitlenip en uste alindi; kart zaten ustten
    basliyor, bu yuzden artik ust uste binmiyor. */
 @media (max-width: 860px) {
+  /* Onur (S11.93): maske+balon sabit konumlu; hangi sekme acikSA onun panelinin
+     ust kenarinin hemen ustunde durur. Tum degerler REM — proje zaten html
+     font-size'i viewport'a gore olcekliyor, sabit px her cozunurlukte kirpiyordu. */
   .fikir-sol-kayit {
     position: fixed;
-    top: 4.9rem;
+    top: 4rem;
     left: 0.5rem;
     right: 0.5rem;
     z-index: 101;
     flex-direction: row;
     align-items: center;
     gap: 0.5rem;
+    transition: top 0.28s ease;
+  }
+  /* Balon, secili sekmenin panelinin ust kenarinin hemen ustunde durur.
+     390x844'de olculdu (kartUst - bantYuksekligi):
+       · Kayit Ol  -> 129 - 84 = 45px = 4.0rem
+       · Giris Yap -> 219-70=149px (13.0rem) … 251-70=181px (15.9rem)
+         kart captcha/hata mesaji degisince 32px kayiyor; 14.5rem ikisinin
+         ortasi — her iki durumda da balon panelin ust kenari hizasinda. */
+  .fikir-hero-mod-kayit .fikir-sol-kayit {
+    top: 4rem;
+  }
+  .fikir-hero-mod-giris .fikir-sol-kayit,
+  .fikir-hero-mod-dogrulamaBekleniyor .fikir-sol-kayit {
+    top: 14.5rem;
   }
   .fikir-sol-kayit .balon {
     max-width: none;
