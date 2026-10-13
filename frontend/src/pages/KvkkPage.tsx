@@ -15,7 +15,7 @@
  *
  * ⚠️ Bu metinler taslaktır ve yayına almadan önce kurum hukuk birimi tarafından
  * gözden geçirilmelidir. "Veri sorumlusu" alanları kurumun resmi unvanı ve
- * iletişim bilgileriyle doldurulmalıdır.
+ * iletişim bilgileriyle doldurulmuştur (Sprint 11.92).
  */
 import { Link } from "react-router-dom";
 import { AdminLayout } from "../components/AdminLayout";
@@ -48,12 +48,16 @@ export function KvkkPage() {
 
         <h3>Veri sorumlusu kim?</h3>
         <p>
-          <b>[Kurumun resmî unvanı]</b> — Genç AR-GE / Geleceğin Fikri Platformu.
-          Adres: [kurum adresi]. İletişim: [e-posta / telefon].
+          <b>Millî Eğitim Bakanlığı, Strateji Geliştirme Başkanlığı</b>
           <br />
-          <span className="kvkk-not">
-            Bu alanlar kurumun resmî bilgileriyle doldurulmalıdır (KVKK md.10/a).
-          </span>
+          Atatürk Bulvarı No: 98, 06534 Bakanlıklar / Ankara
+          <br />
+          Telefon: +90 312 413 26 80 · +90 312 413 26 81 · +90 312 413 18 38
+          <br />
+          E-posta: sgb@meb.gov.tr
+        </p>
+        <p className="kvkk-not">
+          Bu bilgiler KVKK 10. madde gereği aydınlatma metninde bulunmak zorundadır.
         </p>
 
         <h3>Hangi bilgilerinizi işliyoruz?</h3>
