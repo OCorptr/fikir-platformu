@@ -1032,6 +1032,35 @@ input[type="range"] {
     max-width: 28.8rem;
   }
 }
+/* Dar ekran (S11.93): maske+balon sayfa akisinda dikey ORTAYA dusuyor ve kayit
+   kartinin 374px'ini kapliyordu. Sabitlenip en uste alindi; kart zaten ustten
+   basliyor, bu yuzden artik ust uste binmiyor. */
+@media (max-width: 860px) {
+  .fikir-sol-kayit {
+    position: fixed;
+    top: 0.35rem;
+    left: 0.5rem;
+    right: 0.5rem;
+    z-index: 101;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .fikir-sol-kayit .balon {
+    max-width: none;
+    text-align: left;
+    padding: 0.7rem 0.9rem;
+    min-height: 0;
+  }
+  .fikir-sol-kayit .balon::after {
+    left: 88%;
+  }
+  .fikir-sol-kayit .maskot-fikir {
+    width: 6rem;
+    margin-top: 0;
+    flex: 0 0 auto;
+  }
+}
 
 .ust-cikis {
   margin-right: 0.6rem;
