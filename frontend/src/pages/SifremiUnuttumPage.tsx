@@ -18,12 +18,16 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { apiRequest, ApiHttpError } from "../services/api";
+import { KvkkMetinleri } from "./KvkkPage";
 
 export function SifremiUnuttumPage() {
   const [email, setEmail] = useState("");
   const [calisiyor, setCalisiyor] = useState(false);
   const [mesaj, setMesaj] = useState<string | null>(null);
   const [hata, setHata] = useState<string | null>(null);
+  // Sprint 11.93 — Aydınlatma Metni ayrı sayfaya DEĞİL, bu ekranın üstünde
+  // pencere olarak açılır. Formda yazılan e-posta korunur.
+  const [kvkkAcik, setKvkkAcik] = useState(false);
 
   async function gonder(e: FormEvent) {
     e.preventDefault();
@@ -152,10 +156,38 @@ export function SifremiUnuttumPage() {
           <p className="ss-yardim">
             <Link to="/giris">← Giriş ekranına dön</Link>
             {" · "}
-            <Link to="/kvkk">Aydınlatma Metni</Link>
+            <button
+              type="button"
+              className="metin-link"
+              onClick={() => setKvkkAcik(true)}
+            >
+              Aydınlatma Metni
+            </button>
           </p>
         </section>
       </div>
+
+      {kvkkAcik && (
+        <div
+          className="kvkk-pane"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Kişisel verilerin işlenmesi metinleri"
+          onClick={(e) => { if (e.target === e.currentTarget) setKvkkAcik(false); }}
+        >
+          <div className="kvkk-pane-kart">
+            <button
+              type="button"
+              className="kvkk-pane-kapat"
+              onClick={() => setKvkkAcik(false)}
+              aria-label="Metni kapat"
+            >
+              ✕
+            </button>
+            <KvkkMetinleri variant="pane" />
+          </div>
+        </div>
+      )}
     </main>
   );
 }
